@@ -1,0 +1,494 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户模块 ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  GUEST
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?  @map("email_verified")
+  image         String?
+  password      String?    // bcrypt hashed
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  timezone      String     @default("Asia/Shanghai")
+  language      String     @default("zh-CN")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  accounts         Account[]
+  sessions         Session[]
+  workspaceMembers WorkspaceMember[]
+  apiKeys          ApiKey[]
+  settings         UserSettings?
+  notifications    Notification[]
+  knowledgeEntries KnowledgeEntry[]
+
+  @@map("users")
+}
+
+model UserSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  emailNotify       Boolean  @default(true) @map("email_notify")
+  pushNotify        Boolean  @default(true) @map("push_notify")
+  executionNotify   Boolean  @default(true) @map("execution_notify")
+  inviteNotify      Boolean  @default(true) @map("invite_notify")
+  systemNotify      Boolean  @default(true) @map("system_notify")
+  darkMode          Boolean  @default(false) @map("dark_mode")
+  autoRun           Boolean  @default(false) @map("auto_run")
+  twoFactorAuth     Boolean  @default(false) @map("two_factor_auth")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// ==================== API Key 模块 ====================
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  key       String   // 加密存储
+  provider  String   // kimi, openai, etc.
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String   @map("user_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// ==================== 工作空间模块 ====================
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members  WorkspaceMember[]
+  projects Project[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ==================== 项目模块 ====================
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  workspaceId String        @map("workspace_id")
+
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  systems    System[]
+  testSuites TestSuite[]
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// ==================== 系统模块 ====================
+
+model System {
+  id        String   @id @default(cuid())
+  name      String
+  baseUrl   String   @map("base_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  projectId String   @map("project_id")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pages   Page[]
+
+  @@map("systems")
+}
+
+// ==================== 页面模块 ====================
+
+model Page {
+  id        String   @id @default(cuid())
+  name      String
+  path      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  systemId  String   @map("system_id")
+
+  system       System        @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  requirements Requirement[]
+  testCases    TestCase[]
+
+  @@map("pages")
+}
+
+// ==================== 需求模块 ====================
+
+model Requirement {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  sourceType  RequirementSource @map("source_type")
+  sourceUrl   String?           @map("source_url")
+  rawContent  String?           @map("raw_content")
+  parsedData  String?           @map("parsed_data") // JSON
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  pageId      String            @map("page_id")
+
+  page      Page       @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  testCases TestCase[]
+
+  @@map("requirements")
+}
+
+enum RequirementSource {
+  UPLOAD
+  PASTE
+  JIRA
+  NOTION
+  FEISHU
+}
+
+// ==================== 测试用例模块 ====================
+
+model TestCase {
+  id            String     @id @default(cuid())
+  title         String
+  preCondition  String?    @map("pre_condition")
+  steps         String     // JSON array
+  expectation   String
+  priority      Priority   @default(P1)
+  tags          String?    // JSON array
+  isAiGenerated Boolean    @default(false) @map("is_ai_generated")
+  status        TestStatus @default(DRAFT)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  pageId        String     @map("page_id")
+  requirementId String?    @map("requirement_id")
+
+  page           Page            @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  requirement    Requirement?    @relation(fields: [requirementId], references: [id])
+  executions     TestExecution[]
+  testSuiteCases TestSuiteCase[]
+
+  @@map("test_cases")
+}
+
+enum Priority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum TestStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+}
+
+// ==================== 测试执行模块 ====================
+
+model TestExecution {
+  id           String          @id @default(cuid())
+  status       ExecutionStatus @default(PENDING)
+  duration     Int?            // milliseconds
+  logs         String?         // JSON
+  screenshots  String?         // JSON array of URLs
+  videoUrl     String?         @map("video_url")
+  errorMessage String?         @map("error_message")
+  startedAt    DateTime?       @map("started_at")
+  completedAt  DateTime?       @map("completed_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  testCaseId   String          @map("test_case_id")
+  runId        String          @map("run_id")
+
+  testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  run      TestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@map("test_executions")
+}
+
+model TestRun {
+  id           String          @id @default(cuid())
+  name         String?
+  status       ExecutionStatus @default(PENDING)
+  browser      String          @default("chromium")
+  headless     Boolean         @default(true)
+  totalCount   Int             @default(0) @map("total_count")
+  passedCount  Int             @default(0) @map("passed_count")
+  failedCount  Int             @default(0) @map("failed_count")
+  startedAt    DateTime?       @map("started_at")
+  completedAt  DateTime?       @map("completed_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  createdBy    String          @map("created_by")
+
+  executions TestExecution[]
+
+  @@map("test_runs")
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  PASSED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+// ==================== 定时任务模块 ====================
+
+model ScheduledTask {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  cron          String
+  testCaseIds   String    @map("test_case_ids") // JSON array
+  config        String?   // JSON
+  isActive      Boolean   @default(true) @map("is_active")
+  lastRunAt     DateTime? @map("last_run_at")
+  nextRunAt     DateTime? @map("next_run_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  notifications String?   // JSON
+
+  @@map("scheduled_tasks")
+}
+
+// ==================== 测试套件模块 ====================
+
+model TestSuite {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  projectId   String   @map("project_id")
+
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testSuiteCases  TestSuiteCase[]
+  suiteExecutions SuiteExecution[]
+
+  @@map("test_suites")
+}
+
+model TestSuiteCase {
+  id          String @id @default(cuid())
+  testSuiteId String @map("test_suite_id")
+  testCaseId  String @map("test_case_id")
+  order       Int    @default(0)
+
+  testSuite TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+  testCase  TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([testSuiteId, testCaseId])
+  @@map("test_suite_cases")
+}
+
+model SuiteExecution {
+  id          String          @id @default(cuid())
+  name        String?
+  status      ExecutionStatus @default(PENDING)
+  browser     String          @default("chromium")
+  headless    Boolean         @default(true)
+  totalCount  Int             @default(0) @map("total_count")
+  passedCount Int             @default(0) @map("passed_count")
+  failedCount Int             @default(0) @map("failed_count")
+  startedAt   DateTime?       @map("started_at")
+  completedAt DateTime?       @map("completed_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  createdBy   String          @map("created_by")
+  testSuiteId String          @map("test_suite_id")
+
+  testSuite TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+
+  @@map("suite_executions")
+}
+
+// ==================== 消息通知模块 ====================
+
+enum NotificationType {
+  SYSTEM
+  EXECUTION
+  INVITE
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  content   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  data      String?          // JSON - 存储额外数据
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  userId    String           @map("user_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ==================== Bug 模块 ====================
+
+model Bug {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  severity    Severity  @default(MEDIUM)
+  status      BugStatus @default(NEW)
+  steps       String?   // JSON
+  screenshots String?   // JSON array
+  externalId  String?   @map("external_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("bugs")
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum BugStatus {
+  NEW
+  IN_PROGRESS
+  FIXED
+  VERIFIED
+  CLOSED
+}
+
+// ==================== 知识库模块 ====================
+
+model KnowledgeEntry {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("other")
+  tags      String   @default("[]") // JSON array
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  authorId  String   @map("author_id")
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([authorId])
+  @@map("knowledge_entries")
+}
+
+// ==================== 系统配置模块 ====================
+
+model SystemConfig {
+  id                      String   @id @default(cuid())
+  executionTimeout        Int      @default(300) @map("execution_timeout")
+  maxConcurrentExecutions Int      @default(5) @map("max_concurrent_executions")
+  logRetentionDays        Int      @default(30) @map("log_retention_days")
+  enableAutoCleanup       Boolean  @default(true) @map("enable_auto_cleanup")
+  enableEmailNotification Boolean  @default(true) @map("enable_email_notification")
+  maintenanceMode         Boolean  @default(false) @map("maintenance_mode")
+  apiRateLimit            Int      @default(100) @map("api_rate_limit")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}
