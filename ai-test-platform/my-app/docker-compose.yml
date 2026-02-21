@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./data/prod.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-production-secret-key
+      - KIMI_API_KEY=${KIMI_API_KEY}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # 可选：生产环境使用 PostgreSQL
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: aitest
+  #     POSTGRES_PASSWORD: your-password
+  #     POSTGRES_DB: aitest
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   postgres_data:

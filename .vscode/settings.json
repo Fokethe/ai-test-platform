@@ -1,0 +1,17 @@
+{
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-NoExit",
+        "-Command",
+        "if ($env:TERM_PROGRAM -eq \"vscode\") { . \"$(code --locate-shell-integration-path pwsh)\" }"
+      ]
+    }
+  },
+  "terminal.integrated.shellIntegration.enabled": true
+}
