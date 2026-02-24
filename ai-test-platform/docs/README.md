@@ -5,18 +5,47 @@
 
 ---
 
-## 📁 文档结构（Kimi Code 1+1 规范）
+## 📁 文档目录 (共 22 篇)
 
 ```
 docs/
-├── KIMI.md          # ⭐ AI操作手册（每次会话先读）
-├── progress.txt     # ⭐ 进度追踪（对话锚点）
-├── PRD.md           # 产品需求文档
-├── GUIDE.md         # 快速入门指南
-├── PROMPTS.md       # Prompt模板库
-├── CLAUDE.md        # AI协作手册（面向0代码用户）
-├── testcases.md     # 测试用例集
-└── README.md        # 本文档（总览）
+├── README.md                          # 本文档（总览）
+├── DOCUMENT_NAMING_CONVENTION.md      # 文档命名规范
+├── PROGRESS_跨会话记忆.md              # 对话历史记录
+├── TASK_TRACKING.md                   # 任务追踪看板
+│
+├── PRD/                               # 产品需求文档 (3篇)
+│   ├── ATP-PRD-001-产品需求文档-v1.0.md
+│   ├── ATP-PRD-002-用户旅程文档-v1.0.md
+│   └── ATP-PRD-003-仪表盘功能需求-v1.0.md  ✅ 新增
+│
+├── DEV/                               # 开发文档 (2篇)
+│   ├── ATP-DEV-001-开发指南-v1.0.md
+│   └── ATP-DEV-002-代码质量报告-v1.0.md    ✅ 新增
+│
+├── TEST/                              # 测试文档 (6篇)
+│   ├── standards/                     # 测试规范 (4篇)
+│   │   ├── ATP-STD-001-测试计划规范-v1.0.md
+│   │   ├── ATP-STD-002-测试用例规范-v1.0.md
+│   │   ├── ATP-STD-003-问题报告规范-v1.0.md
+│   │   └── ATP-STD-004-测试报告规范-v1.0.md
+│   └── testcases/                     # 测试用例示例 (1篇)
+│       └── ATP-TC-001-认证模块测试用例-v1.0.md
+│
+├── PROMPT/                            # AI Prompt 库 (6篇)
+│   ├── ATP-PROMPT-001-新功能开发Prompt-v1.0.md
+│   ├── ATP-PROMPT-002-手动测试Prompt-v1.0.md
+│   ├── ATP-PROMPT-003-问题排查Prompt-v1.0.md
+│   ├── ATP-PROMPT-004-代码审查Prompt-v1.0.md
+│   ├── ATP-PROMPT-005-开发Prompt汇总-v1.0.md
+│   └── ATP-PROMPT-006-测试Prompt汇总-v1.0.md
+│
+└── AUX/                               # 辅助文档 (5篇)
+    ├── CLAUDE.md                      # AI 协作手册
+    ├── ATP-GUIDE-001-快速开始-v1.0.md
+    ├── ATP-GUIDE-002-功能验证-v1.0.md
+    ├── ATP-GUIDE-003-迁移指南-v1.0.md
+    └── ATP-AUX-011-系统架构说明-v1.0.md
 ```
 
 ---
@@ -25,76 +54,71 @@ docs/
 
 ### 首次使用
 
-1. 📖 阅读 [GUIDE.md](./GUIDE.md) - 快速入门
-2. ⭐ 阅读 [KIMI.md](./KIMI.md) - 了解项目规范
-3. 📋 查看 [progress.txt](./progress.txt) - 了解当前进度
+1. 📖 阅读 [快速开始指南](./AUX/ATP-GUIDE-001-快速开始-v1.0.md)
+2. ✅ 完成 [功能验证](./AUX/ATP-GUIDE-002-功能验证-v1.0.md)
+3. 📚 查阅 [测试规范](./TEST/standards/)
 
-### 开发工作
+### 角色指南
 
-- 📝 查阅 [PRD.md](./PRD.md) - 产品需求
-- 🤖 查阅 [PROMPTS.md](./PROMPTS.md) - Prompt模板
-- 👥 查阅 [CLAUDE.md](./CLAUDE.md) - AI协作手册（0代码用户）
-- 🧪 查阅 [testcases.md](./testcases.md) - 测试用例
-
----
-
-## 📋 文档说明
-
-### 核心文档（1+1系统）
-
-| 文档             | 用途                     | 更新频率   |
-| ---------------- | ------------------------ | ---------- |
-| **KIMI.md**      | AI操作手册，记录技术规范 | 规范变更时 |
-| **progress.txt** | 进度追踪，对话锚点       | 每次会话后 |
-
-### 辅助文档
-
-| 文档         | 用途                           |
-| ------------ | ------------------------------ |
-| PRD.md       | 产品需求文档（合并所有PRD）    |
-| PROMPTS.md   | Prompt模板库（10个常用模板）   |
-| GUIDE.md     | 快速入门指南（启动/验证/排查） |
-| CLAUDE.md    | AI协作手册（面向0代码用户）    |
-| testcases.md | 测试用例集（认证模块等）       |
+| 角色         | 推荐文档                                             |
+| ------------ | ---------------------------------------------------- |
+| **产品经理** | [PRD/产品需求文档](./PRD/)                           |
+| **开发人员** | [DEV/开发指南](./DEV/)、[CLAUDE.md](./AUX/CLAUDE.md) |
+| **测试人员** | [TEST/测试规范](./TEST/standards/)                   |
+| **AI 辅助**  | [PROMPT/AI Prompt库](./PROMPT/)                      |
 
 ---
 
-## � 使用规范
-
-### 每次新会话开场白
+## 📝 文档命名规范
 
 ```
-读取 KIMI.md 和 progress.txt。
-
-本次目标：[具体功能]
-
-请确认当前状态后开始。
+ATP-[类型]-[序号]-[描述]-v[版本号].md
 ```
 
-### 文档更新原则
-
-1. **KIMI.md** - 技术规范变更时更新
-2. **progress.txt** - 每次会话后更新
-3. **PRD.md** - 需求变更时更新
-4. **PROMPTS.md** - 新增Prompt模板时更新
-
----
-
-## �🗑️ 已清理文档
-
-本次整理已删除以下重复/多余文档：
-
-- ❌ 所有子文件夹（10-AUX/, DEV/, PRD/, PROMPT/, TEST/）
-- ❌ DOCUMENT_NAMING_CONVENTION.md - 过于复杂的命名规范
-- ❌ PROGRESS\_跨会话记忆.md - 合并到 progress.txt
-- ❌ TASK_TRACKING.md - 合并到 progress.txt
-- ❌ ATP-PRD-001~006 - 合并到 PRD.md
-- ❌ ATP-PROMPT-001~006 - 合并到 PROMPTS.md
-- ❌ ATP-GUIDE-001~003 - 合并到 GUIDE.md
-- ❌ 4个TEST规范文档 - 过于繁琐，保留核心测试用例
+| 类型   | 说明         | 示例                                    |
+| ------ | ------------ | --------------------------------------- |
+| PRD    | 产品需求文档 | ATP-PRD-001-产品需求文档-v1.0.md        |
+| DEV    | 开发文档     | ATP-DEV-001-开发指南-v1.0.md            |
+| STD    | 规范标准     | ATP-STD-001-测试计划规范-v1.0.md        |
+| TC     | 测试用例     | ATP-TC-001-认证模块测试用例-v1.0.md     |
+| PROMPT | AI Prompt    | ATP-PROMPT-001-新功能开发Prompt-v1.0.md |
+| GUIDE  | 用户指南     | ATP-GUIDE-001-快速开始-v1.0.md          |
+| AUX    | 辅助文档     | ATP-AUX-011-系统架构说明-v1.0.md        |
 
 ---
 
-**文档版本**: v3.0（Kimi Code 1+1 规范）  
-**最后更新**: 2026-02-24  
+## 🗑️ 清理记录
+
+本次清理共删除以下类型文档：
+
+- ❌ 临时总结报告（功能完成报告、测试总结等）
+- ❌ 问题追踪报告（已修复问题的历史记录）
+- ❌ 回归测试执行指南（一次性文档）
+- ❌ Git 推送日志（自动生成，无需保留）
+- ❌ 重复的功能验证清单
+- ❌ 空的 README 索引文档
+
+---
+
+## 🆕 新增记录 (2026-02-17)
+
+### 新增文档
+
+- ✅ ATP-PRD-003-仪表盘功能需求-v1.0.md
+- ✅ ATP-DEV-002-代码质量报告-v1.0.md
+- ✅ PROGRESS\_跨会话记忆.md
+- ✅ TASK_TRACKING.md
+
+### 新增API
+
+- ✅ GET /api/dashboard - 仪表盘数据聚合
+
+### 新增页面
+
+- ✅ /dashboard - 统一仪表盘
+
+---
+
+**最后更新**: 2026-02-17  
+**文档版本**: v1.2  
 **维护者**: AI Test Platform Team
