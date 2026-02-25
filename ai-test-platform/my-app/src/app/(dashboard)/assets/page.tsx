@@ -1,16 +1,50 @@
 /**
  * Asset Library - 合并知识库 + 页面管理
+ * 连接真实 API
  */
 
 'use client';
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BookOpen, FileText, Globe, Plus, Search, Folder } from 'lucide-react';
+import useSWR from 'swr';
+import {
+  BookOpen,
+  FileText,
+  Globe,
+  Plus,
+  Search,
+  Loader2,
+  MoreHorizontal,
+  Code,
+  ExternalLink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface Asset {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'DOC' | 'PAGE' | 'SNIPPET' | 'FILE';
+  content?: string;
+  url?: string;
+  selector?: string;
+  tags?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function AssetLibraryPage() {
   const searchParams = useSearchParams();
@@ -18,17 +52,61 @@ export default function AssetLibraryPage() {
   const [activeTab, setActiveTab] = useState(defaultType);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // 构建 API URL
+  const buildApiUrl = () => {
+    const params = new URLSearchParams();
+    if (activeTab !== 'all') {
+      params.set('type', activeTab.toUpperCase());
+    }
+    if (searchQuery) params.set('search', searchQuery);
+    params.set('pageSize', '20');
+    return `/api/assets?${params.toString()}`;
+  };
+
+  // 获取数据
+  const { data, error, isLoading, mutate } = useSWR(
+    buildApiUrl(),
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+
+  const assets: Asset[] = data?.data || [];
+  const meta = data?.meta;
+
+  const tabs = [
+    { id: 'doc', label: '文档', icon: FileText },
+    { id: 'page', label: '页面', icon: Globe },
+    { id: 'snippet', label: '片段', icon: Code },
+  ];
+
+  const getCreateHref = () => {
+    switch (activeTab) {
+      case 'doc':
+        return '/assets/docs/new';
+      case 'page':
+        return '/assets/pages/new';
+      case 'snippet':
+        return '/assets/snippets/new';
+      default:
+        return '/assets/new';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">资产库</h1>
-          <p className="text-slate-500">管理文档、页面和代码片段</p>
+          <p className="text-slate-500">
+            共 {meta?.total || 0} 个资产
+          </p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          新建
+        <Button asChild>
+          <Link href={getCreateHref()}>
+            <Plus className="w-4 h-4 mr-2" />
+            新建
+          </Link>
         </Button>
       </div>
 
@@ -41,6 +119,7 @@ export default function AssetLibraryPage() {
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && mutate()}
           />
         </div>
       </div>
@@ -48,157 +127,212 @@ export default function AssetLibraryPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="doc">
-            <FileText className="w-4 h-4 mr-2" />
-            文档
-          </TabsTrigger>
-          <TabsTrigger value="page">
-            <Globe className="w-4 h-4 mr-2" />
-            页面
-          </TabsTrigger>
-          <TabsTrigger value="snippet">
-            <BookOpen className="w-4 h-4 mr-2" />
-            片段
-          </TabsTrigger>
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              <tab.icon className="w-4 h-4 mr-2" />
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="doc" className="mt-6">
-          <DocsPanel searchQuery={searchQuery} />
+          <AssetList
+            assets={assets.filter((a) => a.type === 'DOC')}
+            isLoading={isLoading}
+            error={error}
+            emptyText="暂无文档"
+            onRefresh={() => mutate()}
+            type="doc"
+          />
         </TabsContent>
 
         <TabsContent value="page" className="mt-6">
-          <PagesPanel searchQuery={searchQuery} />
+          <AssetList
+            assets={assets.filter((a) => a.type === 'PAGE')}
+            isLoading={isLoading}
+            error={error}
+            emptyText="暂无页面"
+            onRefresh={() => mutate()}
+            type="page"
+          />
         </TabsContent>
 
         <TabsContent value="snippet" className="mt-6">
-          <SnippetsPanel searchQuery={searchQuery} />
+          <AssetList
+            assets={assets.filter((a) => a.type === 'SNIPPET')}
+            isLoading={isLoading}
+            error={error}
+            emptyText="暂无代码片段"
+            onRefresh={() => mutate()}
+            type="snippet"
+          />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-// 文档面板
-function DocsPanel({ searchQuery }: { searchQuery: string }) {
-  const docs = [
-    { id: 1, title: 'API 接口文档', tags: ['api', '后端'], updatedAt: '2天前' },
-    { id: 2, title: '测试用例编写规范', tags: ['规范', '测试'], updatedAt: '1周前' },
-    { id: 3, title: '部署手册', tags: ['运维', '部署'], updatedAt: '3天前' },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">文档列表</h2>
-        <span className="text-sm text-slate-500">共 {docs.length} 个文档</span>
+// 资产列表组件
+function AssetList({
+  assets,
+  isLoading,
+  error,
+  emptyText,
+  onRefresh,
+  type,
+}: {
+  assets: Asset[];
+  isLoading: boolean;
+  error: any;
+  emptyText: string;
+  onRefresh: () => void;
+  type: 'doc' | 'page' | 'snippet';
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
+    );
+  }
 
-      <div className="grid gap-4">
-        {docs.map((doc) => (
-          <AssetCard
-            key={doc.id}
-            icon={FileText}
-            title={doc.title}
-            tags={doc.tags}
-            meta={doc.updatedAt}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// 页面面板
-function PagesPanel({ searchQuery }: { searchQuery: string }) {
-  const pages = [
-    { id: 1, title: '登录页面', url: '/login', selector: '#login-form' },
-    { id: 2, title: '用户中心', url: '/user/profile', selector: '.profile-container' },
-    { id: 3, title: '商品列表', url: '/products', selector: '.product-list' },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">页面列表</h2>
-        <span className="text-sm text-slate-500">共 {pages.length} 个页面</span>
-      </div>
-
-      <div className="grid gap-4">
-        {pages.map((page) => (
-          <div
-            key={page.id}
-            className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Globe className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-medium">{page.title}</h3>
-                <p className="text-sm text-slate-500">{page.url}</p>
-              </div>
-            </div>
-            <code className="text-xs bg-slate-100 px-2 py-1 rounded">
-              {page.selector}
-            </code>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// 代码片段面板
-function SnippetsPanel({ searchQuery }: { searchQuery: string }) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">代码片段</h2>
-        <span className="text-sm text-slate-500">共 0 个片段</span>
-      </div>
-
-      <div className="border rounded-lg p-8 text-center text-slate-500">
-        <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>暂无代码片段</p>
-        <Button variant="outline" className="mt-4">
-          <Plus className="w-4 h-4 mr-2" />
-          添加片段
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">加载失败</p>
+        <Button variant="outline" className="mt-4" onClick={onRefresh}>
+          重试
         </Button>
       </div>
+    );
+  }
+
+  if (assets.length === 0) {
+    return (
+      <div className="border rounded-lg p-12 text-center">
+        <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+        <p className="text-slate-500">{emptyText}</p>
+        <Button variant="outline" className="mt-4" asChild>
+          <Link href={`/assets/${type}s/new`}>创建第一个</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      {assets.map((asset) => (
+        <AssetCard key={asset.id} asset={asset} />
+      ))}
     </div>
   );
 }
 
-// 通用资产卡片
-function AssetCard({
-  icon: Icon,
-  title,
-  tags,
-  meta,
-}: {
-  icon: any;
-  title: string;
-  tags: string[];
-  meta: string;
-}) {
+// 资产卡片
+function AssetCard({ asset }: { asset: Asset }) {
+  const tags = asset.tags ? JSON.parse(asset.tags) : [];
+
+  const getIcon = () => {
+    switch (asset.type) {
+      case 'DOC':
+        return <FileText className="w-5 h-5 text-blue-600" />;
+      case 'PAGE':
+        return <Globe className="w-5 h-5 text-green-600" />;
+      case 'SNIPPET':
+        return <Code className="w-5 h-5 text-purple-600" />;
+      default:
+        return <BookOpen className="w-5 h-5 text-slate-600" />;
+    }
+  };
+
+  const getTypeLabel = () => {
+    switch (asset.type) {
+      case 'DOC':
+        return '文档';
+      case 'PAGE':
+        return '页面';
+      case 'SNIPPET':
+        return '片段';
+      default:
+        return '文件';
+    }
+  };
+
   return (
-    <div className="flex items-start justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors cursor-pointer">
-      <div className="flex items-start gap-3">
-        <div className="p-2 bg-slate-50 rounded-lg">
-          <Icon className="w-5 h-5 text-slate-600" />
-        </div>
-        <div>
-          <h3 className="font-medium">{title}</h3>
+    <div className="flex items-start justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div className="p-2 bg-slate-50 rounded-lg">{getIcon()}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/assets/${asset.id}`}
+              className="font-medium hover:text-blue-600 truncate"
+            >
+              {asset.title}
+            </Link>
+            <Badge variant="secondary" className="text-xs">
+              {getTypeLabel()}
+            </Badge>
+          </div>
+          
+          {asset.description && (
+            <p className="text-sm text-slate-500 mt-1 truncate">
+              {asset.description}
+            </p>
+          )}
+
+          {/* 页面特有信息 */}
+          {asset.type === 'PAGE' && asset.url && (
+            <div className="flex items-center gap-2 mt-2">
+              <Globe className="w-3 h-3 text-slate-400" />
+              <a
+                href={asset.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+              >
+                {asset.url}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+
+          {/* 选择器 */}
+          {asset.selector && (
+            <code className="text-xs bg-slate-100 px-2 py-0.5 rounded mt-2 inline-block">
+              {asset.selector}
+            </code>
+          )}
+
           <div className="flex items-center gap-2 mt-2">
-            {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
+            {tags.map((tag: string) => (
+              <Badge key={tag} variant="outline" className="text-xs">
                 {tag}
               </Badge>
             ))}
+            <span className="text-xs text-slate-400">
+              更新于 {new Date(asset.updatedAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
       </div>
-      <span className="text-sm text-slate-500">{meta}</span>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/assets/${asset.id}`}>查看</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/assets/${asset.id}/edit`}>编辑</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-red-600">删除</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
