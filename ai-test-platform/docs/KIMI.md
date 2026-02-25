@@ -84,6 +84,57 @@ P1 功能开发完成 - 2026-02-25
   - ✅ 自动调度管理 (setTimeout)
   - ✅ 支持 */5, 0 *, 0 0 * * * 等表达式
 
+## 系统重构进度
+
+### 重构目标
+- 路由: 18 → 8 项
+- 模型: 26 → 14 个
+- API: 58 → 30 个
+
+### 进度
+- [x] Phase 1: 架构测试 ✅ (18 tests)
+- [x] Phase 2: 模型层重构 ✅ (新模型 + API重定向)
+- [x] Phase 3: UI层重构 ✅ (页面合并)
+  - ✅ 测试中心 (/tests) - 合并用例/套件/AI
+  - ✅ 执行中心 (/runs) - 合并历史/定时任务
+  - ✅ 质量看板 (/quality) - 合并Bug/报告
+  - ✅ 资产库 (/assets) - 合并知识库/页面
+  - ✅ 统一设置 (/settings) - 合并所有设置
+- [x] Phase 4: 回归测试 ✅ (24 tests)
+  - ✅ 新模型 CRUD 测试
+  - ✅ API 响应格式测试
+  - ✅ 数据完整性测试
+  - ✅ 功能对等性测试
+- [ ] Phase 5: 清理旧代码 (可选)
+
+### 新导航结构
+```
+仪表盘      → 保持独立
+测试中心    → 合并: 用例/套件/AI
+执行中心    → 合并: 历史/定时任务
+质量看板    → 合并: Bug/报告
+资产库      → 合并: 知识库/页面
+集成        → Webhook
+通知        → 保持独立
+设置        → 合并所有设置
+```
+
+## 测试覆盖
+
+```bash
+npm test              # 运行所有测试 (60 tests)
+npm run test:coverage # 查看覆盖率
+```
+
+当前测试 (104 tests):
+- src/lib/__tests__/api.test.ts                     (11 tests)
+- src/lib/__tests__/form-error.test.tsx             (9 tests)
+- src/lib/__tests__/scheduler.test.ts               (12 tests)
+- src/lib/__tests__/refactor-architecture.test.ts   (18 tests)
+- src/lib/__tests__/refactor-api-redirect.test.ts   (20 tests)
+- src/lib/__tests__/refactor-ui-navigation.test.tsx (10 tests)
+- src/lib/__tests__/refactor-regression.test.ts     (24 tests)
+
 ## 环境配置
 
 ```bash

@@ -77,6 +77,11 @@ model User {
   logs             Log[]
   reportedBugs     Bug[] @relation("ReportedBugs")
   assignedBugs     Bug[] @relation("AssignedBugs")
+  
+  // 重构后新关系
+  inbox            Inbox[]
+  reportedIssues   Issue[] @relation("IssueReporter")
+  assignedIssues   Issue[] @relation("IssueAssignee")
 
   @@map("users")
 }
@@ -172,11 +177,18 @@ model Project {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   workspaceId String        @map("workspace_id")
 
-  workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  systems    System[]
-  testSuites TestSuite[]
-  bugs       Bug[]
-  webhooks   Webhook[]
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  systems       System[]
+  testSuites    TestSuite[]
+  bugs          Bug[]
+  webhooks      Webhook[]
+  
+  // 重构后新关系
+  tests         Test[]
+  runs          Run[]
+  issues        Issue[]
+  assets        Asset[]
+  integrations  Integration[]
 
   @@map("projects")
 }
@@ -587,4 +599,385 @@ model Log {
   @@index([userId, createdAt])
   @@index([action, createdAt])
   @@map("logs")
+}
+
+// ==================== 重构后新模型 ====================
+
+// Test: 合并 TestCase + TestSuite
+model Test {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        TestType  @default(CASE) // CASE | SUITE | FOLDER
+  status      String    @default("ACTIVE") // ACTIVE | ARCHIVED | DRAFT
+  
+  // 内容
+  content     String?   // JSON - steps for CASE, config for SUITE
+  
+  // 层级关系
+  parentId    String?   @map("parent_id") // null = root, or suite id
+  projectId   String    @map("project_id")
+  
+  // 元数据
+  tags        String?   // JSON array
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  
+  // 来源
+  source      String    @default("MANUAL") // MANUAL | AI | IMPORTED
+  aiPrompt    String?   @map("ai_prompt")
+  aiModel     String?   @map("ai_model")
+  
+  // 关联
+  createdBy   String    @map("created_by")
+  assignedTo  String?   @map("assigned_to")
+  
+  // 时间
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关系
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent      Test?     @relation("TestHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Test[]    @relation("TestHierarchy")
+  executions  Execution[]
+  issues      Issue[]
+  
+  @@index([projectId, type])
+  @@index([parentId])
+  @@index([tags])
+  @@map("tests")
+}
+
+enum TestType {
+  CASE
+  SUITE
+  FOLDER
+}
+
+// Run: 合并 TestRun + 执行记录
+model Run {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  
+  // 类型
+  type        RunType   @default(MANUAL) // MANUAL | SCHEDULED | WEBHOOK | API
+  status      RunStatus @default(PENDING) // PENDING | RUNNING | COMPLETED | FAILED | CANCELLED
+  
+  // 统计
+  totalCount  Int       @default(0) @map("total_count")
+  passedCount Int       @default(0) @map("passed_count")
+  failedCount Int       @default(0) @map("failed_count")
+  skippedCount Int      @default(0) @map("skipped_count")
+  duration    Int?      // milliseconds
+  
+  // 定时调度
+  scheduleId  String?   @map("schedule_id")
+  cron        String?
+  nextRunAt   DateTime? @map("next_run_at")
+  
+  // 执行详情 (内嵌 TestExecution)
+  executions  Execution[]
+  
+  // 关联
+  projectId   String?   @map("project_id")
+  createdBy   String?   @map("created_by")
+  
+  // 时间
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // 关系
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  issues      Issue[]
+  
+  @@index([projectId, status])
+  @@index([status, createdAt])
+  @@index([scheduleId])
+  @@map("runs")
+}
+
+enum RunType {
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  API
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Execution: 内嵌到 Run，但独立表存储详情
+model Execution {
+  id          String          @id @default(cuid())
+  runId       String          @map("run_id")
+  testId      String          @map("test_id")
+  
+  status      NewExecutionStatus @default(PENDING) // PENDING | RUNNING | PASSED | FAILED | SKIPPED | ERROR
+  duration    Int?            // milliseconds
+  
+  // 错误信息
+  errorMessage String?        @map("error_message")
+  errorStack   String?        @map("error_stack")
+  screenshot   String?         // 失败截图路径
+  video        String?         // 视频路径
+  
+  // 输出
+  stdout      String?
+  stderr      String?
+  
+  // 时间
+  startedAt   DateTime?       @map("started_at")
+  completedAt DateTime?       @map("completed_at")
+  
+  // 关系
+  run         Run             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  test        Test            @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  @@index([runId, status])
+  @@index([testId])
+  @@map("executions")
+}
+
+enum NewExecutionStatus {
+  PENDING
+  RUNNING
+  PASSED
+  FAILED
+  SKIPPED
+  ERROR
+}
+
+// Issue: 取代 Bug，支持多种类型
+model Issue {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  
+  type        IssueType   @default(BUG) // BUG | TASK | IMPROVEMENT | QUESTION
+  severity    Severity    @default(MEDIUM) // CRITICAL | HIGH | MEDIUM | LOW
+  status      IssueStatus @default(OPEN) // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  priority    String      @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  
+  // 关联
+  projectId   String      @map("project_id")
+  testId      String?     @map("test_id")
+  runId       String?     @map("run_id")
+  
+  // 人员
+  reporterId  String      @map("reporter_id")
+  assigneeId  String?     @map("assignee_id")
+  
+  // 解决方案
+  resolution  String?     // FIXED | WONT_FIX | DUPLICATE | INVALID
+  resolvedAt  DateTime?   @map("resolved_at")
+  
+  // 时间
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  // 关系
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  test        Test?       @relation(fields: [testId], references: [id], onDelete: SetNull)
+  run         Run?        @relation(fields: [runId], references: [id], onDelete: SetNull)
+  reporter    User        @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignee    User?       @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  
+  @@index([projectId, status])
+  @@index([status, severity])
+  @@index([assigneeId, status])
+  @@map("issues")
+}
+
+enum IssueType {
+  BUG
+  TASK
+  IMPROVEMENT
+  QUESTION
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// Asset: 合并 KnowledgeEntry + Page
+model Asset {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  
+  type        AssetType  @default(DOC) // DOC | PAGE | SNIPPET | FILE
+  status      String     @default("ACTIVE") // ACTIVE | ARCHIVED
+  
+  // 内容
+  content     String?    // Markdown/HTML for DOC, JSON for PAGE config
+  
+  // 页面特有 (type=PAGE)
+  selector    String?    // CSS selector
+  url         String?    // Page URL
+  
+  // 元数据
+  tags        String?    // JSON array
+  
+  // 关联
+  projectId   String     @map("project_id")
+  createdBy   String     @map("created_by")
+  
+  // 时间
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  
+  // 关系
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, type])
+  @@index([tags])
+  @@map("assets")
+}
+
+enum AssetType {
+  DOC
+  PAGE
+  SNIPPET
+  FILE
+}
+
+// Integration: 取代 Webhook，支持多种类型
+model Integration {
+  id          String           @id @default(cuid())
+  name        String
+  
+  type        IntegrationType  // GITHUB | GITLAB | JENKINS | SLACK | DINGTALK | CUSTOM
+  provider    String           // 别名，如 github-enterprise
+  
+  // 配置
+  url         String           // Webhook URL or API endpoint
+  secret      String?          // Signature secret
+  token       String?          // API token
+  
+  // 事件订阅
+  events      String           // JSON array: ["push", "pr", "test.completed"]
+  
+  // 特定配置
+  config      String?          // JSON - 额外配置如 channel, jobName等
+  
+  isActive    Boolean          @default(true) @map("is_active")
+  
+  // 关联
+  projectId   String           @map("project_id")
+  createdBy   String           @map("created_by")
+  
+  // 时间
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  
+  // 关系
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries  Delivery[]
+  
+  @@index([projectId, type])
+  @@index([isActive])
+  @@map("integrations")
+}
+
+enum IntegrationType {
+  GITHUB
+  GITLAB
+  JENKINS
+  SLACK
+  DINGTALK
+  CUSTOM
+}
+
+// Delivery: Integration 投递记录
+model Delivery {
+  id            String          @id @default(cuid())
+  integrationId String          @map("integration_id")
+  
+  event         String          // 事件类型
+  payload       String          // JSON - 事件数据
+  
+  status        DeliveryStatus  @default(PENDING) // PENDING | DELIVERED | FAILED | RETRYING
+  attempts      Int             @default(0)
+  
+  // 响应
+  responseStatus Int?           @map("response_status")
+  responseBody   String?        @map("response_body")
+  error          String?
+  
+  // 时间
+  deliveredAt   DateTime?       @map("delivered_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  
+  // 关系
+  integration   Integration     @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  @@index([integrationId, status])
+  @@index([status, createdAt])
+  @@map("deliveries")
+}
+
+enum DeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+// Inbox: 简化 Notification
+model Inbox {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  
+  type      String   // SYSTEM | MENTION | ALERT | SUCCESS
+  title     String
+  content   String
+  
+  // 关联
+  linkUrl   String?  @map("link_url")
+  linkText  String?  @map("link_text")
+  
+  isRead    Boolean  @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // 关系
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("inbox")
+}
+
+// Activity: 取代 Log，更轻量
+model Activity {
+  id        String   @id @default(cuid())
+  
+  actorId   String?  @map("actor_id") // User who did it
+  actorType String   @default("USER") @map("actor_type") // USER | SYSTEM | WEBHOOK
+  
+  action    String   // CREATE | UPDATE | DELETE | EXECUTE | LOGIN
+  target    String   // Test#123 | Run#456
+  targetId  String   @map("target_id")
+  
+  metadata  String?  // JSON - extra info
+  
+  projectId String?  @map("project_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([projectId, createdAt])
+  @@index([targetId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("activities")
 }
