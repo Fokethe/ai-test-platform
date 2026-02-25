@@ -74,6 +74,9 @@ model User {
   settings         UserSettings?
   notifications    Notification[]
   knowledgeEntries KnowledgeEntry[]
+  logs             Log[]
+  reportedBugs     Bug[] @relation("ReportedBugs")
+  assignedBugs     Bug[] @relation("AssignedBugs")
 
   @@map("users")
 }
@@ -172,6 +175,8 @@ model Project {
   workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   systems    System[]
   testSuites TestSuite[]
+  bugs       Bug[]
+  webhooks   Webhook[]
 
   @@map("projects")
 }
@@ -263,6 +268,7 @@ model TestCase {
   requirement    Requirement?    @relation(fields: [requirementId], references: [id])
   executions     TestExecution[]
   testSuiteCases TestSuiteCase[]
+  bugs           Bug[]
 
   @@map("test_cases")
 }
@@ -298,6 +304,7 @@ model TestExecution {
 
   testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
   run      TestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  bugs     Bug[]
 
   @@map("test_executions")
 }
@@ -425,20 +432,72 @@ model Notification {
   @@map("notifications")
 }
 
+// ==================== Webhook 模块 ====================
+
+model Webhook {
+  id            String    @id @default(cuid())
+  name          String
+  provider      String    // jenkins, gitlab, github
+  url           String    // webhook url path
+  secret        String    // 签名密钥
+  projectId     String    @map("project_id")
+  config        String?   // JSON - 配置信息
+  isActive      Boolean   @default(true) @map("is_active")
+  lastTriggered DateTime? @map("last_triggered")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id          String   @id @default(cuid())
+  webhookId   String   @map("webhook_id")
+  event       String   // push, merge_request, etc.
+  payload     String   // JSON - 原始请求数据
+  status      String   // success, failed, pending
+  response    String?  // 响应内容
+  testRunId   String?  @map("test_run_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@map("webhook_deliveries")
+}
+
 // ==================== Bug 模块 ====================
 
 model Bug {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  severity    Severity  @default(MEDIUM)
-  status      BugStatus @default(NEW)
-  steps       String?   // JSON
-  screenshots String?   // JSON array
-  externalId  String?   @map("external_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  severity       Severity  @default(MEDIUM)
+  status         BugStatus @default(NEW)
+  steps          String?   // JSON
+  screenshots    String?   // JSON array
+  externalId     String?   @map("external_id")
+  testCaseId     String?   @map("test_case_id")
+  reporterId     String    @map("reporter_id")
+  assigneeId     String?   @map("assignee_id")
+  executionId    String?   @map("execution_id")
+  projectId      String    @map("project_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
+  testCase    TestCase?    @relation(fields: [testCaseId], references: [id])
+  reporter    User         @relation("ReportedBugs", fields: [reporterId], references: [id])
+  assignee    User?        @relation("AssignedBugs", fields: [assigneeId], references: [id])
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  execution   TestExecution? @relation(fields: [executionId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([severity, createdAt])
+  @@index([reporterId])
+  @@index([assigneeId])
   @@map("bugs")
 }
 
@@ -491,4 +550,41 @@ model SystemConfig {
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("system_config")
+}
+
+// ==================== 日志模块 ====================
+
+enum LogType {
+  OPERATION
+  SYSTEM
+  EXECUTION
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  type      LogType
+  level     LogLevel @default(INFO)
+  userId    String?  @map("user_id")
+  action    String   // 操作类型: CREATE/UPDATE/DELETE/LOGIN/EXECUTE等
+  target    String   // 操作对象: TestCase#123, User#456等
+  message   String   // 日志消息
+  details   String?  // JSON - 存储额外详情
+  ip        String?  // 用户IP地址
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([level, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("logs")
 }
