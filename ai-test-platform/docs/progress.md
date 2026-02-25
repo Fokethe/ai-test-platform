@@ -20,7 +20,48 @@ UPDATED: 2026-02-24
 
 === 当前进行 ===
 
-- [ ] 日志功能开发
+- [x] 日志功能开发 (已完成)
+- [x] 定时任务功能 (已完成)
+- [x] Bug 管理功能 (已完成)
+- [x] CI/CD Webhook (已完成)
+- [x] 报告导出 (已完成)
+  - [x] API 端点 /api/reports/export
+  - [x] 支持 Excel (xlsx)、CSV、HTML、JSON
+  - [x] 支持测试用例、执行记录、Bug 导出
+  - [x] 日期范围筛选
+  - [x] 报告中心页面导出对话框
+  - [x] 数据库模型 (Webhook, WebhookDelivery)
+  - [x] Webhook 管理 API
+  - [x] Webhook 接收端点 (/api/hooks/*)
+  - [x] 签名验证 (GitHub/GitLab/Jenkins)
+  - [x] 管理页面 (/webhooks)
+  - [x] 投递记录查看
+  - [x] 导航菜单入口
+  - [x] 数据库模型完善（关联 TestCase/User/Project/Execution）
+  - [x] API 端点 (/api/bugs, /api/bugs/auto-create)
+  - [x] 状态流转 /api/bugs/[id]/status
+  - [x] Bug 管理页面 (/bugs)
+  - [x] 自动创建 Bug 功能
+  - [x] 导航菜单入口
+  - [x] 数据库模型 (ScheduledTask 已存在)
+  - [x] API 端点 (/api/scheduled-tasks)
+  - [x] 任务管理页面 (/scheduled-tasks)
+  - [x] Cron 表达式支持
+  - [x] 立即执行功能
+  - [x] 导航菜单入口
+  - [x] 数据库模型 (Log)
+  - [x] API 端点 (/api/logs, /api/logs/export)
+  - [x] 日志管理页面 (/admin/logs)
+  - [x] 日志记录工具函数
+  - [x] 导航菜单入口
+
+=== 刚完成 ===
+
+- [x] 日志功能 (PRD 2.9)
+  - 操作/系统/执行日志
+  - 支持类型/级别/时间筛选
+  - JSON/CSV 导出
+  - 详情查看对话框
 
 === 刚完成 ===
 
@@ -44,7 +85,13 @@ UPDATED: 2026-02-24
 
 === 下一步 ===
 
-1. 日志功能（操作/系统/执行日志）
+1. ~~日志功能（已完成）~~
+2. ~~定时任务（已完成）~~
+3. ~~Bug 管理（已完成）~~
+4. ~~CI/CD Webhook（已完成）~~
+5. ~~报告导出（已完成）~~
+
+🎉 P1 功能全部完成！
 2. 定时执行功能（Cron表达式支持）
 3. UI布局优化（底部功能区移至Header）
 4. AI增强（文件导入、Postman集成）

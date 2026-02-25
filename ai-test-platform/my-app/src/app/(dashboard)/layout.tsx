@@ -28,6 +28,9 @@ import {
   BookOpen,
   Brain,
   FileText,
+  Clock,
+  Bug,
+  Webhook,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications';
 import { Button } from '@/components/ui/button';
@@ -60,6 +63,9 @@ const sidebarItems = [
   { icon: Sparkles, label: 'AI 生成', href: '/ai-generate' },
   { icon: Layers, label: '测试套件', href: '/test-suites' },
   { icon: Play, label: '执行历史', href: '/executions' },
+  { icon: Clock, label: '定时任务', href: '/scheduled-tasks' },
+  { icon: Bug, label: 'Bug 管理', href: '/bugs' },
+  { icon: Webhook, label: 'CI/CD', href: '/webhooks' },
   { icon: BarChart3, label: '报告中心', href: '/reports' },
   { icon: BookOpen, label: '知识库', href: '/knowledge' },
   { icon: Brain, label: 'AI 设置', href: '/ai-settings' },
