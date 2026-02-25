@@ -110,7 +110,10 @@ P1 功能开发完成 - 2026-02-25
   - ✅ 新建用例/套件 (/tests/new)
   - ✅ 上报问题 (/quality/issues/new)
   - ✅ 所有页面连接 API
-- [ ] Phase 6: 清理旧代码 (可选)
+- [x] Phase 6: 清理旧代码 ✅
+  - ✅ 通知系统 (/inbox)
+  - ✅ 删除 11 个旧目录 (testcases, suites, executions等)
+  - ✅ 系统完全迁移到新架构
 
 ### 新导航结构
 ```
