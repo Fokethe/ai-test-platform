@@ -345,6 +345,69 @@ export default function TestCasesPage() {
     }
   };
 
+  const handleBatchUpdatePriority = async (priority: string) => {
+    try {
+      const res = await fetch('/api/testcases/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', ids: selectedIds, data: { priority } }),
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        toast.success(data.message);
+        setSelectedIds([]);
+        await globalMutate('/api/testcases');
+      } else {
+        toast.error(data.message || '批量更新失败');
+      }
+    } catch (error) {
+      toast.error('批量更新失败');
+    }
+  };
+
+  const handleBatchExportSelected = async (format: 'json' | 'csv') => {
+    try {
+      const res = await fetch('/api/testcases/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'export', ids: selectedIds, format }),
+      });
+      
+      if (format === 'csv') {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `testcases_batch_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('导出成功');
+        setSelectedIds([]);
+      } else {
+        const data = await res.json();
+        if (data.code === 0) {
+          const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `testcases_batch_${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          toast.success('导出成功');
+          setSelectedIds([]);
+        } else {
+          toast.error(data.message || '导出失败');
+        }
+      }
+    } catch (error) {
+      toast.error('导出失败');
+    }
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'P0': return 'bg-red-100 text-red-700';
@@ -605,14 +668,15 @@ export default function TestCasesPage() {
             {selectedIds.length > 0 && (
               <Card className="bg-blue-50/50 border-blue-200">
                 <CardContent className="py-3 px-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <CheckSquare className="h-5 w-5 text-blue-600" />
                       <span className="font-medium text-blue-900">
                         已选择 {selectedIds.length} 项
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* 批量执行 */}
                       <Button
                         size="sm"
                         variant="outline"
@@ -622,10 +686,53 @@ export default function TestCasesPage() {
                         <Play className="h-4 w-4 mr-1" />
                         执行
                       </Button>
+                      
+                      {/* 批量更新优先级 */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            优先级
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleBatchUpdatePriority('P0')}>
+                            <Badge className="bg-red-100 text-red-700 mr-2">P0</Badge> 紧急
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleBatchUpdatePriority('P1')}>
+                            <Badge className="bg-orange-100 text-orange-700 mr-2">P1</Badge> 高
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleBatchUpdatePriority('P2')}>
+                            <Badge className="bg-blue-100 text-blue-700 mr-2">P2</Badge> 中
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleBatchUpdatePriority('P3')}>
+                            <Badge className="bg-slate-100 text-slate-600 mr-2">P3</Badge> 低
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* 批量导出选中项 */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Download className="h-4 w-4 mr-1" />
+                            导出选中
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleBatchExportSelected('json')}>
+                            <FileJson className="mr-2 h-4 w-4" />导出为 JSON
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleBatchExportSelected('csv')}>
+                            <FileSpreadsheet className="mr-2 h-4 w-4" />导出为 CSV
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setBatchDeleteOpen(true)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         删除
