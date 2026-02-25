@@ -7,30 +7,32 @@ import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
-  LayoutGrid,
-  FolderKanban,
+  Beaker,
   Play,
-  BarChart3,
+  Shield,
+  BookOpen,
+  Plug,
+  Bell,
   Settings,
   LogOut,
   User,
-  Layers,
   Menu,
   X,
-  Keyboard,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Sun,
   Moon,
   Monitor,
-  Palette,
-  BookOpen,
-  Brain,
-  FileText,
+  ChevronDown,
+  FolderKanban,
+  Layers,
   Clock,
   Bug,
-  Webhook,
+  FileText,
+  Brain,
+  Activity,
+  Users,
+  type LucideIcon,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications';
 import { Button } from '@/components/ui/button';
@@ -45,37 +47,96 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { HOTKEYS_HELP } from '@/lib/hooks/use-hotkeys';
-import { PrefetchLink } from '@/components/ui/prefetch-link';
 import { cn } from '@/lib/utils';
 
-// 侧边栏导航项配置
-const sidebarItems = [
-  { icon: LayoutDashboard, label: '仪表盘', href: '/dashboard' },
-  { icon: LayoutGrid, label: '工作空间', href: '/workspaces' },
-  { icon: FolderKanban, label: '用例库', href: '/testcases' },
-  { icon: Sparkles, label: 'AI 生成', href: '/ai-generate' },
-  { icon: Layers, label: '测试套件', href: '/test-suites' },
-  { icon: Play, label: '执行历史', href: '/executions' },
-  { icon: Clock, label: '定时任务', href: '/scheduled-tasks' },
-  { icon: Bug, label: 'Bug 管理', href: '/bugs' },
-  { icon: Webhook, label: 'CI/CD', href: '/webhooks' },
-  { icon: BarChart3, label: '报告中心', href: '/reports' },
-  { icon: BookOpen, label: '知识库', href: '/knowledge' },
-  { icon: Brain, label: 'AI 设置', href: '/ai-settings' },
+// ==================== 新导航结构 (8项合并) ====================
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  href: string;
+  badge?: number;
+  subItems?: { id: string; label: string; href: string; icon?: LucideIcon }[];
+}
+
+const mainNavItems: NavItem[] = [
+  {
+    id: 'dashboard',
+    label: '仪表盘',
+    icon: LayoutDashboard,
+    href: '/dashboard',
+  },
+  {
+    id: 'tests',
+    label: '测试中心',
+    icon: Beaker,
+    href: '/tests',
+    subItems: [
+      { id: 'cases', label: '用例库', href: '/tests?tab=cases', icon: FolderKanban },
+      { id: 'suites', label: '测试套件', href: '/tests?tab=suites', icon: Layers },
+      { id: 'ai', label: 'AI生成', href: '/tests?tab=ai', icon: Brain },
+    ],
+  },
+  {
+    id: 'runs',
+    label: '执行中心',
+    icon: Play,
+    href: '/runs',
+    subItems: [
+      { id: 'history', label: '执行历史', href: '/runs', icon: Clock },
+      { id: 'scheduled', label: '定时任务', href: '/runs?tab=scheduled', icon: Clock },
+    ],
+  },
+  {
+    id: 'quality',
+    label: '质量看板',
+    icon: Shield,
+    href: '/quality',
+    subItems: [
+      { id: 'issues', label: '问题列表', href: '/quality/issues', icon: Bug },
+      { id: 'reports', label: '质量报告', href: '/quality/reports', icon: FileText },
+    ],
+  },
+  {
+    id: 'assets',
+    label: '资产库',
+    icon: BookOpen,
+    href: '/assets',
+    subItems: [
+      { id: 'docs', label: '文档', href: '/assets?type=doc' },
+      { id: 'pages', label: '页面', href: '/assets?type=page' },
+    ],
+  },
+  {
+    id: 'integrations',
+    label: '集成',
+    icon: Plug,
+    href: '/integrations',
+  },
+  {
+    id: 'inbox',
+    label: '通知',
+    icon: Bell,
+    href: '/inbox',
+    badge: 0, // TODO: 从 API 获取
+  },
 ];
 
-// 管理员菜单
-const adminItems = [
-  { icon: User, label: '用户管理', href: '/admin/users' },
-  { icon: FileText, label: '日志管理', href: '/admin/logs' },
-];
+// 设置菜单（合并所有设置项）
+const settingsNav: NavItem = {
+  id: 'settings',
+  label: '设置',
+  icon: Settings,
+  href: '/settings',
+  subItems: [
+    { id: 'profile', label: '个人设置', href: '/settings/profile', icon: User },
+    { id: 'ai', label: 'AI设置', href: '/settings/ai', icon: Brain },
+    { id: 'users', label: '用户管理', href: '/settings/users', icon: Users },
+    { id: 'activity', label: '活动日志', href: '/settings/activity', icon: Activity },
+    { id: 'system', label: '系统配置', href: '/settings/system', icon: Settings },
+  ],
+};
 
 // 主题配置
 const themes = [
@@ -84,568 +145,287 @@ const themes = [
   { value: 'system', label: '自动', icon: Monitor },
 ];
 
-/**
- * 导航项组件 - 支持展开/收起状态
- */
+// ==================== 组件 ====================
+
 interface NavItemProps {
-  href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
+  item: NavItem;
+  isActive: boolean;
   collapsed?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 }
 
-function NavItem({ href, icon: Icon, label, isActive, onClick, collapsed }: NavItemProps) {
-  return (
-    <PrefetchLink
-      href={href}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.();
-      }}
-      title={collapsed ? label : undefined}
-      className={cn(
-        'flex items-center rounded-xl transition-all duration-300 ease-in-out min-h-[44px]',
-        'hover:scale-[1.02] active:scale-[0.98]',
-        collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-        isActive
-          ? 'bg-gradient-to-r from-blue-500/10 to-blue-600/5 text-blue-600 dark:from-blue-500/20 dark:to-blue-600/10 dark:text-blue-400 shadow-sm'
-          : 'text-slate-600 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:bg-slate-800/50'
-      )}
-    >
-      <Icon size={20} className={cn('shrink-0', isActive && 'animate-pulse-once')} />
-      <span
-        className={cn(
-          'whitespace-nowrap transition-all duration-300 ease-in-out',
-          collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
-        )}
-      >
-        {label}
-      </span>
-    </PrefetchLink>
-  );
-}
+function NavItemComponent({ item, isActive, collapsed, expanded, onToggle }: NavItemProps) {
+  const Icon = item.icon;
+  const hasSubItems = item.subItems && item.subItems.length > 0;
 
-/**
- * 主题子菜单组件
- */
-function ThemeSubMenu() {
-  const { theme, setTheme } = useTheme();
-  
-  return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger className="py-2">
-        <Palette className="mr-2 h-4 w-4 text-slate-500" />
-        主题设置
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent className="w-36">
-        {themes.map(({ value, label, icon: Icon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className={cn(
-              'flex items-center cursor-pointer',
-              theme === value && 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-            )}
-          >
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
-            {theme === value && (
-              <span className="ml-auto text-xs">●</span>
-            )}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
-  );
-}
-
-/**
- * Header主题切换按钮（简化版）
- */
-function ThemeToggleButton() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  
-  const toggleTheme = () => {
-    if (resolvedTheme === 'dark') {
-      setTheme('light');
-    } else {
-      setTheme('dark');
-    }
-  };
-  
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-9 w-9 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-      onClick={toggleTheme}
-      title={resolvedTheme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
-    >
-      {resolvedTheme === 'dark' ? (
-        <Moon className="h-5 w-5" />
-      ) : (
-        <Sun className="h-5 w-5" />
-      )}
-    </Button>
-  );
-}
-
-/**
- * 简化用户菜单（Header用）
- */
-function UserMenuSimple({ 
-  user, 
-  onSignOut 
-}: { 
-  user?: { name?: string | null; email?: string | null; image?: string | null } | null;
-  onSignOut: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="h-9 w-9 p-0 rounded-full"
-        >
-          <UserAvatar 
-            name={user?.name} 
-            email={user?.email} 
-            size="sm" 
-          />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        {/* 用户信息头部 */}
-        <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-          <UserAvatar 
-            name={user?.name} 
-            email={user?.email} 
-            size="md" 
-          />
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-              {user?.name || '用户'}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {user?.email}
-            </span>
-          </div>
-        </div>
-        
-        <DropdownMenuItem asChild>
-          <PrefetchLink href="/settings/profile" className="flex items-center cursor-pointer py-2">
-            <User className="mr-2 h-4 w-4 text-slate-500" />
-            个人设置
-          </PrefetchLink>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <PrefetchLink href="/settings" className="flex items-center cursor-pointer py-2">
-            <Settings className="mr-2 h-4 w-4 text-slate-500" />
-            系统设置
-          </PrefetchLink>
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem 
-          onClick={onSignOut}
-          className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 py-2"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          退出登录
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/**
- * 主题切换按钮组件（侧边栏用）
- */
-function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-
-  // 获取当前主题图标
-  const getCurrentIcon = () => {
-    if (resolvedTheme === 'dark') return <Moon className="h-4 w-4" />;
-    return <Sun className="h-4 w-4" />;
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn(
-            'w-full justify-start gap-2 text-slate-600 dark:text-slate-400 min-h-[44px]',
-            'hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-300',
-            collapsed && 'justify-center px-2'
-          )}
-        >
-          {getCurrentIcon()}
-          <span
-            className={cn(
-              'transition-all duration-300 ease-in-out',
-              collapsed ? 'w-0 opacity-0 overflow-hidden hidden' : 'w-auto opacity-100 inline'
-            )}
-          >
-            主题
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {themes.map(({ value, label, icon: Icon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className={cn(
-              'flex items-center cursor-pointer',
-              theme === value && 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-            )}
-          >
-            <Icon className="mr-2 h-4 w-4" />
-            {label}
-            {theme === value && (
-              <span className="ml-auto text-xs">●</span>
-            )}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/**
- * 用户头像组件
- */
-function UserAvatar({ 
-  name, 
-  email, 
-  size = 'md' 
-}: { 
-  name?: string | null; 
-  email?: string | null; 
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const sizeClasses = {
-    sm: 'h-6 w-6 text-xs',
-    md: 'h-8 w-8 text-sm',
-    lg: 'h-10 w-10 text-base',
-  };
-
-  const initial = name?.[0] || email?.[0] || 'U';
-  
-  // 根据首字母生成一致的颜色
-  const colors = [
-    'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-    'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-    'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-    'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
-    'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
-    'bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400',
-    'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-    'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-    'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400',
-    'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-    'bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-400',
-    'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
-    'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
-  ];
-  
-  const colorIndex = initial.charCodeAt(0) % colors.length;
-  const colorClass = colors[colorIndex];
-
-  return (
-    <Avatar className={cn(sizeClasses[size], 'ring-2 ring-white dark:ring-slate-800 shadow-sm')}>      
-      <AvatarFallback className={cn('font-medium', colorClass)}>
-        {initial.toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
-  );
-}
-
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const { resolvedTheme } = useTheme();
-  
-  // 状态管理
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [hotkeysOpen, setHotkeysOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push('/login');
-    router.refresh();
-  };
-
-  // 显示加载状态
-  if (status === 'loading') {
+  if (collapsed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400"></div>
-          <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border-4 border-blue-400/30"></div>
-        </div>
-      </div>
+      <Link
+        href={item.href}
+        className={cn(
+          'flex items-center justify-center p-3 rounded-lg transition-colors',
+          isActive
+            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+        )}
+        title={item.label}
+      >
+        <Icon size={20} />
+        {item.badge ? (
+          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+        ) : null}
+      </Link>
     );
   }
 
-  const sidebarWidth = sidebarCollapsed ? 'w-16' : 'w-64';
-
-  /**
-   * 侧边栏内容组件
-   */
-  const SidebarContent = () => (
-    <>
-      {/* Logo区域 */}
-      <div className={cn(
-        'h-16 flex items-center border-b border-slate-200/50 dark:border-slate-700/50',
-        'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl',
-        sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
-      )}>
-        <Link 
-          href="/workspaces" 
-          className={cn(
-            'flex items-center gap-2 transition-all duration-300',
-            sidebarCollapsed && 'justify-center'
-          )}
-        >
-          <span className="text-2xl hover:scale-110 transition-transform duration-200">🧪</span>
-          <span 
-            className={cn(
-              'font-bold text-lg bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent',
-              'transition-all duration-300 ease-in-out whitespace-nowrap',
-              sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'
-            )}
-          >
-            AI Test
+  return (
+    <div>
+      <Link
+        href={item.href}
+        onClick={hasSubItems ? onToggle : undefined}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group',
+          isActive
+            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+        )}
+      >
+        <Icon size={18} />
+        <span className="flex-1 text-sm font-medium">{item.label}</span>
+        {item.badge ? (
+          <span className="px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
+            {item.badge}
           </span>
+        ) : null}
+        {hasSubItems ? (
+          <ChevronDown
+            size={14}
+            className={cn(
+              'text-slate-400 transition-transform',
+              expanded && 'rotate-180'
+            )}
+          />
+        ) : null}
+      </Link>
+      
+      {/* 子菜单 */}
+      {hasSubItems && expanded && (
+        <div className="mt-1 ml-4 pl-4 border-l border-slate-200 dark:border-slate-700 space-y-1">
+          {item.subItems?.map((sub) => (
+            <Link
+              key={sub.id}
+              href={sub.href}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              {sub.icon && <sub.icon size={14} />}
+              <span>{sub.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== 布局组件 ====================
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const isItemActive = (item: NavItem) => {
+    if (pathname === item.href) return true;
+    if (item.subItems?.some((sub) => pathname.startsWith(sub.href.split('?')[0]))) return true;
+    return false;
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* 移动端顶部栏 */}
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">AI</span>
+          </div>
+          <span className="font-bold text-lg">Test</span>
         </Link>
-        
-        {/* 展开/收起按钮 - 仅在桌面端显示 */}
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className={cn(
-            'hidden md:flex h-8 w-8 rounded-lg',
-            'hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300',
-            sidebarCollapsed && 'rotate-180'
-          )}
-          title={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
-          <ChevronLeft className="h-4 w-4 text-slate-500" />
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
       </div>
 
-      {/* 导航菜单 */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
-        {sidebarItems.map((item) => (
-          <NavItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.label}
-            isActive={pathname.startsWith(item.href)}
-            onClick={() => setSidebarOpen(false)}
-            collapsed={sidebarCollapsed}
-          />
-        ))}
-        {/* 管理员菜单 - 仅对管理员显示 */}
-        {session?.user?.role === 'ADMIN' && adminItems.map(item => (
-          <NavItem
-            key={item.href}
-            href={item.href}
-            icon={item.icon}
-            label={item.label}
-            isActive={pathname.startsWith(item.href)}
-            onClick={() => setSidebarOpen(false)}
-            collapsed={sidebarCollapsed}
-          />
-        ))}
-      </nav>
-
-      {/* 底部 - 仅显示用户头像 */}
-      <div className={cn(
-        'p-3 border-t border-slate-200/50 dark:border-slate-700/50',
-        'bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl'
-      )}>
-        <div className={cn(
-          'flex items-center',
-          sidebarCollapsed ? 'justify-center' : 'justify-start gap-3 px-2'
-        )}>
-          <UserAvatar 
-            name={session?.user?.name} 
-            email={session?.user?.email} 
-            size="sm" 
-          />
-          {!sidebarCollapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate max-w-[120px]">
-                {session?.user?.name || '用户'}
-              </span>
-              <span className="text-xs text-slate-400 truncate max-w-[120px]">
-                {session?.user?.email}
-              </span>
-            </div>
+      <div className="flex">
+        {/* 侧边栏 */}
+        <aside
+          className={cn(
+            'fixed lg:sticky top-0 left-0 z-40 h-screen bg-white dark:bg-slate-900 border-r transition-all duration-300',
+            isCollapsed ? 'w-16' : 'w-64',
+            isMobileMenuOpen
+              ? 'translate-x-0'
+              : '-translate-x-full lg:translate-x-0'
           )}
-        </div>
-      </div>
-    </>
-  );
-
-  return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Desktop Sidebar - 带动画宽度变化 */}
-      <aside 
-        className={cn(
-          'hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40',
-          'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl',
-          'border-r border-slate-200/50 dark:border-slate-700/50',
-          'transition-all duration-300 ease-in-out',
-          sidebarWidth
-        )}
-      >
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile Sidebar */}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 w-64 flex-col z-50',
-          'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl',
-          'border-r border-slate-200/50 dark:border-slate-700/50',
-          'transform transition-transform duration-300 ease-in-out md:hidden',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-slate-200/50 dark:border-slate-700/50 md:hidden">
-          <span className="font-bold text-slate-800 dark:text-slate-100">菜单</span>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setSidebarOpen(false)}
-            className="hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-          </Button>
-        </div>
-        <SidebarContent />
-      </aside>
-
-      {/* Main Content */}
-      <main 
-        className={cn(
-          'flex-1 min-w-0 overflow-auto',
-          'transition-all duration-300 ease-in-out',
-          'md:ml-16',
-          !sidebarCollapsed && 'md:ml-64'
-        )}
-      >
-        {/* Mobile Header */}
-        <div className={cn(
-          'md:hidden flex items-center justify-between p-4 sticky top-0 z-30',
-          'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl',
-          'border-b border-slate-200/50 dark:border-slate-700/50'
-        )}>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setSidebarOpen(true)}
-            className="hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <Menu className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-          </Button>
-          <span className="font-bold text-slate-800 dark:text-slate-100">AI Test Platform</span>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-          </div>
-        </div>
-        
-        {/* Desktop Header */}
-        <div className={cn(
-          'hidden md:flex items-center justify-end p-4 sticky top-0 z-30',
-          'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl',
-          'border-b border-slate-200/50 dark:border-slate-700/50'
-        )}>
-          <div className="flex items-center gap-3">
-            {/* 快捷键帮助按钮 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              onClick={() => setHotkeysOpen(true)}
-              title="快捷键"
+        >
+          {/* Logo */}
+          <div className="flex items-center justify-between h-16 px-4 border-b">
+            <Link
+              href="/dashboard"
+              className={cn(
+                'flex items-center gap-2',
+                isCollapsed && 'justify-center w-full'
+              )}
             >
-              <Keyboard className="h-5 w-5" />
-            </Button>
-            
-            {/* 主题切换按钮 */}
-            <ThemeToggleButton />
-            
-            {/* 通知铃铛 */}
-            <NotificationBell />
-            
-            {/* 简化用户菜单 */}
-            <UserMenuSimple 
-              user={session?.user}
-              onSignOut={handleSignOut}
-            />
-          </div>
-        </div>
-        
-        {/* 页面内容 */}
-        <div className="p-4 md:p-6 lg:p-8">
-          {children}
-        </div>
-      </main>
-
-      {/* 快捷键帮助对话框 */}
-      <Dialog open={hotkeysOpen} onOpenChange={setHotkeysOpen}>
-        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-              <Keyboard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              键盘快捷键
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            {HOTKEYS_HELP.map((hotkey, index) => (
-              <div 
-                key={index} 
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <span className="text-slate-600 dark:text-slate-400">{hotkey.description}</span>
-                <div className="flex gap-1">
-                  {hotkey.keys.map((key, kIndex) => (
-                    <kbd
-                      key={kIndex}
-                      className="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-sm font-mono text-slate-700 dark:text-slate-300"
-                    >
-                      {key}
-                    </kbd>
-                  ))}
-                </div>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">AI</span>
               </div>
-            ))}
+              {!isCollapsed && <span className="font-bold text-lg">Test</span>}
+            </Link>
+            {!isCollapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden lg:flex"
+                onClick={() => setIsCollapsed(true)}
+              >
+                <ChevronLeft size={18} />
+              </Button>
+            )}
+            {isCollapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden lg:flex absolute -right-3 top-16 w-6 h-6 bg-white dark:bg-slate-900 border rounded-full"
+                onClick={() => setIsCollapsed(false)}
+              >
+                <ChevronRight size={14} />
+              </Button>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* 导航 */}
+          <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-8rem)]">
+            {mainNavItems.map((item) => (
+              <NavItemComponent
+                key={item.id}
+                item={item}
+                isActive={isItemActive(item)}
+                collapsed={isCollapsed}
+                expanded={expandedItems.includes(item.id)}
+                onToggle={() => toggleExpanded(item.id)}
+              />
+            ))}
+
+            {/* 设置 */}
+            <div className="pt-4 mt-4 border-t">
+              <NavItemComponent
+                item={settingsNav}
+                isActive={isItemActive(settingsNav)}
+                collapsed={isCollapsed}
+                expanded={expandedItems.includes(settingsNav.id)}
+                onToggle={() => toggleExpanded(settingsNav.id)}
+              />
+            </div>
+          </nav>
+
+          {/* 底部用户区 */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 border-t bg-white dark:bg-slate-900">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    'w-full justify-start gap-2',
+                    isCollapsed && 'justify-center p-2'
+                  )}
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                      {session?.user?.name?.[0] || session?.user?.email?.[0] || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!isCollapsed && (
+                    <div className="flex-1 text-left overflow-hidden">
+                      <p className="text-sm font-medium truncate">
+                        {session?.user?.name || session?.user?.email}
+                      </p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {session?.user?.role?.toLowerCase()}
+                      </p>
+                    </div>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    个人设置
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Sun className="mr-2 h-4 w-4" />
+                    主题
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {themes.map((t) => (
+                      <DropdownMenuItem
+                        key={t.value}
+                        onClick={() => setTheme(t.value)}
+                      >
+                        <t.icon className="mr-2 h-4 w-4" />
+                        {t.label}
+                        {theme === t.value && (
+                          <span className="ml-auto text-blue-600">✓</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </aside>
+
+        {/* 遮罩 */}
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* 主内容区 */}
+        <main className="flex-1 min-w-0">
+          {/* 顶部栏 */}
+          <header className="sticky top-0 z-20 flex items-center justify-end gap-4 px-6 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b">
+            <NotificationBell />
+          </header>
+
+          {/* 内容 */}
+          <div className="p-6">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
