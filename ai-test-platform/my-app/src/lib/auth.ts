@@ -1,8 +1,13 @@
-import { NextAuthOptions } from 'next-auth';
+import { NextAuthOptions, getServerSession } from 'next-auth';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+
+// Next-Auth v5 兼容的 auth 函数
+export async function auth() {
+  return getServerSession(authOptions);
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),

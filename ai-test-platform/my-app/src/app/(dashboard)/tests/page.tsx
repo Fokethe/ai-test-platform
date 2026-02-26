@@ -1,11 +1,11 @@
 /**
  * TestCenter Page - 合并用例/套件/AI生成
- * 连接真实 API
+ * 连接真实 API，支持分页和性能优化
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -17,6 +17,8 @@ import {
   Loader2,
   MoreHorizontal,
   FolderOpen,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +30,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Pagination } from '@/components/ui/pagination';
+import { InfiniteScroll } from '@/components/ui/virtual-list';
 import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -44,11 +48,35 @@ interface Test {
   _count?: { executions: number };
 }
 
+interface PaginationMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// 使用 useMemo 缓存 fetcher 配置
+const swrOptions = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 5000,
+};
+
 export default function TestCenterPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'cases';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
+  // 无限滚动状态（用于大数据场景）
+  const [infiniteItems, setInfiniteItems] = useState<Test[]>([]);
+  const [infinitePage, setInfinitePage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [useInfiniteScroll, setUseInfiniteScroll] = useState(false);
 
   // 根据当前 tab 确定 type 参数
   const getTypeParam = () => {
@@ -63,24 +91,69 @@ export default function TestCenterPage() {
   };
 
   // 构建 API URL
-  const buildApiUrl = () => {
+  const buildApiUrl = useCallback(() => {
     const params = new URLSearchParams();
     const type = getTypeParam();
     if (type) params.set('type', type);
     if (searchQuery) params.set('search', searchQuery);
-    params.set('pageSize', '20');
+    params.set('page', page.toString());
+    params.set('pageSize', pageSize.toString());
     return `/api/tests?${params.toString()}`;
-  };
+  }, [activeTab, searchQuery, page, pageSize]);
 
   // 获取数据
   const { data, error, isLoading, mutate } = useSWR(
     activeTab !== 'ai' ? buildApiUrl() : null,
     fetcher,
-    { refreshInterval: 30000 }
+    swrOptions
   );
 
   const tests: Test[] = data?.data || [];
-  const meta = data?.meta;
+  const meta: PaginationMeta = data?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+
+  // 处理搜索
+  const handleSearch = () => {
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+    mutate();
+  };
+
+  // 加载更多（无限滚动）
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoading) return;
+    
+    const nextPage = infinitePage + 1;
+    const params = new URLSearchParams();
+    const type = getTypeParam();
+    if (type) params.set('type', type);
+    if (searchQuery) params.set('search', searchQuery);
+    params.set('page', nextPage.toString());
+    params.set('pageSize', '20');
+    
+    try {
+      const res = await fetch(`/api/tests?${params.toString()}`);
+      const result = await res.json();
+      
+      if (result.data?.length > 0) {
+        setInfiniteItems(prev => [...prev, ...result.data]);
+        setInfinitePage(nextPage);
+        setHasMore(result.data.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      console.error('Load more failed:', e);
+    }
+  }, [hasMore, isLoading, infinitePage, searchQuery, activeTab]);
+
+  // 切换分页模式
+  const togglePaginationMode = () => {
+    setUseInfiniteScroll(!useInfiniteScroll);
+    setInfiniteItems(tests);
+    setInfinitePage(page);
+    setHasMore(meta.page < meta.totalPages);
+  };
 
   const tabs = [
     { id: 'cases', label: '用例', icon: Beaker },
@@ -98,12 +171,24 @@ export default function TestCenterPage() {
             共 {meta?.total || 0} 个{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
           </p>
         </div>
-        <Button asChild>
-          <Link href={`/tests/new?type=${getTypeParam()}`}>
-            <Plus className="w-4 h-4 mr-2" />
-            新建{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {activeTab !== 'ai' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePaginationMode}
+              className="text-slate-500"
+            >
+              {useInfiniteScroll ? '分页模式' : '无限滚动'}
+            </Button>
+          )}
+          <Button asChild>
+            <Link href={`/tests/new?type=${getTypeParam()}`}>
+              <Plus className="w-4 h-4 mr-2" />
+              新建{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -115,13 +200,21 @@ export default function TestCenterPage() {
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && mutate()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
         </div>
+        <Button variant="outline" onClick={handleSearch}>
+          搜索
+        </Button>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        setPage(1);
+        setInfinitePage(1);
+        setInfiniteItems([]);
+      }}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>
@@ -132,29 +225,104 @@ export default function TestCenterPage() {
         </TabsList>
 
         <TabsContent value="cases" className="mt-6">
-          <TestList
-            tests={tests}
-            isLoading={isLoading}
-            error={error}
-            emptyText="暂无测试用例"
-            onRefresh={() => mutate()}
-          />
+          {useInfiniteScroll ? (
+            <InfiniteTestList
+              tests={infiniteItems.length > 0 ? infiniteItems : tests}
+              hasMore={hasMore}
+              isLoading={isLoading}
+              onLoadMore={loadMore}
+            />
+          ) : (
+            <>
+              <TestList
+                tests={tests}
+                isLoading={isLoading}
+                error={error}
+                emptyText="暂无测试用例"
+                onRefresh={() => mutate()}
+              />
+              <Pagination
+                currentPage={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="suites" className="mt-6">
-          <TestList
-            tests={tests}
-            isLoading={isLoading}
-            error={error}
-            emptyText="暂无测试套件"
-            onRefresh={() => mutate()}
-          />
+          {useInfiniteScroll ? (
+            <InfiniteTestList
+              tests={infiniteItems.length > 0 ? infiniteItems : tests}
+              hasMore={hasMore}
+              isLoading={isLoading}
+              onLoadMore={loadMore}
+            />
+          ) : (
+            <>
+              <TestList
+                tests={tests}
+                isLoading={isLoading}
+                error={error}
+                emptyText="暂无测试套件"
+                onRefresh={() => mutate()}
+              />
+              <Pagination
+                currentPage={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="ai" className="mt-6">
           <AIGeneratePanel />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// 无限滚动测试列表
+function InfiniteTestList({
+  tests,
+  hasMore,
+  isLoading,
+  onLoadMore,
+}: {
+  tests: Test[];
+  hasMore: boolean;
+  isLoading: boolean;
+  onLoadMore: () => void;
+}) {
+  if (tests.length === 0 && !isLoading) {
+    return (
+      <div className="border rounded-lg p-12 text-center">
+        <Beaker className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+        <p className="text-slate-500">暂无测试用例</p>
+        <Button variant="outline" className="mt-4" asChild>
+          <Link href="/tests/new">创建第一个</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg divide-y">
+      <InfiniteScroll
+        items={tests}
+        hasMore={hasMore}
+        isLoading={isLoading}
+        onLoadMore={onLoadMore}
+        renderItem={(test) => <TestItem test={test} />}
+      />
     </div>
   );
 }
@@ -213,8 +381,8 @@ function TestList({
   );
 }
 
-// 单个测试项
-function TestItem({ test }: { test: Test }) {
+// 单个测试项 - 使用 React.memo 优化渲染
+const TestItem = React.memo(function TestItem({ test }: { test: Test }) {
   const tags = test.tags ? JSON.parse(test.tags) : [];
 
   return (
@@ -233,11 +401,14 @@ function TestItem({ test }: { test: Test }) {
           <p className="text-sm text-slate-500 mt-1 truncate">{test.description}</p>
         )}
         <div className="flex items-center gap-2 mt-2">
-          {tags.map((tag: string) => (
+          {tags.slice(0, 5).map((tag: string) => (
             <Badge key={tag} variant="secondary" className="text-xs">
               {tag}
             </Badge>
           ))}
+          {tags.length > 5 && (
+            <Badge variant="outline" className="text-xs">+{tags.length - 5}</Badge>
+          )}
           <span className="text-xs text-slate-400">
             执行 {test._count?.executions || 0} 次
           </span>
@@ -261,7 +432,7 @@ function TestItem({ test }: { test: Test }) {
       </DropdownMenu>
     </div>
   );
-}
+});
 
 // 优先级标签
 function PriorityBadge({ priority }: { priority: string }) {
@@ -309,3 +480,5 @@ function AIGeneratePanel() {
     </div>
   );
 }
+
+import React from 'react';

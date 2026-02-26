@@ -1,11 +1,11 @@
 /**
  * Asset Library - 合并知识库 + 页面管理
- * 连接真实 API
+ * 连接真实 API，支持分页和性能优化
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -46,32 +47,50 @@ interface Asset {
   updatedAt: string;
 }
 
+interface PaginationMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const swrOptions = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 5000,
+};
+
 export default function AssetLibraryPage() {
   const searchParams = useSearchParams();
   const defaultType = searchParams.get('type') || 'doc';
   const [activeTab, setActiveTab] = useState(defaultType);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // 构建 API URL
-  const buildApiUrl = () => {
+  const buildApiUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (activeTab !== 'all') {
       params.set('type', activeTab.toUpperCase());
     }
     if (searchQuery) params.set('search', searchQuery);
-    params.set('pageSize', '20');
+    params.set('page', page.toString());
+    params.set('pageSize', pageSize.toString());
     return `/api/assets?${params.toString()}`;
-  };
+  }, [activeTab, searchQuery, page, pageSize]);
 
   // 获取数据
   const { data, error, isLoading, mutate } = useSWR(
     buildApiUrl(),
     fetcher,
-    { refreshInterval: 30000 }
+    swrOptions
   );
 
   const assets: Asset[] = data?.data || [];
-  const meta = data?.meta;
+  const meta: PaginationMeta = data?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
   const tabs = [
     { id: 'doc', label: '文档', icon: FileText },
@@ -90,6 +109,11 @@ export default function AssetLibraryPage() {
       default:
         return '/assets/new';
     }
+  };
+
+  const handleSearch = () => {
+    setPage(1);
+    mutate();
   };
 
   return (
@@ -119,13 +143,19 @@ export default function AssetLibraryPage() {
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && mutate()}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
         </div>
+        <Button variant="outline" onClick={handleSearch}>
+          搜索
+        </Button>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        setPage(1);
+      }}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>
@@ -144,6 +174,14 @@ export default function AssetLibraryPage() {
             onRefresh={() => mutate()}
             type="doc"
           />
+          <Pagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </TabsContent>
 
         <TabsContent value="page" className="mt-6">
@@ -155,6 +193,14 @@ export default function AssetLibraryPage() {
             onRefresh={() => mutate()}
             type="page"
           />
+          <Pagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </TabsContent>
 
         <TabsContent value="snippet" className="mt-6">
@@ -165,6 +211,14 @@ export default function AssetLibraryPage() {
             emptyText="暂无代码片段"
             onRefresh={() => mutate()}
             type="snippet"
+          />
+          <Pagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            totalItems={meta.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
           />
         </TabsContent>
       </Tabs>
@@ -305,11 +359,14 @@ function AssetCard({ asset }: { asset: Asset }) {
           )}
 
           <div className="flex items-center gap-2 mt-2">
-            {tags.map((tag: string) => (
+            {tags.slice(0, 5).map((tag: string) => (
               <Badge key={tag} variant="outline" className="text-xs">
                 {tag}
               </Badge>
             ))}
+            {tags.length > 5 && (
+              <Badge variant="outline" className="text-xs">+{tags.length - 5}</Badge>
+            )}
             <span className="text-xs text-slate-400">
               更新于 {new Date(asset.updatedAt).toLocaleDateString()}
             </span>
