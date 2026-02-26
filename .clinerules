@@ -13,7 +13,7 @@
 |---------|-----------|---------------------|
 | 新项目启动 | "开始新项目" "新项目" "从零开始" | cost-control → socratic-inquiry → task-planner → doc-system → workflow |
 | 功能开发 | "开发新功能" "添加功能" "实现功能" "做功能" | cost-control → task-planner → workflow → code-review → doc-system → cost-control |
-| **TDD 循环** | **"TDD 模式"** **"循环开发"** **"迭代开发"** **"先写测试"** **"红绿重构"** | **cost-control → tdd-loop (红→绿→重构→自动下一轮)** |
+| **TDD 循环** | **"TDD 模式"** **"循环开发"** **"迭代开发"** **"先写测试"** **"红绿重构"** | **cost-control → tdd-dev → tdd-loop (红→绿→重构→自动下一轮)** |
 | 代码重构 | "重构" "优化代码" "代码重构" "重构代码" "优化这段代码" | cost-control → code-review → task-planner → code-refactor → code-review → doc-system → git-commit → cost-control |
 | Bug 修复 | "修复bug" "debug" "报错了" "出错了" "报错" "修复 Bug" "修复问题" | cost-control → debug-diagnosis → danger-signals → code-review → doc-system → git-commit → cost-control |
 | 设计还原 | "还原设计" "设计稿" "截图转代码" "实现设计" | cost-control → visual-coding → task-planner → workflow → code-review → doc-system → git-commit → cost-control |
@@ -26,6 +26,11 @@
 | 快捷指令 | "/tdd next" "下一轮" "继续 TDD" | tdd-loop (continue) |
 | 快捷指令 | "review" "审查代码" "看看代码" | code-review |
 | 快捷指令 | "规划" "plan" "制定计划" "任务规划" | task-planner |
+| 快捷指令 | "/tdd" "TDD" "tdd 模式" | tdd-dev |
+| 快捷指令 | "/tdd next" "下一轮" "继续 TDD" | tdd-loop (continue) |
+| 快捷指令 | "/brainstorm" "脑爆" "头脑风暴" | brainstorm |
+| 快捷指令 | "/write-plan" "写计划" "生成计划" | write-plan |
+| 快捷指令 | "/execute-plan" "执行计划" "按计划执行" | execute-plan |
 
 【执行流程】:
 1. **意图匹配**: 首先检查用户输入是否匹配上表关键词
@@ -354,21 +359,67 @@ feat(auth): 添加 JWT token 刷新机制
 
 【执行流程】:
 1. **结构分析**: 先输出"这是什么页面，有哪些模块"
-2. **像素级还原**:
-   - 配色: 精确匹配截图中的颜色
-   - 间距: 使用 Tailwind 标准间距 scale
-   - 字体: 匹配字体大小和字重
-   - 圆角: 匹配 border-radius
-3. **布局实现**:
+2. **设计规范提取**（四维度专业分析）:
+   - **字体**: 识别字体家族、字重、行高、字间距
+   - **颜色**: 提取主色、辅助色、背景色、文字色（禁止默认渐变色）
+   - **动效**: 识别过渡时间、缓动函数、动画类型
+   - **背景**: 分析背景类型（纯色/渐变/图片/毛玻璃）
+3. **像素级还原**:
+   - 配色: 精确匹配截图中的颜色，使用 Tailwind 标准色板
+   - 间距: 使用 Tailwind 标准间距 scale (4px 基准)
+   - 字体: 匹配字体大小和字重，使用标准字体栈
+   - 圆角: 匹配 border-radius，使用标准 scale
+4. **布局实现**:
    - 使用 Flex/Grid
    - 禁止绝对定位（除非是悬浮按钮）
-4. **响应式推导**:
+5. **响应式推导**:
    - 如果是桌面端截图，自动推导移动端布局
    - 说明折叠/堆叠策略
-5. **交互状态**:
-   - 所有按钮添加 hover/active 状态
-6. **组件化**:
+6. **交互状态**:
+   - 所有按钮添加 hover/active/focus 状态
+   - 添加适当的过渡动画
+7. **组件化**:
    - 拆分为 Header/Content/Sidebar 等逻辑组件
+
+【设计规范标准】:
+```
+🎨 设计系统提取:
+
+【字体规范】
+- 主字体: [如 Inter, system-ui, sans-serif]
+- 字重层级: 
+  * 标题: font-bold (700)
+  * 正文: font-normal (400)
+  * 辅助: font-medium (500)
+- 行高: leading-relaxed (1.625) / leading-tight (1.25)
+- 字大小: text-xs/sm/base/lg/xl/2xl/3xl
+
+【颜色规范】
+- 主色: [如 slate-900, blue-600]
+- 辅助色: [如 slate-500, blue-400]
+- 背景色: [如 white, slate-50, slate-100]
+- 文字色: [如 slate-900, slate-600, slate-400]
+- 强调色: [如 red-500, green-500]
+- ⚠️ 禁止使用默认渐变色，除非设计稿明确使用
+
+【间距规范】
+- 基础单位: 4px (Tailwind spacing-1)
+- 常用间距: 4/8/12/16/24/32/48px (space-1/2/3/4/6/8/12)
+- 容器最大宽度: max-w-7xl (1280px)
+- 页面内边距: px-4 sm:px-6 lg:px-8
+
+【动效规范】
+- 过渡时间: duration-200 (快速) / duration-300 (标准) / duration-500 (慢速)
+- 缓动函数: ease-out (默认) / ease-in-out (对称)
+- 悬停效果: hover:scale-105 / hover:shadow-lg
+- 焦点状态: focus:ring-2 focus:ring-blue-500
+
+【圆角规范】
+- 小元素: rounded (4px)
+- 按钮/输入框: rounded-md (6px) / rounded-lg (8px)
+- 卡片: rounded-xl (12px) / rounded-2xl (16px)
+- 全圆: rounded-full
+```
 
 【输出格式】:
 ```
@@ -378,8 +429,9 @@ feat(auth): 添加 JWT token 刷新机制
 
 🎨 设计规范提取:
 - 主色: [色值]
+- 字体: [字体栈]
 - 间距系统: [如 16px 基准]
-- 字体: [大小层级]
+- 动效: [过渡时间/缓动函数]
 
 💻 代码实现:
 [组件代码]
@@ -389,6 +441,8 @@ feat(auth): 添加 JWT token 刷新机制
 - 先分析后编码
 - 不确定的地方询问确认
 - 复杂界面分组件输出
+- 禁止使用 AI 默认渐变色风格
+- 优先使用 Tailwind 标准设计 token
 
 ## Skill 12: 调试诊断协议 (Debug Diagnosis)
 【触发方式】: 用户粘贴错误信息时说"修复这个错误"、"分析原因"、"运行报错"
@@ -500,6 +554,349 @@ feat(auth): 添加 JWT token 刷新机制
 - 上下文占用 > 60% 时必须主动提示
 - 禁止在上下文满载时继续复杂操作
 - 优先使用外部文档存储状态
+
+## Skill 15: 持久化规划协议 (Planning with Files)
+【触发方式】: 用户说"创建任务计划"、"规划项目"、"复杂任务"、"多步骤任务"、"/plan"
+
+【核心思想】: 复刻 Manus 的持久化规划，通过 Markdown 文件解决上下文漂移问题
+
+【执行流程】:
+1. **初始化规划文档**:
+   创建 `task_plan.md`（任务计划）:
+   ```markdown
+   # Task Plan: [任务名称]
+   Created: [时间]
+   
+   ## 目标
+   [一句话描述任务目标]
+   
+   ## 执行步骤
+   - [ ] 步骤 1: [描述]
+   - [ ] 步骤 2: [描述]
+   - [ ] 步骤 3: [描述]
+   
+   ## 当前状态
+   当前步骤: [步骤 X]
+   进度: [X/Y]
+   
+   ## 依赖关系
+   - 步骤 2 依赖步骤 1 完成
+   - 步骤 3 依赖步骤 2 完成
+   ```
+
+2. **执行与记录**:
+   创建 `findings.md`（发现记录）:
+   ```markdown
+   # Findings: [任务名称]
+   
+   ## 关键发现
+   - [发现 1]: [详细描述]
+   - [发现 2]: [详细描述]
+   
+   ## 技术决策
+   - [决策 1]: [原因]
+   - [决策 2]: [原因]
+   
+   ## 遇到的问题
+   - [问题 1]: [解决方案]
+   ```
+
+3. **进度追踪**:
+   更新 `progress.md`（进度追踪）:
+   ```markdown
+   # Progress: [任务名称]
+   Updated: [时间]
+   
+   ## 已完成
+   - [x] [步骤 1]
+   - [x] [步骤 2]
+   
+   ## 进行中
+   - [ ] [步骤 3] - 预计 [时间]
+   
+   ## 阻塞项
+   - [问题]: [状态]
+   ```
+
+【工作流程】:
+1. 用户提出复杂任务 → 创建 task_plan.md
+2. 每完成一步 → 更新 task_plan.md 和 progress.md
+3. 遇到重要发现 → 记录到 findings.md
+4. 会话中断后恢复 → 读取三个文件，继续执行
+
+【约束】:
+- 复杂任务必须创建 task_plan.md
+- 每完成一个步骤必须更新文档
+- 会话恢复时优先读取规划文档
+- 禁止在文档缺失时执行复杂任务
+
+## Skill 16: Skill 创建器 (Skill Creator)
+【触发方式】: 用户说"创建新 skill"、"添加 skill"、"/skill:create"、"自定义 skill"
+
+【执行流程】:
+1. **需求收集**:
+   询问用户：
+   - Skill 名称: [简短描述]
+   - 触发方式: [关键词/指令]
+   - 核心功能: [解决什么问题]
+   - 输入: [需要什么信息]
+   - 输出: [期望什么结果]
+
+2. **生成 Skill 定义**:
+   按照以下模板创建 Skill：
+   ```markdown
+   ## Skill [编号]: [名称]
+   【触发方式】: [触发条件]
+   
+   【执行流程】:
+   1. [步骤 1]
+   2. [步骤 2]
+   3. [步骤 3]
+   
+   【输出格式】:
+   ```
+   [输出模板]
+   ```
+   
+   【约束】:
+   - [约束 1]
+   - [约束 2]
+   ```
+
+3. **集成到 .clinerules**:
+   - 添加到 Skill 编排器的意图识别表
+   - 更新使用说明中的核心 Skill 列表
+
+4. **验证测试**:
+   - 生成测试用例
+   - 验证触发词是否有效
+
+【Skill 设计原则】:
+- 单一职责: 一个 Skill 只做一件事
+- 明确触发: 清晰的触发条件和关键词
+- 可重复: 相同输入产生一致输出
+- 可验证: 有明确的完成标准
+
+【输出格式】:
+```
+🎯 Skill 创建完成: [名称]
+
+📋 Skill 定义:
+[完整 Skill 定义]
+
+🔗 集成位置:
+- 添加到 Skill 0 意图识别表
+- 更新使用说明
+
+🧪 测试用例:
+1. 输入: [测试输入] → 预期: [预期行为]
+2. 输入: [测试输入] → 预期: [预期行为]
+
+✅ 使用方法:
+说"[触发词]"即可激活
+```
+
+【约束】:
+- Skill 编号按顺序分配
+- 触发词不能与现有 Skill 冲突
+- 必须提供使用示例
+- 必须定义明确的约束条件
+
+---
+
+## Skill 17: TDD 循环开发 (TDD Loop)
+【触发方式】: 用户说"TDD 模式"、"循环开发"、"迭代开发"、"先写测试"、"红绿重构"
+
+【核心循环】:
+```
+红阶段: 写测试 → 运行（应失败）
+绿阶段: 最小实现 → 运行（应通过）
+重构: 优化代码 → 运行（仍通过）
+下一轮: 询问是否继续
+```
+
+【执行流程】:
+1. **需求分析**: 分析功能点，预估测试用例数
+2. **红阶段**: 仅编写测试代码，不实现功能
+3. **绿阶段**: 编写最小代码使测试通过
+4. **自动修复**: 测试失败时自动尝试修复（最多3次）
+5. **重构**: 改进代码质量，保持测试通过
+6. **迭代决策**: 显示完成状态，询问下一步
+
+【快捷指令】:
+- `/tdd` - 进入 TDD 模式
+- `/tdd next` - 当前功能完成，进入下一个功能
+- `/tdd fix` - 手动触发修复当前失败测试
+- `/tdd stop` - 停止 TDD 循环
+
+【约束】:
+- 每轮只实现一个最小功能点
+- 红阶段只写测试，不写实现
+- 绿阶段只求通过，不求完美
+- 重构阶段小步前进，频繁运行测试
+
+---
+
+## Skill 18: TDD 开发工作流 (TDD Dev)
+【触发方式】: 用户说"/skill:tdd-dev" 或 "TDD开发"
+
+【执行流程】:
+1. `cost-control` - 建立 TDD 基线消耗
+2. `tdd-loop` - 执行红-绿-重构自动化循环
+3. `code-review` - TDD 完成后代码审查
+4. `doc-system` - 更新 progress.txt
+5. `git-commit` - 生成 commit (type: test/feat/refactor)
+6. `cost-control` - TDD 总消耗统计
+
+【特点】:
+- 一键进入完整的 TDD 开发流程
+- 自动执行成本控制和文档更新
+- 支持中断和恢复
+
+---
+
+## Skill 19: Bug 修复工作流 (Bug Fix)
+【触发方式】: 用户说"/skill:bug-fix"、"修复bug"、"debug"、"报错了"、"出错了"
+
+【执行流程】:
+1. `cost-control` - 记录修复前消耗
+2. `debug-diagnosis` - 分析错误信息，定位根因，输出修复方案
+3. `danger-signals` - 检查修复次数（防循环），第3次仍未解决→提示回滚
+4. `code-review` - 审查修复代码，验证修复质量
+5. `doc-system` - 记录问题到 progress.txt，更新技术债务区
+6. `git-commit` - 生成 fix 类型 commit message
+7. `cost-control` - Debug 成本统计
+
+【防循环保护】:
+- 第1次修复: 正常执行
+- 第2次修复: 提示"如再次失败建议回滚"
+- 第3次修复: 强制提示"已修复3次未解决，建议回滚到稳定版本"
+
+---
+
+## Skill 20: 代码提交工作流 (Code Submit)
+【触发方式】: 用户说"/skill:code-submit"、"提交代码"、"commit"、"准备提交"
+
+【执行流程】:
+1. `cost-control` - 记录提交前消耗
+2. `code-review` - 全面代码审查（可读性/性能/安全/类型检查）
+3. `project-context` - 检查项目规范符合度，验证 KIMI.md 技术铁律
+4. `doc-system` - 更新 progress.txt，标记待提交状态
+5. `git-commit` - 分析改动内容，生成标准 commit message，提供 commit 命令
+6. `cost-control` - 本次开发总消耗
+
+【提交前检查清单】:
+- ✅ Code Review: 可读性、错误处理、性能、安全、类型
+- ✅ Project Context: 符合 KIMI.md 规范
+- ✅ Documentation: progress.txt 已更新
+
+---
+
+## Skill 21: 设计稿还原工作流 (Design Restore)
+【触发方式】: 用户说"/skill:design-restore"、"还原设计"、"设计稿"、"截图转代码"
+
+【执行流程】:
+1. `cost-control` - 预估还原成本
+2. `visual-coding` - 结构分析（DOM树）、规范提取（配色/间距/字体）、组件拆分建议，保存 design-spec.md
+3. `task-planner` - 制定组件实现计划，拆分 Header/Content/Sidebar 等，保存到 plan.md
+4. 分组件实现（循环）- 组件1、组件2...每完成一个说"/cost"检查
+5. `code-review` - 检查响应式/可访问性
+6. `visual-coding` - 像素级对比验证
+7. `doc-system` - 更新 progress.txt，记录设计规范到 KIMI.md
+8. `git-commit` - 生成 feat 类型 commit
+9. `cost-control` - UI开发成本总结
+
+【设计规范输出】:
+design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴影等视觉 tokens
+
+---
+
+## Skill 22: 大文档整理工作流 (Doc Organize)
+【触发方式】: 用户说"/skill:doc-organize"、"整理文档"、"处理文档"、"文档太大"
+
+【执行流程】:
+1. `cost-control` - 显示文档读取预估消耗，超过阈值时询问确认
+2. `doc-processor` - 结构分析（输出文档地图）、分块方案（每块5k-8k字符）、等待用户发送第1块
+3. 逐块处理（循环）- 块1、块2...显示"处理块 X/N，预估消耗: $x"
+4. 累积检查 - 单轮 > $0.05 时强制询问"是否继续? [Y/N]"
+5. `doc-processor`（整合）- 整合所有块摘要、去重处理、输出 final-document.md
+6. `cost-control` - 文档处理总消耗
+
+【快捷指令】:
+- `/next` - 继续下一块
+- "跳过" - 跳过当前块
+- "整合" - 提前进入整合阶段
+
+---
+
+## Skill 23: 功能开发工作流 (Feature Dev)
+【触发方式】: 用户说"/skill:feature-dev"、"开发新功能"、"功能开发"、"添加功能"
+
+【执行流程】:
+1. `cost-control` - 显示当前消耗，建立基线
+2. `task-planner`（Plan Mode）- 分析需求，制定执行计划，保存计划到 plan.md，等待用户确认
+3. `workflow` - 按 plan.md 逐步实现，每完成一步更新进度
+4. `code-review` - 代码审查，输出审查报告
+5. `doc-system` - 更新 progress.txt，更新 KIMI.md（如有规范变更）
+6. `git-commit` - 生成 commit message
+7. `cost-control` - 显示本轮开发总消耗
+
+【使用方式】:
+- 方式1：直接进入（已有明确需求）- 说"/skill:feature-dev"
+- 方式2：带需求进入 - 说"我要添加用户登录功能"
+
+---
+
+## Skill 24: 项目健康度检查 (Health Check)
+【触发方式】: 用户说"/skill:health-check"、"检查健康度"、"项目体检"
+
+【执行流程】:
+1. `cost-control` - 显示当前累计消耗，检查是否超过阈值 ($0.05 / $0.10)
+2. `context-management` - 压缩上下文，保留关键信息，输出当前进度摘要
+3. `danger-signals` - 检查危险信号（重复修复、大文件生成等），输出风险提示
+4. `code-review` - 扫描最近修改的代码，输出健康度报告（测试/构建/类型检查）
+5. `doc-system` - 更新 progress.txt，总结当前状态
+6. `cost-control` - 输出本轮检查总消耗
+
+---
+
+## Skill 25: 新项目启动工作流 (New Project)
+【触发方式】: 用户说"/skill:new-project"、"开始新项目"、"从零开始"、"启动新项目"
+
+【执行流程】:
+1. `cost-control` - 建立成本基线
+2. `socratic-inquiry` - 苏格拉底式审问需求，澄清项目目标、范围、约束，输出需求确认清单
+3. `task-planner` - 制定项目架构计划，技术选型建议，保存计划到 plan.md，等待用户确认
+4. `doc-system` - 创建 KIMI.md（AI操作手册）、创建 progress.txt（进度追踪）、初始化项目文档结构
+5. `workflow` - 按 plan.md 开始第一阶段开发
+6. `cost-control` - 项目启动成本统计
+
+【输出文档】:
+- plan.md - 项目开发计划
+- KIMI.md - AI 操作手册（技术规范、约束）
+- progress.txt - 进度追踪
+
+---
+
+## Skill 26: 代码重构工作流 (Refactor Code)
+【触发方式】: 用户说"/skill:refactor-code"、"重构代码"、"优化代码"、"重构这个模块"
+
+【执行流程】:
+1. `cost-control` - 建立重构成本基线
+2. `code-review` - 分析目标模块，输出 ASCII 架构图，识别代码坏味道，输出问题清单
+3. `task-planner` - 制定重构计划，依赖分析（底层→上层），分批策略（每批≤3文件），保存到 refactor-plan.md，等待用户确认
+4. `code-refactor` - 按批次执行重构，每批展示 diff，保持函数签名兼容，每批后询问确认
+5. `code-review` - 验证重构质量
+6. `debug-diagnosis` - 自证重构未引入 bug
+7. `doc-system` - 更新 progress.txt，记录技术债务清理
+8. `git-commit` - 生成 refactor 类型 commit
+9. `cost-control` - 重构成本对比
+
+【安全原则】:
+- 保持函数签名向后兼容
+- 每次最多重构 3 个紧密关联的文件
+- 修改前输出 diff 对比
+- 建议先 `git add .` 再应用修改
 
 ---
 

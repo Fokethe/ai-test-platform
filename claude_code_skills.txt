@@ -1,0 +1,172 @@
+本文整理了 10 个好用的 Claude Code Skill，包含源头仓库和安装方式。
+
+================================================================================
+安装方式说明
+================================================================================
+
+使用 Vercel 开发的 add-skill CLI 工具，可以一键安装 Skill 到你的 AI 编程工具中。
+
+核心命令格式：
+npx add-skill <owner>/<repo>
+
+常用参数：
+# 安装指定仓库的特定 skill
+npx add-skill <owner>/<repo> --skill <skill-name>
+
+# 全局安装（-g）+ 指定目标工具（-a）
+npx add-skill <owner>/<repo> -g -a claude-code
+
+# 静默安装（-y 跳过确认）
+npx add-skill <owner>/<repo> --skill <skill-name> -g -y
+
+支持的 AI 编程工具：
+- Claude Code
+- OpenCode
+- Cursor
+- Codex
+
+工具会自动检测你已安装的 AI 编程工具并安装到对应目录。
+
+================================================================================
+1. NotebookLM Skill
+================================================================================
+
+神级 Skill，通过它可以直接让 AI 对接 NotebookLM，自动上传资料、做知识问答、生成 PPT、脑图都能搞定。
+
+安装命令：
+npx add-skill PleasePrompto/notebooklm-skill
+
+================================================================================
+2. Obsidian Skills
+================================================================================
+
+Obsidian CEO kepano 出品的 Skill 套件，功能很全：
+- 写出 Obsidian 风格的 Markdown（内链、属性等）
+- 生成 .Base 文件的过滤器和公式
+- 生成 Canvas 无限画布
+
+安装命令：
+npx add-skill kepano/obsidian-skills
+
+================================================================================
+3. planning-with-files
+================================================================================
+
+复刻 Manus 的 Skill，可以用这个 Skill 来指导其他 Skill 的工作流程。能有效解决上下文飘移的问题。
+通过持久化 Markdown 文件（task_plan.md、findings.md、progress.md）来追踪任务进度。
+
+安装命令：
+npx add-skill OthmanAdi/planning-with-files
+
+================================================================================
+4. anthropics/skill-creator
+================================================================================
+
+Anthropic 官方出品，自己做 Skill 时候的首选，可以直接通过它创建一个符合最佳实践的 Skill，也可以用它来优化现有的 Skill。
+
+安装命令：
+npx add-skill anthropics/skills
+
+只安装 skill-creator：
+npx add-skill anthropics/skills --skill skill-creator
+
+================================================================================
+5. frontend-design
+================================================================================
+
+前端设计专用，比如可以帮你去掉 AI 的渐变色。覆盖四个关键维度：字体、颜色、动效、背景。
+
+安装命令：
+# Vercel 官方版（推荐）
+npx add-skill vercel-labs/agent-skills --skill frontend-design
+
+# 社区增强版
+npx add-skill Ilm-Alan/claude-frontend-design
+
+================================================================================
+6. Superpowers
+================================================================================
+
+Obra 开发的工具包，包含 /brainstorm、/write-plan、/execute-plan 等命令。
+可以在你做复杂项目时，讨论方案、和你一起脑爆，还会通过提问来分析问题生成靠谱的方案。
+
+安装命令：
+npx add-skill obra/superpowers
+
+================================================================================
+7. Rube MCP Connector
+================================================================================
+
+Composio 开发的 MCP 服务器，通过一个服务器就能把 Claude 连接到大概 500+ 个应用（Slack、GitHub、Notion、Gmail、Airtable 等），不用给每个应用单独配置授权。
+
+安装命令（MCP 方式）：
+# 通过 npm 安装
+npm install -g @composio/rube
+
+配置示例（Claude Desktop）：
+{
+  "mcpServers": {
+    "rube": {
+      "command": "npx",
+      "args": ["-y", "@composio/rube"]
+    }
+  }
+}
+
+⚠️ 注意：Rube 是 MCP 服务器，不是普通 Skill，需要在 Claude Desktop 或 Claude Code 中配置 MCP。
+
+================================================================================
+8. baoyu-skills
+================================================================================
+
+宝玉老师（Jim Liu）出品的 Skill 套件，比如写长文帮你自动配图的 Skill，自动发推、发公众号的 Skill。
+
+安装命令：
+npx add-skill JimLiu/baoyu-skills
+
+================================================================================
+9. 自媒体 Skill 系统
+================================================================================
+
+本项目自己开发的 Skill 套装，覆盖日常选题、写脚本、写文案、数据分析等工作。
+
+状态：暂未开源
+
+================================================================================
+10. skill-lookup
+================================================================================
+
+Skill 发现工具，当你想找 Agent Skill、想发现可复用的 AI 能力、需要安装 Skill 的时候就会自动激活。用来发现、检索和安装 Skill。
+
+安装命令：
+npx add-skill anthropics/skills
+
+================================================================================
+快速参考表
+================================================================================
+
+序号 | Skill 名称 | 仓库地址 | 安装命令
+-----|------------|----------|----------
+1 | NotebookLM | PleasePrompto/notebooklm-skill | npx add-skill PleasePrompto/notebooklm-skill
+2 | Obsidian Skills | kepano/obsidian-skills | npx add-skill kepano/obsidian-skills
+3 | planning-with-files | OthmanAdi/planning-with-files | npx add-skill OthmanAdi/planning-with-files
+4 | skill-creator | anthropics/skills | npx add-skill anthropics/skills --skill skill-creator
+5 | frontend-design | vercel-labs/agent-skills | npx add-skill vercel-labs/agent-skills --skill frontend-design
+6 | Superpowers | obra/superpowers | npx add-skill obra/superpowers
+7 | Rube MCP Connector | composio/rube | npm install -g @composio/rube (MCP 配置)
+8 | baoyu-skills | JimLiu/baoyu-skills | npx add-skill JimLiu/baoyu-skills
+9 | 自媒体 Skill 系统 | 未开源 | 未开源
+10 | skill-lookup | anthropics/skills | npx add-skill anthropics/skills
+
+================================================================================
+更多资源
+================================================================================
+
+- add-skill 官网: https://add-skill.org
+- Vercel Agent Skills: https://github.com/vercel-labs/agent-skills
+- Anthropic 官方 Skills: https://github.com/anthropics/skills
+- Skills 市场: https://skillsmp.com
+
+================================================================================
+文档生成时间：2026-02-26
+================================================================================

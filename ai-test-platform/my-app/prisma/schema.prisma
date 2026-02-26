@@ -601,6 +601,57 @@ model Log {
   @@map("logs")
 }
 
+// ==================== AI 需求解析模块 ====================
+
+model AiRequirement {
+  id            String   @id @default(cuid())
+  title         String
+  type          String   // txt | md | pdf | docx
+  filename      String
+  content       String   // 清理后的内容
+  rawText       String   @map("raw_text") // 原始内容
+  size          Int
+  
+  // 解析结果
+  features      String   // JSON array
+  businessRules String   @map("business_rules") // JSON array
+  
+  // 关联
+  projectId     String   @map("project_id")
+  createdBy     String?  @map("created_by")
+  
+  // 时间
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // 关系
+  testPoints    TestPoint[]
+  
+  @@index([projectId, createdAt])
+  @@map("ai_requirements")
+}
+
+model TestPoint {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  priority        String   // P0 | P1 | P2 | P3
+  relatedFeature  String   @map("related_feature")
+  order           Int      @default(0)
+  
+  // 关联
+  requirementId   String   @map("requirement_id")
+  
+  // 时间
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  // 关系
+  requirement     AiRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  
+  @@index([requirementId, priority])
+  @@map("test_points")
+}
+
 // ==================== 重构后新模型 ====================
 
 // Test: 合并 TestCase + TestSuite

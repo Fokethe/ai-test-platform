@@ -12,6 +12,43 @@
 - 数据库：Prisma ORM，SQLite(开发)/PostgreSQL(生产)
 - 认证：NextAuth.js v4，支持邮箱/密码登录
 
+## 前端设计规范
+
+### 字体规范
+- 主字体: Inter, system-ui, sans-serif
+- 字重层级: 
+  * 标题: font-bold (700)
+  * 正文: font-normal (400)
+  * 辅助: font-medium (500)
+- 行高: leading-relaxed (1.625) / leading-tight (1.25)
+- 字大小: text-xs/sm/base/lg/xl/2xl/3xl
+
+### 颜色规范
+- 主色: slate-900, blue-600
+- 辅助色: slate-500, blue-400
+- 背景色: white, slate-50, slate-100
+- 文字色: slate-900, slate-600, slate-400
+- 强调色: red-500, green-500
+- ⚠️ 禁止使用默认渐变色，除非设计稿明确使用
+
+### 间距规范
+- 基础单位: 4px (Tailwind spacing-1)
+- 常用间距: 4/8/12/16/24/32/48px (space-1/2/3/4/6/8/12)
+- 容器最大宽度: max-w-7xl (1280px)
+- 页面内边距: px-4 sm:px-6 lg:px-8
+
+### 动效规范
+- 过渡时间: duration-200 (快速) / duration-300 (标准) / duration-500 (慢速)
+- 缓动函数: ease-out (默认) / ease-in-out (对称)
+- 悬停效果: hover:scale-105 / hover:shadow-lg
+- 焦点状态: focus:ring-2 focus:ring-blue-500
+
+### 圆角规范
+- 小元素: rounded (4px)
+- 按钮/输入框: rounded-md (6px) / rounded-lg (8px)
+- 卡片: rounded-xl (12px) / rounded-2xl (16px)
+- 全圆: rounded-full
+
 ## 文件路径约定
 
 - 页面：src/app/[route]/page.tsx
@@ -205,7 +242,7 @@ admin@example.com / admin123
 #查看端口占用
 netstat -ano | findstr :3000
 #杀死占用进程
-taskkill /PID 12345 /F
+taskkill /PID 17792 /F
 
 # 启动命令
 cd ai-test-platform/my-app
