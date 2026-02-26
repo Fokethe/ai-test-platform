@@ -228,4 +228,169 @@ Cost Control (Skill 1) > Doc Processor (Skill 2) > 其他 Skill
 
 ---
 
-*最后更新: 2026-02-25 | 共 14 个 Skill*
+### Skill 15: 持久化规划协议 (Planning with Files)
+- **触发关键词**:
+  - "创建任务计划"
+  - "规划项目"
+  - "复杂任务"
+  - "多步骤任务"
+  - "/plan"
+- **说明**: 复刻 Manus 的持久化规划，通过 Markdown 文件解决上下文漂移问题
+
+---
+
+### Skill 16: Skill 创建器 (Skill Creator)
+- **触发关键词**:
+  - "创建新 skill"
+  - "添加 skill"
+  - "/skill:create"
+  - "自定义 skill"
+- **说明**: 创建新的 Skill 定义并集成到 .clinerules
+
+---
+
+### Skill 17: TDD 循环开发 (TDD Loop)
+- **触发关键词**:
+  - "TDD 模式"
+  - "循环开发"
+  - "迭代开发"
+  - "先写测试"
+  - "红绿重构"
+- **快捷指令**:
+  - `/tdd` - 进入 TDD 模式
+  - `/tdd next` - 继续下一轮
+  - `/tdd fix` - 手动触发修复
+  - `/tdd stop` - 停止循环
+
+---
+
+### Skill 18: TDD 开发工作流 (TDD Dev)
+- **触发方式**: `/skill:tdd-dev`
+- **说明**: 一键进入完整的 TDD 开发流程
+
+---
+
+### Skill 19: Bug 修复工作流 (Bug Fix)
+- **触发方式**: `/skill:bug-fix`
+- **触发关键词**: "修复bug"、"debug"、"报错了"、"出错了"
+- **说明**: 完整的 Bug 修复工作流，含防循环保护
+
+---
+
+### Skill 20: 代码提交工作流 (Code Submit)
+- **触发方式**: `/skill:code-submit`
+- **触发关键词**: "提交代码"、"commit"、"准备提交"
+- **说明**: 提交前的完整检查流程
+
+---
+
+### Skill 21: 设计稿还原工作流 (Design Restore)
+- **触发方式**: `/skill:design-restore`
+- **触发关键词**: "还原设计"、"设计稿"、"截图转代码"
+- **说明**: 从截图到像素级实现的完整流程
+
+---
+
+### Skill 22: 大文档整理工作流 (Doc Organize)
+- **触发方式**: `/skill:doc-organize`
+- **触发关键词**: "整理文档"、"处理文档"、"文档太大"
+- **说明**: 大文档分段处理的封装工作流
+
+---
+
+### Skill 23: 功能开发工作流 (Feature Dev)
+- **触发方式**: `/skill:feature-dev`
+- **触发关键词**: "开发新功能"、"功能开发"、"添加功能"
+- **说明**: 功能开发的完整工作流
+
+---
+
+### Skill 24: 项目健康度检查 (Health Check)
+- **触发方式**: `/skill:health-check`
+- **触发关键词**: "检查健康度"、"项目体检"
+- **说明**: 完整的项目健康度检查
+
+---
+
+### Skill 25: 新项目启动工作流 (New Project)
+- **触发方式**: `/skill:new-project`
+- **触发关键词**: "开始新项目"、"从零开始"、"启动新项目"
+- **说明**: 从需求澄清到开发启动的完整流程
+
+---
+
+### Skill 26: 代码重构工作流 (Refactor Code)
+- **触发方式**: `/skill:refactor-code`
+- **触发关键词**: "重构代码"、"优化代码"、"重构这个模块"
+- **说明**: 安全的代码重构工作流
+
+---
+
+## 🚀 快速启动模板
+
+### 新项目开场白（复制即用）
+```
+新项目启动：[项目名]
+
+执行检查清单：
+- [ ] 创建 Next.js 15 项目（TS + Tailwind）
+- [ ] 安装 Zustand + React Hook Form + Zod + Lucide
+- [ ] 创建 src/{components,hooks,lib,types} 目录
+- [ ] 创建 KIMI.md（询问我技术栈偏好）
+- [ ] 创建 progress.txt（初始状态）
+- [ ] 运行 dev 确认正常
+
+完成后，进入审问模式："为了开始开发，我需要了解..."
+```
+
+### 每日开发开场白
+```
+读取 KIMI.md 和 progress.txt。
+
+今日目标：[具体功能]
+
+开发前确认：
+1. 这个功能依赖哪些已完成的部分？
+2. 是否需要新建文件？路径是什么？
+3. 潜在的技术难点是什么？
+
+确认后，开始第一步：类型定义。
+```
+
+---
+
+## 📝 快捷指令汇总
+
+| 指令 | 功能 | 所属 Skill |
+|------|------|-----------|
+| `/next` | 继续下一阶段/下一块内容 | Task Planner |
+| `/plan` | 重新生成分段/任务计划 | Doc Processor |
+| `/cost` | 显示当前累计消耗 | Cost Control |
+| `/compact` | 压缩上下文 | Context Management |
+| `/tdd` | 进入 TDD 模式 | TDD Loop |
+| `/tdd next` | 下一轮 TDD | TDD Loop |
+| `/tdd stop` | 停止 TDD 循环 | TDD Loop |
+
+---
+
+## ⚠️ 优先级规则
+
+当 Skill 之间发生冲突时，按以下优先级执行：
+
+```
+Cost Control (Skill 1) > Doc Processor (Skill 2) > 其他 Skill
+```
+
+---
+
+## 🎓 使用建议
+
+1. **新项目必用**: Skill 25 (新项目) → Skill 8 (审问) → Skill 9 (文档) → Skill 10 (工作流)
+2. **日常开发**: Skill 10 (工作流) + Skill 14 (上下文管理)
+3. **遇到问题**: Skill 19 (Bug修复) / Skill 12 (调试) + Skill 13 (危险信号)
+4. **代码质量**: Skill 5 (审查) + Skill 26 (重构工作流)
+5. **TDD开发**: Skill 17/18 (TDD)
+
+---
+
+*最后更新: 2026-02-26 | 共 26 个 Skill*
