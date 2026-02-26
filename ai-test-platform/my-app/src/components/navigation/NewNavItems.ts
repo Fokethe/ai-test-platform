@@ -5,6 +5,7 @@
 
 import {
   LayoutDashboard,
+  FolderOpen,
   Beaker,
   Play,
   Shield,
@@ -30,6 +31,12 @@ export const newNavItems: NavItem[] = [
     label: '仪表盘',
     icon: LayoutDashboard,
     href: '/dashboard',
+  },
+  {
+    id: 'workspaces',
+    label: '工作空间',
+    icon: FolderOpen,
+    href: '/workspaces',
   },
   {
     id: 'tests',
