@@ -21,23 +21,41 @@ export interface ApiError {
 
 /**
  * 成功列表响应
+ * 返回统一格式: { code: 0, data: { list, pagination } }
  */
 export function listResponse<T>(data: T[], meta: ApiMeta) {
-  return NextResponse.json({ data, meta });
+  return NextResponse.json({
+    code: 0,
+    message: 'success',
+    data: {
+      list: data,
+      pagination: meta,
+    },
+  });
 }
 
 /**
  * 成功单条响应
+ * 返回统一格式: { code: 0, data }
  */
 export function itemResponse<T>(data: T) {
-  return NextResponse.json({ data });
+  return NextResponse.json({
+    code: 0,
+    message: 'success',
+    data,
+  });
 }
 
 /**
  * 创建成功响应
+ * 返回统一格式: { code: 0, data }
  */
 export function createdResponse<T>(data: T) {
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({
+    code: 0,
+    message: 'success',
+    data,
+  }, { status: 201 });
 }
 
 /**
@@ -56,9 +74,14 @@ export function notFoundResponse(message = '资源不存在') {
 
 /**
  * 成功响应（用于详情页）
+ * 返回统一格式: { code: 0, data, message? }
  */
 export function successResponse<T>(data: T, message?: string) {
-  return NextResponse.json({ data, message });
+  return NextResponse.json({
+    code: 0,
+    message: message || 'success',
+    data,
+  });
 }
 
 /**
