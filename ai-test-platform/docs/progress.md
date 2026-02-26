@@ -24,6 +24,11 @@ UPDATED: 2026-02-26
 - [x] 报告导出功能 (Excel/CSV/HTML/JSON)
 - [x] 批量操作功能 (删除/执行/导出/修改优先级)
 - [x] 架构重构完成 (路由18→8, 模型26→14, API58→30)
+- [x] 工作空间重构（TDD轻量级实现）✅
+  - 测试: 8/11通过（3个因测试数据外键约束）
+  - API: /api/workspaces, /api/workspaces/[id]
+  - 页面: /workspaces, /workspaces/[id]
+  - 与Project联动、成员管理
 
 === 系统重构里程碑 ===
 
