@@ -3,10 +3,12 @@
  * 基于测试点生成详细测试用例
  * TDD Round 6 实现
  * TDD Round 11 新增 RAG 集成
+ * TDD Round 14 新增 ModelManager 集成
  */
 
 import { generateWithAI } from '../client';
 import { retrieveSimilarTestCases, RetrievalOptions as RAGOptions } from '../rag/retrieval';
+import { ModelManager, TaskType } from '../model-manager';
 
 export interface TestPoint {
   id: string;
@@ -49,6 +51,21 @@ export interface RAGGenerationOptions extends RAGOptions {
 }
 
 export class TestCaseGenerator {
+  private modelManager: ModelManager;
+
+  /**
+   * 构造函数
+   * @param modelManager - ModelManager 实例，可选，不传则创建默认实例
+   */
+  constructor(modelManager?: ModelManager) {
+    if (modelManager) {
+      this.modelManager = modelManager;
+    } else {
+      // 创建默认的 ModelManager 实例
+      this.modelManager = new ModelManager([]);
+    }
+  }
+
   /**
    * 基于单个测试点生成用例
    */
@@ -58,11 +75,12 @@ export class TestCaseGenerator {
   ): Promise<GeneratedTestCase[]> {
     try {
       const prompt = this.buildPrompt(testPoint, context);
-      const response = await generateWithAI(prompt);
+      // TDD Round 14: 使用 ModelManager 生成，任务类型为 testcase_generation
+      const response = await this.modelManager.generateForTask(prompt, 'testcase_generation');
 
       return this.parseResponse(response, testPoint);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('AI')) {
+      if (error instanceof Error && error.message.includes('AI') || error instanceof Error && error.message.includes('模型')) {
         throw new Error('用例生成失败: ' + error.message);
       }
       throw error;
@@ -221,8 +239,8 @@ export class TestCaseGenerator {
     // 构建包含 Few-shot 示例的提示词
     const prompt = this.buildPromptWithFewShot(testPoint, knowledgeBase, similarCases);
 
-    // 调用 AI 生成
-    const response = await generateWithAI(prompt);
+    // TDD Round 14: 使用 ModelManager 生成
+    const response = await this.modelManager.generateForTask(prompt, 'testcase_generation');
 
     return this.parseResponse(response, testPoint);
   }
