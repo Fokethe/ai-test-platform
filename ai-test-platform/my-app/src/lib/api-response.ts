@@ -101,7 +101,7 @@ export function errorResponse(
     // 简写方式: errorResponse(message, status)
     const status = codeOrStatus;
     return NextResponse.json(
-      { error: { code: 'ERROR', message }, data: null },
+      { code: status, error: { code: 'ERROR', message }, data: null },
       { status }
     );
   }
@@ -112,7 +112,7 @@ export function errorResponse(
   const errorDetails = typeof statusOrDetails === 'object' ? statusOrDetails : details;
   
   return NextResponse.json(
-    { error: { code, message, details: errorDetails }, data: null },
+    { code: status, error: { code, message, details: errorDetails }, data: null },
     { status }
   );
 }
