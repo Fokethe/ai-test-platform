@@ -1,11 +1,11 @@
 /**
  * RunCenter Page - 合并执行历史 + 定时任务
- * 连接真实 API
+ * 连接真实 API，支持分页和性能优化
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -15,7 +15,6 @@ import {
   Search,
   Filter,
   Loader2,
-  MoreHorizontal,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -26,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -46,26 +46,47 @@ interface Run {
   executions?: { id: string; status: string; testId: string }[];
 }
 
+interface PaginationMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const swrOptions = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 5000,
+};
+
 export default function RunCenterPage() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'history';
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // 获取执行历史
   const { data: runsData, isLoading: runsLoading } = useSWR(
-    activeTab === 'history' ? '/api/runs?pageSize=20' : null,
+    activeTab === 'history' ? `/api/runs?page=${page}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ''}` : null,
     fetcher,
-    { refreshInterval: 10000 }
+    { ...swrOptions, refreshInterval: 10000 }
   );
 
   // 获取定时任务 (带 cron 的 runs)
   const { data: scheduledData, isLoading: scheduledLoading } = useSWR(
-    activeTab === 'scheduled' ? '/api/runs?type=SCHEDULED' : null,
-    fetcher
+    activeTab === 'scheduled' ? `/api/runs?type=SCHEDULED&page=${page}&pageSize=${pageSize}` : null,
+    fetcher,
+    swrOptions
   );
 
   const runs: Run[] = runsData?.data || [];
   const scheduled: Run[] = scheduledData?.data || [];
+  const runsMeta: PaginationMeta = runsData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const scheduledMeta: PaginationMeta = scheduledData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
   // 统计
   const stats = {
@@ -78,6 +99,10 @@ export default function RunCenterPage() {
       ? Math.round(runs.reduce((acc, r) => acc + (r.duration || 0), 0) / runs.length / 1000)
       : 0,
     scheduled: scheduled.length,
+  };
+
+  const handleSearch = () => {
+    setPage(1);
   };
 
   return (
@@ -105,7 +130,10 @@ export default function RunCenterPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        setPage(1);
+      }}>
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="history">
             <Play className="w-4 h-4 mr-2" />
@@ -118,11 +146,46 @@ export default function RunCenterPage() {
         </TabsList>
 
         <TabsContent value="history" className="mt-6">
-          <RunHistoryPanel runs={runs} isLoading={runsLoading} />
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input 
+                  placeholder="搜索执行记录..." 
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <Button variant="outline" size="icon" onClick={handleSearch}>
+                <Filter className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <RunHistoryPanel runs={runs} isLoading={runsLoading} />
+            
+            <Pagination
+              currentPage={page}
+              totalPages={runsMeta.totalPages}
+              totalItems={runsMeta.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="scheduled" className="mt-6">
           <ScheduledTasksPanel runs={scheduled} isLoading={scheduledLoading} />
+          <Pagination
+            currentPage={page}
+            totalPages={scheduledMeta.totalPages}
+            totalItems={scheduledMeta.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -170,22 +233,10 @@ function RunHistoryPanel({ runs, isLoading }: { runs: Run[]; isLoading: boolean 
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="搜索执行记录..." className="pl-10" />
-        </div>
-        <Button variant="outline" size="icon">
-          <Filter className="w-4 h-4" />
-        </Button>
-      </div>
-
-      <div className="border rounded-lg divide-y">
-        {runs.map((run) => (
-          <RunItem key={run.id} run={run} />
-        ))}
-      </div>
+    <div className="border rounded-lg divide-y">
+      {runs.map((run) => (
+        <RunItem key={run.id} run={run} />
+      ))}
     </div>
   );
 }
@@ -199,6 +250,7 @@ function RunItem({ run }: { run: Run }) {
     FAILED: { icon: XCircle, color: 'text-red-600', label: '失败' },
     RUNNING: { icon: Play, color: 'text-blue-600', label: '运行中' },
     PENDING: { icon: Clock, color: 'text-yellow-600', label: '等待中' },
+    CANCELLED: { icon: AlertCircle, color: 'text-slate-600', label: '已取消' },
   };
 
   const config = statusConfig[run.status] || statusConfig.PENDING;

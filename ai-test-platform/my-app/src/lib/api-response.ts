@@ -48,6 +48,20 @@ export function noContentResponse() {
 }
 
 /**
+ * 404 未找到响应
+ */
+export function notFoundResponse(message = '资源不存在') {
+  return errorResponse(message, 'NOT_FOUND', 404);
+}
+
+/**
+ * 成功响应（用于详情页）
+ */
+export function successResponse<T>(data: T, message?: string) {
+  return NextResponse.json({ data, message });
+}
+
+/**
  * 错误响应
  */
 export function errorResponse(
