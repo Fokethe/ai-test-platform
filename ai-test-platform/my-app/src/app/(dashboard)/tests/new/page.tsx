@@ -28,18 +28,25 @@ export default function CreateTestPage() {
     setLoading(true);
     setFormError(null);
 
+    const projectId = searchParams.get('projectId');
+    if (!projectId) {
+      setFormError('缺少项目ID，请从项目页面进入');
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('name'),
       description: formData.get('description'),
       type,
       priority: formData.get('priority'),
-      tags: JSON.stringify((formData.get('tags') as string).split(',').filter(Boolean)),
-      projectId: 'default', // TODO: 从上下文获取
+      tags: JSON.stringify((formData.get('tags') as string)?.split(',').filter(Boolean) || []),
+      projectId,
       content: type === 'CASE'
         ? JSON.stringify({
-            steps: (formData.get('steps') as string).split('\n').filter(s => s.trim()),
-            expected: formData.get('expected'),
+            steps: (formData.get('steps') as string)?.split('\n').filter(s => s.trim()) || [],
+            expected: formData.get('expected') || '',
           })
         : JSON.stringify({ config: {} }),
     };
