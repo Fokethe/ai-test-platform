@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +48,7 @@ interface Requirement {
 
 export default function RequirementReviewPage() {
   const params = useParams();
+  const router = useRouter();
   const requirementId = params.id as string;
 
   const [requirement, setRequirement] = useState<Requirement | null>(null);
@@ -171,9 +172,15 @@ export default function RequirementReviewPage() {
 
   // 生成用例
   const handleGenerate = () => {
-    const selectedTestPoints = requirement?.testPoints.filter((p) => selectedPoints.has(p.id));
-    console.log('生成用例:', selectedTestPoints);
-    // TODO: 跳转到用例生成页面
+    if (!requirement || selectedPoints.size === 0) return;
+
+    // 获取第一个选中的测试点ID（用例预览页面目前支持单个测试点）
+    const firstSelectedPointId = Array.from(selectedPoints)[0];
+
+    // 跳转到用例预览页面
+    router.push(
+      `/ai-generate/testcases?requirementId=${requirement.id}&testPointId=${firstSelectedPointId}`
+    );
   };
 
   // 获取优先级颜色
