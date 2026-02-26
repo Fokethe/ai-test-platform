@@ -2,24 +2,24 @@
  * TestCaseGenerator + RAG 集成测试
  * 测试用例生成器集成知识库检索功能
  * TDD Round 11
+ * TDD Round 14 更新: 使用 ModelManager 集成
  */
 
 import { TestCaseGenerator, TestPoint, GenerationContext } from '../testcase-generator'
 import { retrieveSimilarTestCases } from '../../rag/retrieval'
-import { generateWithAI } from '../../client'
+import { ModelManager } from '../../model-manager'
 
 // Mock RAG 检索模块
 jest.mock('../../rag/retrieval', () => ({
   retrieveSimilarTestCases: jest.fn(),
 }))
 
-// Mock AI 客户端
-jest.mock('../../client', () => ({
-  generateWithAI: jest.fn(),
-}))
+// Mock ModelManager
+jest.mock('../../model-manager')
 
 describe('TestCaseGenerator + RAG 集成', () => {
   let generator: TestCaseGenerator
+  let mockModelManager: jest.Mocked<ModelManager>
   const mockRetrieveSimilarTestCases = retrieveSimilarTestCases as jest.MockedFunction<typeof retrieveSimilarTestCases>
 
   const mockHistoricalCases = [
@@ -43,14 +43,20 @@ describe('TestCaseGenerator + RAG 集成', () => {
     },
   ]
 
-  const mockGenerateWithAI = generateWithAI as jest.MockedFunction<typeof generateWithAI>
-
   beforeEach(() => {
-    generator = new TestCaseGenerator()
+    // 创建 mock ModelManager
+    mockModelManager = {
+      generateForTask: jest.fn(),
+      generateWithFallback: jest.fn(),
+      getUsageStats: jest.fn().mockReturnValue({}),
+      getTotalCost: jest.fn().mockReturnValue(0),
+      selectModelForTask: jest.fn().mockReturnValue('kimi-k2.5'),
+    } as unknown as jest.Mocked<ModelManager>
+
+    generator = new TestCaseGenerator(mockModelManager)
     mockRetrieveSimilarTestCases.mockClear()
-    mockGenerateWithAI.mockClear()
-    // 默认 mock AI 返回有效的 JSON
-    mockGenerateWithAI.mockResolvedValue(JSON.stringify({
+    // 默认 mock ModelManager 返回有效的 JSON
+    mockModelManager.generateForTask.mockResolvedValue(JSON.stringify({
       testCases: [{
         title: '测试用例',
         precondition: '前置条件',

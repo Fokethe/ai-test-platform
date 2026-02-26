@@ -25,11 +25,34 @@ interface TestCase {
   module: string
 }
 
+// 可用模型列表
+const AVAILABLE_MODELS = [
+  { id: 'kimi-k2.5', name: 'Kimi K2.5' },
+  { id: 'qwen-3', name: '千问 3' },
+]
+
+// 获取默认模型ID
+const getDefaultModelId = () => 'kimi-k2.5'
+
+// 验证并获取有效的模型ID
+const getValidModelId = (modelId: string | null): string => {
+  if (!modelId) return getDefaultModelId()
+  const validModel = AVAILABLE_MODELS.find(m => m.id === modelId)
+  return validModel ? validModel.id : getDefaultModelId()
+}
+
+// 获取模型显示名称
+const getModelDisplayName = (modelId: string): string => {
+  const model = AVAILABLE_MODELS.find(m => m.id === modelId)
+  return model ? model.name : modelId
+}
+
 export default function TestCasesPreviewPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const requirementId = searchParams.get('requirementId')
   const testPointId = searchParams.get('testPointId')
+  const modelId = getValidModelId(searchParams.get('modelId'))
 
   const [testCases, setTestCases] = useState<TestCase[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +82,10 @@ export default function TestCasesPreviewPage() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ testPointIds: [testPointId] }),
+          body: JSON.stringify({ 
+            testPointIds: [testPointId],
+            modelId: modelId,
+          }),
         }
       )
 
@@ -76,7 +102,7 @@ export default function TestCasesPreviewPage() {
     } finally {
       setLoading(false)
     }
-  }, [requirementId, testPointId])
+  }, [requirementId, testPointId, modelId])
 
   useEffect(() => {
     loadTestCases()
@@ -321,6 +347,21 @@ export default function TestCasesPreviewPage() {
       {/* 测试用例列表 */}
       {!loading && !error && (
         <>
+          {/* 模型信息卡片 */}
+          <Card className="mb-4 bg-blue-50 border-blue-200">
+            <CardContent className="py-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">AI 模型:</span>
+                <Badge variant="secondary" className="font-medium">
+                  {getModelDisplayName(modelId)}
+                </Badge>
+                <span className="text-muted-foreground ml-2">
+                  使用此模型生成测试用例
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* 工具栏 */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">

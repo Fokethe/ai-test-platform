@@ -1,24 +1,30 @@
 /**
  * TDD Round 6: TestCaseGenerator Agent 测试
+ * TDD Round 14 更新: 使用 ModelManager 集成
  * 目标: 基于测试点生成详细测试用例
  */
 
 import { TestCaseGenerator, GeneratedTestCase } from '../testcase-generator';
+import { ModelManager } from '../../model-manager';
 
-// 模拟 AI 客户端
-jest.mock('../../client', () => ({
-  generateWithAI: jest.fn(),
-}));
-
-import { generateWithAI } from '../../client';
-
-const mockedGenerateWithAI = generateWithAI as jest.MockedFunction<typeof generateWithAI>;
+// 模拟 ModelManager
+jest.mock('../../model-manager');
 
 describe('TestCaseGenerator', () => {
   let generator: TestCaseGenerator;
+  let mockModelManager: jest.Mocked<ModelManager>;
 
   beforeEach(() => {
-    generator = new TestCaseGenerator();
+    // 创建 mock ModelManager
+    mockModelManager = {
+      generateForTask: jest.fn(),
+      generateWithFallback: jest.fn(),
+      getUsageStats: jest.fn().mockReturnValue({}),
+      getTotalCost: jest.fn().mockReturnValue(0),
+      selectModelForTask: jest.fn().mockReturnValue('kimi-k2.5'),
+    } as unknown as jest.Mocked<ModelManager>;
+
+    generator = new TestCaseGenerator(mockModelManager);
     jest.clearAllMocks();
   });
 
@@ -43,7 +49,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify(mockResponse));
 
       const testPoint = {
         id: 'TP-001',
@@ -86,7 +92,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI
+      mockModelManager.generateForTask
         .mockResolvedValueOnce(JSON.stringify(mockResponse1))
         .mockResolvedValueOnce(JSON.stringify(mockResponse2));
 
@@ -129,7 +135,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify(mockResponse));
 
       const testPoint = {
         id: 'TP-001',
@@ -166,7 +172,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify(mockResponse));
 
       const testPoint = {
         id: 'TP-001',
@@ -199,7 +205,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify(mockResponse));
 
       const testPoint = {
         id: 'TP-001',
@@ -234,7 +240,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify(mockResponse));
 
       const testPoint = {
         id: 'TP-001',
@@ -254,7 +260,7 @@ describe('TestCaseGenerator', () => {
 
   describe('错误处理', () => {
     it('应该处理 AI 生成失败的情况', async () => {
-      mockedGenerateWithAI.mockRejectedValueOnce(new Error('AI 服务不可用'));
+      mockModelManager.generateForTask.mockRejectedValueOnce(new Error('AI 服务不可用'));
 
       const testPoint = {
         id: 'TP-001',
@@ -268,7 +274,7 @@ describe('TestCaseGenerator', () => {
     });
 
     it('应该处理 AI 返回无效 JSON 的情况', async () => {
-      mockedGenerateWithAI.mockResolvedValueOnce('无效的 JSON 响应');
+      mockModelManager.generateForTask.mockResolvedValueOnce('无效的 JSON 响应');
 
       const testPoint = {
         id: 'TP-001',
@@ -282,7 +288,7 @@ describe('TestCaseGenerator', () => {
     });
 
     it('应该处理 AI 返回空用例列表的情况', async () => {
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify({ testCases: [] }));
+      mockModelManager.generateForTask.mockResolvedValueOnce(JSON.stringify({ testCases: [] }));
 
       const testPoint = {
         id: 'TP-001',
@@ -300,7 +306,7 @@ describe('TestCaseGenerator', () => {
 
   describe('提示词构建', () => {
     it('应该在提示词中包含测试点信息', async () => {
-      mockedGenerateWithAI.mockImplementation(async (prompt: string) => {
+      mockModelManager.generateForTask.mockImplementation(async (prompt: string) => {
         // 验证提示词包含测试点信息
         expect(prompt).toContain('测试点名称');
         expect(prompt).toContain('测试点描述');
@@ -321,7 +327,7 @@ describe('TestCaseGenerator', () => {
     });
 
     it('应该在提示词中包含业务规则上下文', async () => {
-      mockedGenerateWithAI.mockImplementation(async (prompt: string) => {
+      mockModelManager.generateForTask.mockImplementation(async (prompt: string) => {
         expect(prompt).toContain('手机号必须为11位');
         expect(prompt).toContain('验证码有效期5分钟');
         return JSON.stringify({
@@ -362,7 +368,7 @@ describe('TestCaseGenerator', () => {
         ],
       };
 
-      mockedGenerateWithAI.mockResolvedValue(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValue(JSON.stringify(mockResponse));
 
       const testPoints = Array.from({ length: 5 }, (_, i) => ({
         id: `TP-${i + 1}`,
@@ -374,8 +380,8 @@ describe('TestCaseGenerator', () => {
 
       await generator.generateFromTestPoints(testPoints, { concurrency: 2 });
 
-      // 验证 AI 被调用了 5 次（每个测试点一次）
-      expect(mockedGenerateWithAI).toHaveBeenCalledTimes(5);
+      // 验证 ModelManager 被调用了 5 次（每个测试点一次）
+      expect(mockModelManager.generateForTask).toHaveBeenCalledTimes(5);
     });
 
     it('应该支持批量生成时返回进度', async () => {
@@ -383,7 +389,7 @@ describe('TestCaseGenerator', () => {
         testCases: [{ title: '用例', precondition: '', steps: [], expectedResult: '', priority: 'P1' }],
       };
 
-      mockedGenerateWithAI.mockResolvedValue(JSON.stringify(mockResponse));
+      mockModelManager.generateForTask.mockResolvedValue(JSON.stringify(mockResponse));
 
       const testPoints = [
         { id: 'TP-1', name: '测试点1', description: '描述1', priority: 'P1' as const, relatedFeature: '功能' },

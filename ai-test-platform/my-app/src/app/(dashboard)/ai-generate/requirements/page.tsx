@@ -46,6 +46,12 @@ interface Requirement {
   createdAt: string;
 }
 
+// TDD Round 16: 可用模型列表
+const AVAILABLE_MODELS = [
+  { id: 'kimi-k2.5', name: 'Kimi K2.5', costPer1K: 0.003 },
+  { id: 'qwen-3', name: '千问 3', costPer1K: 0.006 },
+];
+
 export default function RequirementReviewPage() {
   const params = useParams();
   const router = useRouter();
@@ -63,6 +69,8 @@ export default function RequirementReviewPage() {
   const [newPoint, setNewPoint] = useState<Partial<TestPoint>>({
     priority: 'P1',
   });
+  // TDD Round 16: 模型选择状态
+  const [selectedModel, setSelectedModel] = useState('kimi-k2.5');
 
   // 加载需求数据
   useEffect(() => {
@@ -177,9 +185,9 @@ export default function RequirementReviewPage() {
     // 获取第一个选中的测试点ID（用例预览页面目前支持单个测试点）
     const firstSelectedPointId = Array.from(selectedPoints)[0];
 
-    // 跳转到用例预览页面
+    // TDD Round 16: 跳转到用例预览页面，传递模型ID
     router.push(
-      `/ai-generate/testcases?requirementId=${requirement.id}&testPointId=${firstSelectedPointId}`
+      `/ai-generate/testcases?requirementId=${requirement.id}&testPointId=${firstSelectedPointId}&modelId=${selectedModel}`
     );
   };
 
@@ -290,6 +298,32 @@ export default function RequirementReviewPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* TDD Round 16: AI 模型选择 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">AI 模型</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择模型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_MODELS.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* 成本估算 */}
+              <div className="text-sm text-muted-foreground">
+                <p>预估成本: ¥{AVAILABLE_MODELS.find(m => m.id === selectedModel)?.costPer1K.toFixed(3)}/1K tokens</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* 右侧：测试点列表 */}

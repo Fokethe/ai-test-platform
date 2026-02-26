@@ -94,8 +94,8 @@ describe('POST /api/requirements/[id]/generate-testcases', () => {
 
       expect(response.status).toBe(200);
       expect(result.code).toBe(0);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].title).toBe('验证正确手机号登录成功');
+      expect(result.data.testCases).toHaveLength(1);
+      expect(result.data.testCases[0].title).toBe('验证正确手机号登录成功');
     });
 
     it('应该支持批量生成多个测试点的用例', async () => {
@@ -140,7 +140,7 @@ describe('POST /api/requirements/[id]/generate-testcases', () => {
 
       expect(response.status).toBe(200);
       expect(result.code).toBe(0);
-      expect(result.data).toHaveLength(2);
+      expect(result.data.testCases).toHaveLength(2);
     });
   });
 
@@ -224,7 +224,7 @@ describe('POST /api/requirements/[id]/generate-testcases', () => {
       const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
       const result = await response.json();
 
-      expect(result.data[0].testPointId).toBe(mockRequirement.testPoints[0].id);
+      expect(result.data.testCases[0].testPointId).toBe(mockRequirement.testPoints[0].id);
     });
 
     it('生成的用例应该包含完整字段', async () => {
@@ -253,7 +253,7 @@ describe('POST /api/requirements/[id]/generate-testcases', () => {
       const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
       const result = await response.json();
 
-      expect(result.data[0]).toMatchObject({
+      expect(result.data.testCases[0]).toMatchObject({
         id: expect.any(String),
         title: '完整用例',
         precondition: '前置条件',

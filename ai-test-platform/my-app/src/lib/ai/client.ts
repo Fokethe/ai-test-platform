@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { GeneratePromptOptions, generatePrompt } from './prompts';
+import { ModelConfig } from './model-manager';
 
 // 创建OpenAI客户端的工厂函数
 function createClient(apiKey?: string): OpenAI {
@@ -13,6 +14,68 @@ function createClient(apiKey?: string): OpenAI {
 export interface GenerateOptions extends GeneratePromptOptions {
   model?: string;
   apiKey?: string;  // 用户传递的API Key
+}
+
+// ModelManager 使用的生成选项
+export interface GenerateWithAIOptions {
+  modelId?: string;
+  config?: ModelConfig;
+  timeout?: number;
+}
+
+/**
+ * 通用 AI 生成函数（供 ModelManager 使用）
+ * @param prompt - 提示词
+ * @param options - 生成选项
+ * @returns 生成的文本
+ */
+export async function generateWithAI(
+  prompt: string,
+  options: GenerateWithAIOptions = {}
+): Promise<string> {
+  const { modelId = 'kimi-k2.5', config, timeout = 30000 } = options;
+
+  // 使用传入的 config 或环境变量
+  const apiKey = config?.apiKey || process.env.KIMI_API_KEY || '';
+  const baseURL = config?.baseUrl || 'https://api.moonshot.cn/v1';
+
+  if (!apiKey) {
+    throw new Error('未配置 API Key');
+  }
+
+  const client = new OpenAI({
+    apiKey,
+    baseURL,
+    timeout,
+  });
+
+  try {
+    const response = await client.chat.completions.create({
+      model: modelId,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一位资深测试专家，擅长生成高质量的测试用例。请严格按照要求的JSON格式输出。',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+    });
+
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    console.error('[AI] API call failed:', error);
+    throw new Error('AI 调用失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+}
+
+/**
+ * 获取可用模型列表
+ */
+export async function getAvailableModels(): Promise<string[]> {
+  // 暂时返回固定列表，后续可从 API 获取
+  return ['kimi-k2.5', 'qwen-3', 'gpt-4', 'deepseek-v3'];
 }
 
 export async function generateTestCases(
