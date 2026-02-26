@@ -108,8 +108,8 @@ export default function TestCenterPage() {
     swrOptions
   );
 
-  const tests: Test[] = data?.data || [];
-  const meta: PaginationMeta = data?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const tests: Test[] = data?.data?.list || [];
+  const meta: PaginationMeta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
   // 处理搜索
   const handleSearch = () => {
@@ -135,8 +135,8 @@ export default function TestCenterPage() {
       const res = await fetch(`/api/tests?${params.toString()}`);
       const result = await res.json();
       
-      if (result.data?.length > 0) {
-        setInfiniteItems(prev => [...prev, ...result.data]);
+      if (result.data?.list?.length > 0) {
+        setInfiniteItems(prev => [...prev, ...result.data.list]);
         setInfinitePage(nextPage);
         setHasMore(result.data.length === 20);
       } else {
