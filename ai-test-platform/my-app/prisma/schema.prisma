@@ -735,6 +735,8 @@ model Execution {
   // 时间
   startedAt   DateTime?       @map("started_at")
   completedAt DateTime?       @map("completed_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
   
   // 关系
   run         Run             @relation(fields: [runId], references: [id], onDelete: Cascade)

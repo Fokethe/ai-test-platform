@@ -41,6 +41,7 @@ Workspace（工作空间）
 ## 当前目标
 
 P1 功能开发完成 - 2026-02-25
+
 - ✅ 日志功能（已完成）
 - ✅ 定时任务（已完成）
 - ✅ Bug 管理（已完成）
@@ -82,16 +83,18 @@ P1 功能开发完成 - 2026-02-25
   - ✅ Cron 解析引擎 (lib/scheduler.ts)
   - ✅ TaskRunner 任务执行器
   - ✅ 自动调度管理 (setTimeout)
-  - ✅ 支持 */5, 0 *, 0 0 * * * 等表达式
+  - ✅ 支持 _/5, 0 _, 0 0 \* \* \* 等表达式
 
 ## 系统重构进度
 
 ### 重构目标
+
 - 路由: 18 → 8 项
 - 模型: 26 → 14 个
 - API: 58 → 30 个
 
 ### 进度
+
 - [x] Phase 1: 架构测试 ✅ (18 tests)
 - [x] Phase 2: 模型层重构 ✅ (新模型 + API重定向)
 - [x] Phase 3: UI层重构 ✅ (页面合并)
@@ -163,6 +166,7 @@ API (6个):
 ```
 
 ### 新导航结构
+
 ```
 仪表盘      → 保持独立
 测试中心    → 合并: 用例/套件/AI
@@ -182,13 +186,14 @@ npm run test:coverage # 查看覆盖率
 ```
 
 当前测试 (104 tests):
-- src/lib/__tests__/api.test.ts                     (11 tests)
-- src/lib/__tests__/form-error.test.tsx             (9 tests)
-- src/lib/__tests__/scheduler.test.ts               (12 tests)
-- src/lib/__tests__/refactor-architecture.test.ts   (18 tests)
-- src/lib/__tests__/refactor-api-redirect.test.ts   (20 tests)
-- src/lib/__tests__/refactor-ui-navigation.test.tsx (10 tests)
-- src/lib/__tests__/refactor-regression.test.ts     (24 tests)
+
+- src/lib/**tests**/api.test.ts (11 tests)
+- src/lib/**tests**/form-error.test.tsx (9 tests)
+- src/lib/**tests**/scheduler.test.ts (12 tests)
+- src/lib/**tests**/refactor-architecture.test.ts (18 tests)
+- src/lib/**tests**/refactor-api-redirect.test.ts (20 tests)
+- src/lib/**tests**/refactor-ui-navigation.test.tsx (10 tests)
+- src/lib/**tests**/refactor-regression.test.ts (24 tests)
 
 ## 环境配置
 
@@ -196,6 +201,11 @@ npm run test:coverage # 查看覆盖率
 # 开发账号
 demo@example.com / password123
 admin@example.com / admin123
+
+#查看端口占用
+netstat -ano | findstr :3000
+#杀死占用进程
+taskkill /PID 12345 /F
 
 # 启动命令
 cd ai-test-platform/my-app
