@@ -63,15 +63,33 @@ export function successResponse<T>(data: T, message?: string) {
 
 /**
  * 错误响应
+ * 支持多种调用方式:
+ * - errorResponse(message, status) - 简写方式
+ * - errorResponse(message, code, status, details) - 完整方式
  */
 export function errorResponse(
   message: string,
-  code: string = 'INTERNAL_ERROR',
-  status: number = 500,
+  codeOrStatus: string | number = 'INTERNAL_ERROR',
+  statusOrDetails?: number | Record<string, unknown>,
   details?: Record<string, unknown>
 ) {
+  // 判断第二个参数是status code还是error code
+  if (typeof codeOrStatus === 'number') {
+    // 简写方式: errorResponse(message, status)
+    const status = codeOrStatus;
+    return NextResponse.json(
+      { error: { code: 'ERROR', message }, data: null },
+      { status }
+    );
+  }
+  
+  // 完整方式
+  const code = codeOrStatus;
+  const status = typeof statusOrDetails === 'number' ? statusOrDetails : 500;
+  const errorDetails = typeof statusOrDetails === 'object' ? statusOrDetails : details;
+  
   return NextResponse.json(
-    { error: { code, message, details } },
+    { error: { code, message, details: errorDetails }, data: null },
     { status }
   );
 }

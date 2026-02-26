@@ -210,7 +210,7 @@ export function NotificationBell() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setShowClearDialog(true)}
-                disabled={loading || notifications.length === 0}
+                disabled={loading || !notifications?.length}
               >
                 <Trash2 className="h-3.5 w-3.5 text-slate-500" />
               </Button>
@@ -218,7 +218,7 @@ export function NotificationBell() {
           </div>
 
           <ScrollArea className="h-[300px]">
-            {notifications.length === 0 ? (
+            {!notifications?.length ? (
               <div className="flex flex-col items-center justify-center h-32 text-slate-500">
                 <Bell className="h-8 w-8 mb-2 opacity-50" />
                 <p className="text-sm">暂无新消息</p>

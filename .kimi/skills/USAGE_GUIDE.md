@@ -35,12 +35,12 @@ AI 自动: /cost → socratic-inquiry → task-planner → doc-system → workfl
 
 ### 快捷指令
 
-| 指令 | 所属 Skill | 功能 |
-|------|-----------|------|
-| `/cost` | cost-control | 显示当前累计消耗 |
-| `/compact` | context-management | 压缩上下文 |
-| `/next` | doc-processor / task-planner | 继续下一块/下一阶段 |
-| `/plan` | doc-system / task-planner | 重新生成计划或文档 |
+| 指令       | 所属 Skill                   | 功能                |
+| ---------- | ---------------------------- | ------------------- |
+| `/cost`    | cost-control                 | 显示当前累计消耗    |
+| `/compact` | context-management           | 压缩上下文          |
+| `/next`    | doc-processor / task-planner | 继续下一块/下一阶段 |
+| `/plan`    | doc-system / task-planner    | 重新生成计划或文档  |
 
 ---
 
@@ -50,37 +50,37 @@ AI 自动: /cost → socratic-inquiry → task-planner → doc-system → workfl
 
 说出场景关键词，**skill-orchestrator** 自动执行完整序列：
 
-| 你想做什么 | 说这些关键词 | 自动触发的 Skill 序列 |
-|-----------|-------------|---------------------|
-| **开始新项目** | "开始新项目" "从零开始" | `/cost` → `socratic-inquiry` → `task-planner` → `doc-system` → `workflow` |
-| **开发新功能** | "开发新功能" "添加功能" | `/cost` → `task-planner` → `workflow` → `code-review` → `doc-system` → `/cost` |
-| **TDD 循环开发** | **"TDD 模式"** **"循环开发"** **"迭代开发"** **"先写测试"** **"红绿重构"** | `/cost` → `tdd-loop` (红→绿→重构→自动下一轮) |
-| **重构代码** | "重构" "优化代码" | `/cost` → `code-review` → `task-planner` → `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **修复 Bug** | "修复bug" "报错了" "debug" | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **还原设计稿** | "还原设计" "设计稿" "截图转代码" | `/cost` → `visual-coding` → `task-planner` → 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **整理大文档** | "整理文档" "文档太大" | `/cost` → `doc-processor` → 逐块处理 → 整合 → `/cost` |
-| **提交代码** | "提交代码" "commit" | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost` |
-| **检查健康度** | "检查健康" "总结进度" | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system` → `/cost` |
+| 你想做什么       | 说这些关键词                                                               | 自动触发的 Skill 序列                                                                                              |
+| ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **开始新项目**   | "开始新项目" "从零开始"                                                    | `/cost` → `socratic-inquiry` → `task-planner` → `doc-system` → `workflow`                                          |
+| **开发新功能**   | "开发新功能" "添加功能"                                                    | `/cost` → `task-planner` → `workflow` → `code-review` → `doc-system` → `/cost`                                     |
+| **TDD 循环开发** | **"TDD 模式"** **"循环开发"** **"迭代开发"** **"先写测试"** **"红绿重构"** | `/cost` → `tdd-loop` (红→绿→重构→自动下一轮)                                                                       |
+| **重构代码**     | "重构" "优化代码"                                                          | `/cost` → `code-review` → `task-planner` → `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
+| **修复 Bug**     | "修复bug" "报错了" "debug"                                                 | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system` → `git-commit` → `/cost`             |
+| **还原设计稿**   | "还原设计" "设计稿" "截图转代码"                                           | `/cost` → `visual-coding` → `task-planner` → 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost`    |
+| **整理大文档**   | "整理文档" "文档太大"                                                      | `/cost` → `doc-processor` → 逐块处理 → 整合 → `/cost`                                                              |
+| **提交代码**     | "提交代码" "commit"                                                        | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost`                                |
+| **检查健康度**   | "检查健康" "总结进度"                                                      | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system` → `/cost`                            |
 
 ### 方式二：单个 Skill 触发
 
 无需记忆命令，说出以下关键词即可自动触发单个 Skill：
 
-| 你想做什么 | 说这些关键词 | 自动触发 Skill |
-|-----------|-------------|---------------|
-| 查看消耗 | "/cost" "查一下用了多少token" | cost-control |
-| 处理大文档 | "整理这个文档" "文件太大了" | doc-processor |
-| 重构代码 | "重构这个文件" "优化代码" | code-refactor |
-| 规划任务 | "帮我做个计划" "Plan Mode" | task-planner |
-| 审查代码 | "看看这代码有问题吗" "review" | code-review |
-| 写提交信息 | "怎么提交" "写commit" | git-commit |
-| 了解项目规范 | "按项目规范" "文档里说的" | project-context |
-| 澄清需求 | "我要做个新项目" "需求不太清楚" | socratic-inquiry |
-| 初始化文档 | "创建项目文档" "初始化" | doc-system |
-| 开始开发 | "开始开发" "进入工作流" | workflow |
-| 还原设计稿 | "实现这个设计" "截图转代码" | visual-coding |
-| 修复错误 | "报错了" "修复这个错误" | debug-diagnosis |
-| 总结进度 | "/compact" "总结下进度" "防止失忆" | context-management |
+| 你想做什么   | 说这些关键词                       | 自动触发 Skill     |
+| ------------ | ---------------------------------- | ------------------ |
+| 查看消耗     | "/cost" "查一下用了多少token"      | cost-control       |
+| 处理大文档   | "整理这个文档" "文件太大了"        | doc-processor      |
+| 重构代码     | "重构这个文件" "优化代码"          | code-refactor      |
+| 规划任务     | "帮我做个计划" "Plan Mode"         | task-planner       |
+| 审查代码     | "看看这代码有问题吗" "review"      | code-review        |
+| 写提交信息   | "怎么提交" "写commit"              | git-commit         |
+| 了解项目规范 | "按项目规范" "文档里说的"          | project-context    |
+| 澄清需求     | "我要做个新项目" "需求不太清楚"    | socratic-inquiry   |
+| 初始化文档   | "创建项目文档" "初始化"            | doc-system         |
+| 开始开发     | "开始开发" "进入工作流"            | workflow           |
+| 还原设计稿   | "实现这个设计" "截图转代码"        | visual-coding      |
+| 修复错误     | "报错了" "修复这个错误"            | debug-diagnosis    |
+| 总结进度     | "/compact" "总结下进度" "防止失忆" | context-management |
 
 ---
 
@@ -109,6 +109,7 @@ Step 4: 执行计划
 ```
 
 **何时用 Plan Mode**：
+
 - 接手新项目 → 出架构图 + 入口分析
 - 做大功能 → 模块拆分、接口设计
 - 重构优化 → 分析问题，给出方案
@@ -118,26 +119,26 @@ Step 4: 执行计划
 
 ### 2. 提升 Prompt 质量的话术
 
-| 目的 | Prompt 话术 |
-|------|------------|
-| **角色反转** | "针对这些改动向我提问，在我通过你的测试之前不要提交" |
-| **要求自证** | "证明这套方案行得通，对比修改前后的差异" |
-| **推倒重来** | "基于你现在掌握的信息，推翻刚才的方案，换一个更优雅的实现" |
-| **先写 Spec** | "先写详细的规格说明 Spec，确认后再动手实现" |
-| **解释模式** | "边改边解释为什么这么改，开启解释模式" |
-| **架构可视化** | "给我画个 ASCII 流程图，解释模块调用链" |
-| **费曼学习** | "我解释给你听，你通过提问填补我的知识盲区" |
+| 目的           | Prompt 话术                                                |
+| -------------- | ---------------------------------------------------------- |
+| **角色反转**   | "针对这些改动向我提问，在我通过你的测试之前不要提交"       |
+| **要求自证**   | "证明这套方案行得通，对比修改前后的差异"                   |
+| **推倒重来**   | "基于你现在掌握的信息，推翻刚才的方案，换一个更优雅的实现" |
+| **先写 Spec**  | "先写详细的规格说明 Spec，确认后再动手实现"                |
+| **解释模式**   | "边改边解释为什么这么改，开启解释模式"                     |
+| **架构可视化** | "给我画个 ASCII 流程图，解释模块调用链"                    |
+| **费曼学习**   | "我解释给你听，你通过提问填补我的知识盲区"                 |
 
 ---
 
 ### 3. 成本控制最佳实践
 
-| 策略 | 操作 |
-|------|------|
-| **长任务定期压缩** | 每 10-15 轮说 `/compact`，别等报错才后悔 |
-| **切模型省成本** | 简单任务（格式化、注释）明确说"用轻量模式" |
-| **监控消耗** | 长对话必说 `/cost`，避免超额 |
-| **大文件分段** | 文档 > 30,000 字符自动触发分段处理 |
+| 策略               | 操作                                       |
+| ------------------ | ------------------------------------------ |
+| **长任务定期压缩** | 每 10-15 轮说 `/compact`，别等报错才后悔   |
+| **切模型省成本**   | 简单任务（格式化、注释）明确说"用轻量模式" |
+| **监控消耗**       | 长对话必说 `/cost`，避免超额               |
+| **大文件分段**     | 文档 > 30,000 字符自动触发分段处理         |
 
 ---
 
@@ -177,6 +178,7 @@ Step 6: /skill:workflow
 ```
 
 **文档产出**：
+
 - `plan.md` - 完整开发计划
 - `KIMI.md` - AI 操作手册
 - `progress.txt` - 进度追踪
@@ -230,6 +232,7 @@ Step 9: /skill:cost-control
 ```
 
 **快捷模式**：
+
 > "我要添加用户登录功能，进入 Plan Mode，制定计划后保存到 plan.md，然后按计划开发，每步更新 progress.txt，最后 review 代码"
 
 ---
@@ -304,12 +307,12 @@ Step 3: 逐块处理（成本控制嵌入）
         【显示】"处理块 1/5，预估消耗: ${cost}"
         处理内容...
         【更新文档: 输出块1-summary.md】
-        
+
         ↓ 块2: 说"/next"
         【显示】"处理块 2/5，累计消耗: ${cost}"
         处理内容...
         【更新文档: 输出块2-summary.md】
-        
+
         ...（每块都显示成本）
 
 Step 4: 累积检查
@@ -352,7 +355,7 @@ Step 4: 分组件实现
         输出代码...
         【更新文档: 代码保存到 components/Header.tsx】
         【说"/cost"检查消耗】
-        
+
         ↓ 组件2: Content
         输出代码...
         【更新文档: 代码保存到 components/Content.tsx】
@@ -448,9 +451,9 @@ Step 9: /skill:cost-control
 │
 └── 每 10-15 轮:
     └── /skill:doc-system
-        ↓ 说"总结进度，更新 progress.txt"
+        ↓ 说"总结进度，更新 progress.md"
         输出状态摘要 + 更新文档
-        【更新文档: progress.txt, KIMI.md（当前目标）】
+        【更新文档: progress.md, KIMI.md（当前目标）】
 
 上下文 > 60% 时:
 ├── /skill:danger-signals
@@ -481,21 +484,21 @@ Step 2: /skill:tdd-loop
         📋 功能分析: 用户系统
         功能点: 注册 / 登录 / 个人信息
         预估: 9 个测试用例, 3 轮迭代
-        
+
         ↓ Phase 2: 红阶段 (第1轮)
         🔴 编写测试: register.test.ts
         测试用例: 注册成功 / 邮箱已存在 / 密码强度不足
         运行: ❌ 失败 (预期) - register 函数未定义
-        
+
         ↓ Phase 3: 绿阶段
         🟢 最小实现: register.ts
         export function register(data) { ... }
         运行: ✅ 通过 (3/3)
-        
+
         ↓ Phase 4: 重构 (可选)
         🔧 提取验证逻辑到 validate.ts
         运行: ✅ 重构后通过
-        
+
         ↓ Phase 5: 迭代决策
         🎯 第 1 轮完成 (注册功能)
         累计: 3 tests passed | 消耗: $0.025
@@ -505,7 +508,7 @@ Step 2: /skill:tdd-loop
         ↓
         自动进入第 2 轮: 登录功能
         [重复 Phase 2-5]
-        
+
 ...直到所有功能完成
 
 最后: /skill:cost-control
@@ -513,12 +516,14 @@ Step 2: /skill:tdd-loop
 ```
 
 **TDD 快捷指令**：
+
 - `/tdd` - 进入 TDD 模式
 - `/tdd next` - 完成当前，进入下一轮
 - `/tdd fix` - 手动触发修复
 - `/tdd stop` - 停止循环
 
 **干预命令**：
+
 - "跳过" - 跳过当前阶段
 - "重构" - 立即进入重构
 - "不重构" - 跳过重构
@@ -568,32 +573,32 @@ Step 7: /skill:cost-control
 
 ### 🎯 一句话触发（推荐）
 
-| 你想做什么 | 直接说 | AI 自动执行 |
-|-----------|-------|------------|
-| **开始新项目** | "开始新项目" | `/cost` → `socratic-inquiry` → `task-planner` → `doc-system` → `workflow` |
-| **开发新功能** | "开发新功能" | `/cost` → `task-planner` → `workflow` → `code-review` → `doc-system` → `/cost` |
-| **TDD 循环开发** | **"TDD 模式"** / **"循环开发"** / **"先写测试"** | `/cost` → `tdd-loop` (红→绿→重构→下一轮) |
-| **重构代码** | "重构这个模块" | `/cost` → `code-review` → `task-planner` → `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **修复 Bug** | "报错了帮我修复" | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **还原设计稿** | "还原这个设计" | `/cost` → `visual-coding` → `task-planner` → 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **整理大文档** | "整理这个文档" | `/cost` → `doc-processor` → 逐块处理 → 整合 → `/cost` |
-| **提交代码** | "提交代码" | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost` |
-| **检查健康度** | "检查健康度" | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system` → `/cost` |
+| 你想做什么       | 直接说                                           | AI 自动执行                                                                                                        |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| **开始新项目**   | "开始新项目"                                     | `/cost` → `socratic-inquiry` → `task-planner` → `doc-system` → `workflow`                                          |
+| **开发新功能**   | "开发新功能"                                     | `/cost` → `task-planner` → `workflow` → `code-review` → `doc-system` → `/cost`                                     |
+| **TDD 循环开发** | **"TDD 模式"** / **"循环开发"** / **"先写测试"** | `/cost` → `tdd-loop` (红→绿→重构→下一轮)                                                                           |
+| **重构代码**     | "重构这个模块"                                   | `/cost` → `code-review` → `task-planner` → `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
+| **修复 Bug**     | "报错了帮我修复"                                 | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system` → `git-commit` → `/cost`             |
+| **还原设计稿**   | "还原这个设计"                                   | `/cost` → `visual-coding` → `task-planner` → 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost`    |
+| **整理大文档**   | "整理这个文档"                                   | `/cost` → `doc-processor` → 逐块处理 → 整合 → `/cost`                                                              |
+| **提交代码**     | "提交代码"                                       | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost`                                |
+| **检查健康度**   | "检查健康度"                                     | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system` → `/cost`                            |
 
 ### ⌨️ 手动命令序列（传统方式）
 
 如果你更喜欢手动控制，可以按以下顺序输入命令：
 
-| 你想做什么 | 输入命令序列 |
-|-----------|-------------|
-| **开始新项目** | `/cost` → `socratic-inquiry` → `task-planner`（保存plan.md）→ `doc-system` → `workflow` |
-| **开发新功能** | `/cost` → `task-planner`（Plan Mode）→ `doc-processor`（如有大文档）→ `workflow` → `code-review` → `doc-system`（更新progress）→ `/cost` |
-| **重构代码** | `/cost` → `code-review`（ASCII图）→ `task-planner`（保存refactor-plan.md）→ `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **修复 Bug** | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system`（记录问题）→ `git-commit` → `/cost` |
-| **还原设计稿** | `/cost` → `visual-coding`（保存design-spec.md）→ `task-planner`（组件拆分）→ 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost` |
-| **整理大文档** | `/cost` → `doc-processor` → 逐块处理（每块显示成本）→ 整合 → `/cost` |
-| **提交代码** | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost` |
-| **检查健康度** | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system`（更新进度）→ `/cost` |
+| 你想做什么     | 输入命令序列                                                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **开始新项目** | `/cost` → `socratic-inquiry` → `task-planner`（保存plan.md）→ `doc-system` → `workflow`                                                             |
+| **开发新功能** | `/cost` → `task-planner`（Plan Mode）→ `doc-processor`（如有大文档）→ `workflow` → `code-review` → `doc-system`（更新progress）→ `/cost`            |
+| **重构代码**   | `/cost` → `code-review`（ASCII图）→ `task-planner`（保存refactor-plan.md）→ `code-refactor` → `code-review` → `doc-system` → `git-commit` → `/cost` |
+| **修复 Bug**   | `/cost` → `debug-diagnosis` → `danger-signals` → `code-review` → `doc-system`（记录问题）→ `git-commit` → `/cost`                                   |
+| **还原设计稿** | `/cost` → `visual-coding`（保存design-spec.md）→ `task-planner`（组件拆分）→ 分组件实现 → `code-review` → `doc-system` → `git-commit` → `/cost`     |
+| **整理大文档** | `/cost` → `doc-processor` → 逐块处理（每块显示成本）→ 整合 → `/cost`                                                                                |
+| **提交代码**   | `/cost` → `code-review` → `project-context` → `doc-system` → `git-commit` → `/cost`                                                                 |
+| **检查健康度** | `/cost` → `/compact` → `context-management` → `danger-signals` → `doc-system`（更新进度）→ `/cost`                                                  |
 
 ---
 
@@ -616,12 +621,14 @@ Step 7: /skill:cost-control
 ### 3. Plan Mode 优先
 
 复杂任务（>3步）**必须**先进入 Plan Mode：
+
 - ❌ "帮我实现用户系统"
 - ✅ "进入 Plan Mode，帮我规划用户系统实现，保存到 plan.md"
 
 ### 4. 危险信号必处理
 
 看到 🚨 警告时**必须**确认后再继续：
+
 - AI 重复内容 → 新开会话
 - 3 次修复失败 → 回滚稳定版本
 - 一次生成 5+ 文件 → 要求粒度细化
@@ -629,6 +636,7 @@ Step 7: /skill:cost-control
 ### 5. 自证与 Review
 
 关键节点**必须**验证：
+
 - "证明这套方案行得通"
 - "扮演 Staff Engineer 审查计划"
 - "对比修改前后的差异"
