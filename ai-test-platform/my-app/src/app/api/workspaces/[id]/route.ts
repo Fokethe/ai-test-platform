@@ -6,7 +6,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { itemResponse, errorResponse, errors } from '@/lib/api-response';
-import { auth } from '@/lib/auth';\nimport { parseJsonBody } from '@/lib/api-handler';
+import { auth } from '@/lib/auth';
+import { parseJsonBody } from '@/lib/api-handler';
 
 // GET /api/workspaces/[id] - 获取工作空间详情
 export async function GET(

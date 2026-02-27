@@ -52,7 +52,7 @@ export default function CreateTestPage() {
     };
 
     try {
-      const result = await apiClient.post('/api/tests', data);
+      const result = await apiClient.post<{ id: string }>('/api/tests', data);
       router.push(`/tests/${result.id}`);
     } catch (err: any) {
       setFormError(err.message || '创建失败');

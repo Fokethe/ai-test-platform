@@ -34,8 +34,8 @@ export default function CreateIssuePage() {
     };
 
     try {
-      const result = await apiClient.post('/api/issues', data);
-      router.push(`/quality/issues/${result.data.id}`);
+      const result = await apiClient.post<{ id: string }>('/api/issues', data);
+      router.push(`/quality/issues/${result.id}`);
     } catch (err: any) {
       setFormError(err.message || '创建失败');
     } finally {

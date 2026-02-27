@@ -41,9 +41,7 @@ export default function WorkspaceDetailPage() {
   const id = params.id as string;
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data, isLoading, error, mutate } = useApi<Workspace>(`/api/workspaces/${id}`);
-
-  const workspace = data?.data;
+  const { data: workspace, isLoading, error, mutate } = useApi<Workspace>(`/api/workspaces/${id}`);
 
   const handleDelete = async () => {
     if (!confirm('确定要删除这个工作空间吗？此操作不可撤销。')) {
