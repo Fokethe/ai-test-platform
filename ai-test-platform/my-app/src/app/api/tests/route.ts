@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   const {
     name,
     description,
-    type = 'CASE',
+    type: testType = 'CASE',
     content,
     projectId,
     parentId,
@@ -120,11 +120,11 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        type,
-        content: typeof content === 'object' ? JSON.stringify(content) : content,
+        type: testType as Prisma.TestCreateInput['type'],
+        content: content ? (typeof content === 'object' ? JSON.stringify(content) : String(content)) : null,
         projectId,
         parentId,
-        tags: typeof tags === 'object' ? JSON.stringify(tags) : tags,
+        tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
         priority,
         source,
         createdBy: 'system', // TODO: 从 session 获取

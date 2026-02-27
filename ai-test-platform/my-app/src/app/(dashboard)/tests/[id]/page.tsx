@@ -273,9 +273,9 @@ export default function TestDetailPage() {
                 <CardTitle>包含用例</CardTitle>
               </CardHeader>
               <CardContent>
-                {test.children?.length > 0 ? (
+                {(test.children?.length ?? 0) > 0 ? (
                   <div className="divide-y">
-                    {test.children.map((child: any) => (
+                    {(test.children ?? []).map((child) => (
                       <div key={child.id} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-2">
                           <Beaker className="w-4 h-4 text-slate-400" />
