@@ -14,6 +14,7 @@ description: 代码提交工作流 - 审查→规范检查→文档更新→生�
 ```
 
 或关键词：
+
 - "提交代码"
 - "commit"
 - "准备提交"
@@ -36,7 +37,7 @@ description: 代码提交工作流 - 审查→规范检查→文档更新→生�
 │  └─ 验证 KIMI.md 技术铁律                                    │
 ├─────────────────────────────────────────────────────────────┤
 │  Step 4: doc-system                                         │
-│  ├─ 更新 progress.txt                                       │
+│  ├─ 更新 progress.md                                      │
 │  └─ 标记待提交状态                                           │
 ├─────────────────────────────────────────────────────────────┤
 │  Step 5: git-commit                                         │
@@ -63,41 +64,41 @@ description: 代码提交工作流 - 审查→规范检查→文档更新→生�
    └─ 符合 KIMI.md 规范
 
 ✅ Documentation
-   └─ progress.txt 已更新
+   └─ progress.md 已更新
 ```
 
 ## 使用示例
 
-```
+````
 用户: 提交代码
 AI: [自动执行 /skill:code-submit]
     📊 当前消耗: $0.067
-    
+
     [code-review] 审查中...
     🔍 检查最近修改: src/app/api/tests/route.ts
     ✅ 通过: 可读性良好
     ✅ 通过: 错误处理完善
     ⚠️  建议: 提取重复逻辑到 utils
-    
+
     [project-context] 规范检查...
     ✅ 符合项目规范
-    
+
     [doc-system] 更新文档...
-    📝 已更新 progress.txt
-    
+    📝 已更新 progress.md
+
     [git-commit] 生成提交信息...
     ```
     fix(api): 修复测试创建时的 projectId 验证
-    
+
     - 从 URL 参数获取 projectId
     - 添加空值检查防止外键约束错误
     - 优化错误提示信息
     ```
-    
+
 用户: 确认提交
 AI: git add -A && git commit -m "..."
    📊 本次开发总消耗: $0.067
-```
+````
 
 ## 快捷指令
 

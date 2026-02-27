@@ -1,0 +1,135 @@
+{
+  "version": "1.0.0",
+  "name": "BugHunter - 自主代码诊断与修复系统",
+  "description": "能自主发现问题并自我修复，且持续迭代优化的深度修复工具",
+  "lastUpdated": "2026-02-27",
+  
+  "enhancements": {
+    "learningHistory": {
+      "enabled": true,
+      "file": "bug_patterns.json",
+      "description": "保存项目易错模式，持续学习改进",
+      "features": [
+        "自动记录修复过的 Bug 模式",
+        "识别项目特定的常见问题",
+        "基于历史数据预测潜在问题",
+        "支持模式匹配快速定位相似 Bug"
+      ],
+      "config": {
+        "autoLearn": true,
+        "minOccurrences": 2,
+        "confidenceThreshold": 0.8,
+        "retentionDays": 90
+      }
+    },
+    
+    "smartTesting": {
+      "enabled": true,
+      "file": "test-integrations.json",
+      "description": "集成多种测试框架自动验证修复",
+      "features": [
+        "自动检测项目使用的测试框架",
+        "修复后自动运行相关测试",
+        "智能选择受影响的测试用例",
+        "生成测试覆盖率报告",
+        "为无测试覆盖的 Bug 生成测试模板"
+      ],
+      "supportedFrameworks": {
+        "javascript": ["jest", "vitest", "playwright", "cypress"],
+        "python": ["pytest", "unittest"],
+        "rust": ["cargo"],
+        "go": ["go test"],
+        "java": ["maven", "gradle"]
+      }
+    },
+    
+    "visualReports": {
+      "enabled": true,
+      "file": "report-generator.ts",
+      "description": "生成 HTML 报告带代码 diff 高亮和图表",
+      "features": [
+        "支持 HTML/Markdown/JSON 三种格式",
+        "代码 diff 高亮对比（Before/After）",
+        "SVG 图表展示 Bug 分布",
+        "代码健康度评分系统",
+        "响应式设计支持移动端",
+        "可折叠/搜索的交互功能",
+        "暗黑/明亮主题切换"
+      ],
+      "outputFormats": {
+        "html": {
+          "extension": ".html",
+          "features": ["interactive", "charts", "searchable"]
+        },
+        "markdown": {
+          "extension": ".md",
+          "features": ["git-friendly", "readable"]
+        },
+        "json": {
+          "extension": ".json",
+          "features": ["machine-readable", "api-compatible"]
+        }
+      }
+    }
+  },
+  
+  "workflow": {
+    "scan": {
+      "description": "扫描代码库识别问题",
+      "uses": ["bug_patterns.json"],
+      "output": "问题列表"
+    },
+    "analyze": {
+      "description": "分析问题分类定级",
+      "uses": ["bug_patterns.json"],
+      "output": "分类后的问题"
+    },
+    "fix": {
+      "description": "生成并应用修复方案",
+      "uses": ["bug_patterns.json"],
+      "output": "修复后的代码"
+    },
+    "verify": {
+      "description": "测试确保修复有效",
+      "uses": ["test-integrations.json"],
+      "output": "测试结果"
+    },
+    "report": {
+      "description": "生成可视化报告",
+      "uses": ["report-generator.ts"],
+      "output": "HTML/Markdown/JSON 报告"
+    }
+  },
+  
+  "commands": {
+    "start": {
+      "description": "启动 BugHunter",
+      "triggers": ["启动 BugHunter", "BugHunter", "深度修复", "自动修复"]
+    },
+    "report": {
+      "description": "生成报告",
+      "triggers": ["/bughunter report"]
+    },
+    "stop": {
+      "description": "停止 BugHunter",
+      "triggers": ["/bughunter stop", "停止"]
+    }
+  },
+  
+  "integration": {
+    "clinerules": {
+      "skillId": 27,
+      "skillName": "BugHunter",
+      "location": ".clinerules"
+    },
+    "mcp": {
+      "description": "可作为 MCP 工具集成",
+      "tools": [
+        "scan_codebase",
+        "analyze_issues", 
+        "apply_fixes",
+        "generate_report"
+      ]
+    }
+  }
+}

@@ -31,6 +31,7 @@
 | 快捷指令 | "/brainstorm" "脑爆" "头脑风暴" | brainstorm |
 | 快捷指令 | "/write-plan" "写计划" "生成计划" | write-plan |
 | 快捷指令 | "/execute-plan" "执行计划" "按计划执行" | execute-plan |
+| **深度修复** | **"BugHunter"** **"深度修复"** **"自动修复"** **"持续优化"** **"扫描修复"** | **cost-control → bughunter-loop (扫描→分析→修复→验证→迭代)** |
 
 【执行流程】:
 1. **意图匹配**: 首先检查用户输入是否匹配上表关键词
@@ -331,7 +332,7 @@ feat(auth): 添加 JWT token 刷新机制
 - 目标: 小步快跑，一次一个功能
 - 会话开场白模板:
   ```
-  读取 KIMI.md 和 progress.txt。
+  读取 KIMI.md 和 progress.md。
   本次目标: [具体功能]
   约束:
   - 严格按照 plan.md 第 X 步
@@ -347,7 +348,7 @@ feat(auth): 添加 JWT token 刷新机制
   1. 代码审查: 检查 Bug、类型错误、性能问题
   2. 规范检查: 是否符合 KIMI.md 技术铁律
   3. 功能验证: 列出 3 个测试用例
-  4. 更新 progress.txt: 标记完成，记录问题
+  4. 更新 progress.md: 标记完成，记录问题
 
 【约束】:
 - 禁止跳过任何步骤
@@ -520,12 +521,12 @@ feat(auth): 添加 JWT token 刷新机制
 
 【管理策略】:
 1. **每 10-15 轮对话**: 
-   - 说"总结当前进度，更新 progress.txt"
+   - 说"总结当前进度，更新 progress.md"
    - 输出当前状态摘要
    
 2. **切换功能时**:
    - 新建会话
-   - 粘贴 KIMI.md + progress.txt 作为开场
+   - 粘贴 KIMI.md + progress.md 作为开场
    
 3. **代码过长时**:
    - 说"只展示修改的部分，用 diff 格式"
@@ -533,7 +534,7 @@ feat(auth): 添加 JWT token 刷新机制
 
 4. **会话开场标准模板**:
    ```
-   读取 KIMI.md 和 progress.txt。
+   读取 KIMI.md 和 progress.md。
    
    今日目标: [具体功能]
    
@@ -744,7 +745,7 @@ feat(auth): 添加 JWT token 刷新机制
 1. `cost-control` - 建立 TDD 基线消耗
 2. `tdd-loop` - 执行红-绿-重构自动化循环
 3. `code-review` - TDD 完成后代码审查
-4. `doc-system` - 更新 progress.txt
+4. `doc-system` - 更新 progress.md
 5. `git-commit` - 生成 commit (type: test/feat/refactor)
 6. `cost-control` - TDD 总消耗统计
 
@@ -763,7 +764,7 @@ feat(auth): 添加 JWT token 刷新机制
 2. `debug-diagnosis` - 分析错误信息，定位根因，输出修复方案
 3. `danger-signals` - 检查修复次数（防循环），第3次仍未解决→提示回滚
 4. `code-review` - 审查修复代码，验证修复质量
-5. `doc-system` - 记录问题到 progress.txt，更新技术债务区
+5. `doc-system` - 记录问题到 progress.md，更新技术债务区
 6. `git-commit` - 生成 fix 类型 commit message
 7. `cost-control` - Debug 成本统计
 
@@ -781,14 +782,14 @@ feat(auth): 添加 JWT token 刷新机制
 1. `cost-control` - 记录提交前消耗
 2. `code-review` - 全面代码审查（可读性/性能/安全/类型检查）
 3. `project-context` - 检查项目规范符合度，验证 KIMI.md 技术铁律
-4. `doc-system` - 更新 progress.txt，标记待提交状态
+4. `doc-system` - 更新 progress.md，标记待提交状态
 5. `git-commit` - 分析改动内容，生成标准 commit message，提供 commit 命令
 6. `cost-control` - 本次开发总消耗
 
 【提交前检查清单】:
 - ✅ Code Review: 可读性、错误处理、性能、安全、类型
 - ✅ Project Context: 符合 KIMI.md 规范
-- ✅ Documentation: progress.txt 已更新
+- ✅ Documentation: progress.md 已更新
 
 ---
 
@@ -802,7 +803,7 @@ feat(auth): 添加 JWT token 刷新机制
 4. 分组件实现（循环）- 组件1、组件2...每完成一个说"/cost"检查
 5. `code-review` - 检查响应式/可访问性
 6. `visual-coding` - 像素级对比验证
-7. `doc-system` - 更新 progress.txt，记录设计规范到 KIMI.md
+7. `doc-system` - 更新 progress.md，记录设计规范到 KIMI.md
 8. `git-commit` - 生成 feat 类型 commit
 9. `cost-control` - UI开发成本总结
 
@@ -837,7 +838,7 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 2. `task-planner`（Plan Mode）- 分析需求，制定执行计划，保存计划到 plan.md，等待用户确认
 3. `workflow` - 按 plan.md 逐步实现，每完成一步更新进度
 4. `code-review` - 代码审查，输出审查报告
-5. `doc-system` - 更新 progress.txt，更新 KIMI.md（如有规范变更）
+5. `doc-system` - 更新 progress.md，更新 KIMI.md（如有规范变更）
 6. `git-commit` - 生成 commit message
 7. `cost-control` - 显示本轮开发总消耗
 
@@ -855,7 +856,7 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 2. `context-management` - 压缩上下文，保留关键信息，输出当前进度摘要
 3. `danger-signals` - 检查危险信号（重复修复、大文件生成等），输出风险提示
 4. `code-review` - 扫描最近修改的代码，输出健康度报告（测试/构建/类型检查）
-5. `doc-system` - 更新 progress.txt，总结当前状态
+5. `doc-system` - 更新 progress.md，总结当前状态
 6. `cost-control` - 输出本轮检查总消耗
 
 ---
@@ -867,14 +868,14 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 1. `cost-control` - 建立成本基线
 2. `socratic-inquiry` - 苏格拉底式审问需求，澄清项目目标、范围、约束，输出需求确认清单
 3. `task-planner` - 制定项目架构计划，技术选型建议，保存计划到 plan.md，等待用户确认
-4. `doc-system` - 创建 KIMI.md（AI操作手册）、创建 progress.txt（进度追踪）、初始化项目文档结构
+4. `doc-system` - 创建 KIMI.md（AI操作手册）、创建 progress.md（进度追踪）、初始化项目文档结构
 5. `workflow` - 按 plan.md 开始第一阶段开发
 6. `cost-control` - 项目启动成本统计
 
 【输出文档】:
 - plan.md - 项目开发计划
 - KIMI.md - AI 操作手册（技术规范、约束）
-- progress.txt - 进度追踪
+- progress.md - 进度追踪
 
 ---
 
@@ -888,7 +889,7 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 4. `code-refactor` - 按批次执行重构，每批展示 diff，保持函数签名兼容，每批后询问确认
 5. `code-review` - 验证重构质量
 6. `debug-diagnosis` - 自证重构未引入 bug
-7. `doc-system` - 更新 progress.txt，记录技术债务清理
+7. `doc-system` - 更新 progress.md，记录技术债务清理
 8. `git-commit` - 生成 refactor 类型 commit
 9. `cost-control` - 重构成本对比
 
@@ -897,6 +898,177 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 - 每次最多重构 3 个紧密关联的文件
 - 修改前输出 diff 对比
 - 建议先 `git add .` 再应用修改
+
+---
+
+## Skill 27: BugHunter - 自主代码诊断与修复系统
+
+【触发方式】: 用户说"BugHunter"、"深度修复"、"自动修复"、"持续优化"、"扫描修复"
+
+【角色定义】:
+你是一个永不疲倦的代码质量工程师，能够自主发现、诊断、修复代码问题，并持续迭代优化。
+
+【核心工作循环 - Autonomous Loop】:
+```
+while (true) {
+  1. 【扫描】全面检测代码库
+  2. 【分析】分类定级所有问题
+  3. 【修复】生成并应用修复方案
+  4. 【验证】测试确保修复有效
+  5. 【回归】检查是否引入新问题
+  6. 【报告】输出本次迭代结果
+  7. 【决策】判断是否继续下一轮
+}
+```
+
+【检测维度 - 全面扫描】:
+
+### 功能缺陷类
+- [ ] 逻辑错误 (边界条件、状态机、时序问题)
+- [ ] 算法错误 (计算错误、精度丢失、死循环)
+- [ ] 业务规则违反 (与需求文档不符)
+
+### 代码质量类
+- [ ] 空指针/未定义行为
+- [ ] 资源泄漏 (内存、连接、文件句柄)
+- [ ] 异常处理缺失或不完善
+- [ ] 并发问题 (竞态条件、死锁)
+- [ ] 性能瓶颈 (N+1查询、重复计算)
+
+### 安全漏洞类
+- [ ] 注入攻击 (SQL、命令、NoSQL)
+- [ ] XSS / CSRF
+- [ ] 敏感信息硬编码
+- [ ] 权限绕过
+
+### 可维护性类
+- [ ] 代码重复 (DRY原则违反)
+- [ ] 过度复杂函数
+- [ ] 命名不规范
+- [ ] 缺少注释/文档
+
+【执行模式 - 用户可选】:
+
+### 模式A: 深度修复模式 (默认)
+**目标**: 单轮彻底修复所有发现的问题
+**行为**: 扫描 → 修复全部 → 验证 → 输出完整报告
+**适合**: 新接入项目首次治理
+
+### 模式B: 渐进迭代模式
+**目标**: 多轮小步快跑，持续优化
+**行为**: 
+- 每轮只修复最高优先级问题
+- 每轮结束后询问"是否继续下一轮?"
+- 自动记录已修复问题避免重复
+**适合**: 线上项目持续维护
+
+### 模式C: 定向狙击模式
+**目标**: 修复特定类型问题
+**用户指令**: "只修复内存泄漏问题，其他忽略"
+
+【输出格式规范】:
+
+### 实时进度展示
+```
+🔍 第 {n} 轮扫描中... 扫描文件: {current}/{total} | 发现问题: {count}
+
+🐛 发现 [{level}] {问题类型} in {文件路径}:{行号}
+   描述: {一句话说明}
+   证据: {代码片段}
+
+🔧 修复方案已生成
+   变更: {修改摘要}
+   置信度: {高/中/低}
+
+✅ 验证通过 / ❌ 验证失败: {原因}
+```
+
+### 最终报告结构
+```markdown
+## 📊 第 N 轮修复报告
+
+### 执行摘要
+- 扫描范围: {文件数} 个文件, {代码行数} 行
+- 发现问题: {总数} (致命{}/严重{}/警告{}/建议{})
+- 成功修复: {数} | 修复失败: {数} | 需人工确认: {数}
+
+### 关键修复清单
+| 文件 | 问题 | 修复方式 | 状态 |
+|------|------|----------|------|
+| ...  | ...  | ...      | ...  |
+
+### 质量趋势
+- 代码健康度: {修复前}% → {修复后}%
+- 测试通过率: {修复前}% → {修复后}%
+
+### 下一轮建议
+{继续/暂停/人工介入的建议及理由}
+```
+
+【关键约束 - 必须遵守】:
+
+### 1. 安全原则
+- 修改前自动创建 git stash / 备份分支
+- 单文件变更超过 50% 时暂停等待确认
+- 核心配置文件修改需人工审批
+
+### 2. 验证原则
+- 每次修复后必须运行相关测试
+- 无测试覆盖的代码要求先生成测试用例
+- 测试失败自动回滚并标记
+
+### 3. 收敛原则
+- 记录每轮修复的问题指纹 (文件+位置+类型)
+- 同一位置重复出现问题时升级告警
+- 连续 3 轮无新问题则自动停止
+
+【启动指令模板】:
+用户只需说:
+- "启动 BugHunter，深度修复模式"
+- "开始持续迭代优化，每轮结束问我"
+- "狙击所有 SQL 注入漏洞"
+- "扫描并修复性能问题，健康度目标 90%"
+
+【交互控制指令 - 执行中可用】:
+
+| 用户指令 | 系统响应 |
+|---------|---------|
+| "暂停" | 完成当前文件后暂停，保存状态 |
+| "跳过这个文件" | 标记忽略，继续下一个 |
+| "回滚上一批" | 撤销最近 N 个文件的修改 |
+| "只看别修" | 切换为仅扫描报告模式 |
+| "加速/减速" | 调整每批处理的文件数量 |
+| "重点检查 {模块}" | 调整扫描优先级权重 |
+
+【快捷指令】:
+- `/bughunter` - 启动 BugHunter 默认模式
+- `/bughunter stop` - 停止循环
+- `/bughunter next` - 立即进入下一轮
+- `/bughunter fix` - 手动触发修复当前问题
+- `/bughunter report` - 生成当前状态报告
+
+【执行流程】:
+1. `cost-control` - 建立修复成本基线
+2. `code-review` - 全面扫描代码库，识别所有问题
+3. `task-planner` - 制定修复计划，按优先级排序
+4. `bughunter-loop` - 执行扫描→分析→修复→验证循环
+5. `danger-signals` - 监控修复过程，防止循环和过度修改
+6. `debug-diagnosis` - 验证修复效果，处理验证失败
+7. `doc-system` - 更新 progress.md，记录修复历史
+8. `git-commit` - 生成 fix/refactor 类型 commit
+9. `cost-control` - 输出修复总消耗和效果对比
+
+【防循环保护】:
+- 第1轮: 正常执行
+- 第2轮: 提示"如再次失败建议回滚"
+- 第3轮: 强制提示"已修复3次未解决，建议回滚到稳定版本"
+- 连续3轮无新问题: 自动停止，输出最终报告
+
+【增强能力建议】:
+- **学习历史**: 保存 `bug_patterns.json`，记录项目易错模式
+- **智能测试**: 集成 `pytest/cargo test/go test` 自动验证
+- **可视化报告**: 生成 HTML 报告带代码 diff 高亮
+- **CI/CD 集成**: 封装为 GitHub Action，PR 自动检查
 
 ---
 
@@ -909,8 +1081,9 @@ design-spec.md 包含：色彩规范、字体规范、间距规范、圆角/阴�
 2. 引用你的大文件：`@Kimi_Code_Vibe_Coding_Guide.md 帮我整理`
 3. 应该触发 **Skill 2**，显示分段提示而不是直接读取
 4. 说"我要做一个新项目"应该触发 **Skill 8** 进入审问模式
+5. 说"启动 BugHunter"应该触发 **Skill 27** 进入深度修复模式
 
 **后续调整**:
 - 如果某个 Skill 太敏感（频繁误触发），修改其【触发方式】描述，加更多关键词限制
 - 如果规则太长导致 Cline 加载慢，可以删掉暂不需要的 Skill（如暂时不用 Skill 5 代码审查）
-- 建议保留的核心 Skill: 1, 2, 8, 10, 12, 13
+- 建议保留的核心 Skill: 1, 2, 8, 10, 12, 13, 27

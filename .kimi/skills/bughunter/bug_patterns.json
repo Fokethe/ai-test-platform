@@ -1,0 +1,243 @@
+{
+  "version": "1.0.0",
+  "description": "BugHunter 项目易错模式学习库 - 记录项目中常见的 Bug 模式和修复方案",
+  "lastUpdated": "2026-02-27",
+  "patterns": {
+    "common": {
+      "nullPointer": {
+        "id": "BP001",
+        "name": "空指针/未定义访问",
+        "severity": "high",
+        "description": "访问可能为 null 或 undefined 的变量/属性",
+        "signatures": [
+          "Cannot read property of null",
+          "Cannot read property of undefined",
+          "null is not an object",
+          "undefined is not an object"
+        ],
+        "codePatterns": [
+          "obj.property without check",
+          "array[index] without bounds check",
+          "optional chaining missing"
+        ],
+        "fixStrategy": "添加空值检查或使用可选链操作符 (?.)",
+        "example": {
+          "before": "const name = user.profile.name;",
+          "after": "const name = user?.profile?.name ?? 'Unknown';"
+        },
+        "prevention": "使用 TypeScript strict mode，启用 strictNullChecks"
+      },
+      "asyncError": {
+        "id": "BP002",
+        "name": "异步错误处理缺失",
+        "severity": "high",
+        "description": "Promise/async 函数缺少错误处理",
+        "signatures": [
+          "UnhandledPromiseRejection",
+          "Promise rejection was not handled",
+          "unhandled rejection"
+        ],
+        "codePatterns": [
+          "await without try-catch",
+          "promise without .catch()",
+          "async function without error boundary"
+        ],
+        "fixStrategy": "添加 try-catch 或 .catch() 处理",
+        "example": {
+          "before": "const data = await fetchData();",
+          "after": "try {\n  const data = await fetchData();\n} catch (error) {\n  console.error('Fetch failed:', error);\n  throw new AppError('DATA_FETCH_FAILED', error);\n}"
+        },
+        "prevention": "使用 ESLint rule: require-atomic-updates, no-floating-promises"
+      },
+      "typeError": {
+        "id": "BP003",
+        "name": "TypeScript 类型错误",
+        "severity": "medium",
+        "description": "类型不匹配或滥用 any 类型",
+        "signatures": [
+          "Type 'X' is not assignable to type 'Y'",
+          "Property does not exist on type",
+          "No overload matches this call"
+        ],
+        "codePatterns": [
+          "function parameter: any",
+          "variable: any",
+          "as any type assertion"
+        ],
+        "fixStrategy": "定义具体类型，使用泛型，避免 any",
+        "example": {
+          "before": "function process(data: any) { return data.value; }",
+          "after": "interface Data { value: string; }\nfunction process<T extends Data>(data: T): string { return data.value; }"
+        },
+        "prevention": "启用 no-explicit-any, no-unsafe-assignment ESLint rules"
+      },
+      "memoryLeak": {
+        "id": "BP004",
+        "name": "内存泄漏",
+        "severity": "high",
+        "description": "未清理的事件监听、定时器或闭包引用",
+        "signatures": [
+          "Heap out of memory",
+          "Memory leak detected",
+          "Detached DOM tree"
+        ],
+        "codePatterns": [
+          "addEventListener without remove",
+          "setInterval without clear",
+          "subscription without unsubscribe",
+          "closure capturing large objects"
+        ],
+        "fixStrategy": "在组件卸载时清理所有订阅和监听器",
+        "example": {
+          "before": "useEffect(() => {\n  const interval = setInterval(() => {...}, 1000);\n}, []);",
+          "after": "useEffect(() => {\n  const interval = setInterval(() => {...}, 1000);\n  return () => clearInterval(interval);\n}, []);"
+        },
+        "prevention": "使用 React DevTools Profiler，定期进行内存分析"
+      },
+      "raceCondition": {
+        "id": "BP005",
+        "name": "竞态条件",
+        "severity": "high",
+        "description": "多个异步操作竞争修改同一状态",
+        "signatures": [
+          "State update on unmounted component",
+          "Warning: Can't perform a React state update",
+          "Race condition detected"
+        ],
+        "codePatterns": [
+          "multiple async state updates",
+          "fetch then setState without cleanup",
+          "shared mutable state"
+        ],
+        "fixStrategy": "使用 AbortController 或标志位取消过期操作",
+        "example": {
+          "before": "useEffect(() => {\n  fetchData().then(data => setData(data));\n}, [id]);",
+          "after": "useEffect(() => {\n  const controller = new AbortController();\n  fetchData({ signal: controller.signal })\n    .then(data => setData(data))\n    .catch(err => {\n      if (err.name !== 'AbortError') throw err;\n    });\n  return () => controller.abort();\n}, [id]);"
+        },
+        "prevention": "使用 React Query/SWR 等数据获取库，内置竞态处理"
+      }
+    },
+    "security": {
+      "sqlInjection": {
+        "id": "SEC001",
+        "name": "SQL 注入漏洞",
+        "severity": "critical",
+        "description": "用户输入直接拼接到 SQL 查询中",
+        "signatures": [
+          "SQL syntax error",
+          "unexpected token in SQL"
+        ],
+        "codePatterns": [
+          "query + userInput",
+          "exec(`SELECT * FROM ${table}`)",
+          "raw SQL with string interpolation"
+        ],
+        "fixStrategy": "使用参数化查询或 ORM",
+        "example": {
+          "before": "db.query(`SELECT * FROM users WHERE id = ${userId}`);",
+          "after": "db.query('SELECT * FROM users WHERE id = ?', [userId]);"
+        },
+        "prevention": "使用 Prisma/TypeORM 等 ORM，启用 SQL 注入检测工具"
+      },
+      "xss": {
+        "id": "SEC002",
+        "name": "XSS 跨站脚本攻击",
+        "severity": "critical",
+        "description": "未转义的用户输入直接渲染到页面",
+        "signatures": [
+          "innerHTML assignment",
+          "dangerouslySetInnerHTML"
+        ],
+        "codePatterns": [
+          "element.innerHTML = userInput",
+          "dangerouslySetInnerHTML={{ __html: content }}",
+          "eval(userInput)"
+        ],
+        "fixStrategy": "使用 textContent 替代 innerHTML，或使用 DOMPurify 净化",
+        "example": {
+          "before": "div.innerHTML = userComment;",
+          "after": "div.textContent = userComment;\n// 或: div.innerHTML = DOMPurify.sanitize(userComment);"
+        },
+        "prevention": "使用 Content-Security-Policy，启用 XSS 扫描工具"
+      },
+      "hardcodedSecrets": {
+        "id": "SEC003",
+        "name": "敏感信息硬编码",
+        "severity": "critical",
+        "description": "API 密钥、密码等敏感信息直接写在代码中",
+        "signatures": [
+          "api_key",
+          "password",
+          "secret",
+          "token"
+        ],
+        "codePatterns": [
+          "const API_KEY = 'sk-...'",
+          "password: '123456'",
+          "Authorization: Bearer token"
+        ],
+        "fixStrategy": "使用环境变量或密钥管理服务",
+        "example": {
+          "before": "const API_KEY = 'sk-live-abc123';",
+          "after": "const API_KEY = process.env.API_KEY;\nif (!API_KEY) throw new Error('API_KEY not configured');"
+        },
+        "prevention": "使用 git-secrets, detect-secrets 等工具扫描提交"
+      }
+    },
+    "performance": {
+      "nPlusOne": {
+        "id": "PERF001",
+        "name": "N+1 查询问题",
+        "severity": "medium",
+        "description": "循环中执行数据库查询，导致性能问题",
+        "signatures": [
+          "slow query log",
+          "query timeout"
+        ],
+        "codePatterns": [
+          "for (item of items) { await db.query(...) }",
+          "map + async fetch"
+        ],
+        "fixStrategy": "使用 JOIN 或批量查询替代循环查询",
+        "example": {
+          "before": "const users = await db.users.findAll();\nfor (const user of users) {\n  user.posts = await db.posts.find({ userId: user.id });\n}",
+          "after": "const users = await db.users.findAll({\n  include: [{ model: db.posts, as: 'posts' }]\n});"
+        },
+        "prevention": "使用 Prisma 的 include/select，启用查询日志分析"
+      },
+      "infiniteLoop": {
+        "id": "PERF002",
+        "name": "无限循环/死循环",
+        "severity": "high",
+        "description": "循环条件永远为真，导致程序卡死",
+        "signatures": [
+          "Maximum call stack size exceeded",
+          "Infinite loop detected",
+          "Script timeout"
+        ],
+        "codePatterns": [
+          "while (true) without break",
+          "for loop with i++ in wrong place",
+          "recursive function without base case"
+        ],
+        "fixStrategy": "确保循环有正确的终止条件",
+        "example": {
+          "before": "while (current) {\n  if (current.value === target) return current;\n}",
+          "after": "while (current) {\n  if (current.value === target) return current;\n  current = current.next;\n}"
+        },
+        "prevention": "使用 ESLint no-unmodified-loop-condition rule"
+      }
+    }
+  },
+  "projectSpecific": {
+    "description": "项目特定的 Bug 模式，由 BugHunter 自动学习和记录",
+    "patterns": []
+  },
+  "learning": {
+    "description": "BugHunter 学习机制配置",
+    "autoLearn": true,
+    "minOccurrences": 2,
+    "confidenceThreshold": 0.8,
+    "retentionDays": 90
+  }
+}

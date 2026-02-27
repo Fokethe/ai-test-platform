@@ -1,0 +1,267 @@
+{
+  "version": "1.0.0",
+  "description": "BugHunter 智能测试集成配置 - 支持多种测试框架自动验证",
+  "lastUpdated": "2026-02-27",
+  "integrations": {
+    "javascript": {
+      "frameworks": {
+        "jest": {
+          "name": "Jest",
+          "command": "jest",
+          "configFiles": ["jest.config.js", "jest.config.ts", "jest.config.json"],
+          "testPatterns": ["**/*.test.js", "**/*.test.ts", "**/*.test.tsx", "**/__tests__/**/*.js"],
+          "coverage": {
+            "command": "jest --coverage",
+            "outputDir": "coverage",
+            "thresholds": {
+              "branches": 80,
+              "functions": 80,
+              "lines": 80,
+              "statements": 80
+            }
+          },
+          "watchMode": "jest --watch",
+          "ciMode": "jest --ci --coverage --maxWorkers=2"
+        },
+        "vitest": {
+          "name": "Vitest",
+          "command": "vitest",
+          "configFiles": ["vitest.config.js", "vitest.config.ts"],
+          "testPatterns": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"],
+          "coverage": {
+            "command": "vitest --coverage",
+            "outputDir": "coverage",
+            "provider": "v8",
+            "thresholds": {
+              "branches": 80,
+              "functions": 80,
+              "lines": 80,
+              "statements": 80
+            }
+          },
+          "watchMode": "vitest --watch",
+          "uiMode": "vitest --ui"
+        },
+        "playwright": {
+          "name": "Playwright",
+          "command": "playwright test",
+          "configFiles": ["playwright.config.js", "playwright.config.ts"],
+          "testPatterns": ["**/*.spec.js", "**/*.spec.ts", "tests/**/*.test.ts"],
+          "coverage": {
+            "command": "npx nyc playwright test",
+            "outputDir": "coverage-e2e"
+          },
+          "uiMode": "playwright test --ui",
+          "debugMode": "playwright test --debug",
+          "headedMode": "playwright test --headed"
+        },
+        "cypress": {
+          "name": "Cypress",
+          "command": "cypress run",
+          "configFiles": ["cypress.config.js", "cypress.config.ts"],
+          "testPatterns": ["cypress/e2e/**/*.cy.js", "cypress/e2e/**/*.cy.ts"],
+          "coverage": {
+            "command": "cypress run --env coverage=true",
+            "outputDir": "coverage"
+          },
+          "uiMode": "cypress open",
+          "componentTesting": "cypress run --component"
+        }
+      },
+      "autoDetect": {
+        "priority": ["vitest", "jest", "playwright", "cypress"],
+        "packageJsonIndicators": {
+          "vitest": "vitest",
+          "jest": "jest",
+          "playwright": "@playwright/test",
+          "cypress": "cypress"
+        }
+      }
+    },
+    "python": {
+      "frameworks": {
+        "pytest": {
+          "name": "pytest",
+          "command": "pytest",
+          "configFiles": ["pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini"],
+          "testPatterns": ["test_*.py", "*_test.py", "tests/**/*.py"],
+          "coverage": {
+            "command": "pytest --cov=src --cov-report=html --cov-report=term-missing",
+            "outputDir": "htmlcov",
+            "thresholds": {
+              "line": 80,
+              "branch": 80
+            }
+          },
+          "watchMode": "pytest -f",
+          "parallel": "pytest -n auto",
+          "markers": {
+            "unit": "pytest -m unit",
+            "integration": "pytest -m integration",
+            "e2e": "pytest -m e2e",
+            "slow": "pytest -m 'not slow'"
+          }
+        },
+        "unittest": {
+          "name": "unittest",
+          "command": "python -m unittest discover",
+          "testPatterns": ["test_*.py"],
+          "coverage": {
+            "command": "coverage run -m unittest discover && coverage html",
+            "outputDir": "htmlcov"
+          }
+        }
+      },
+      "autoDetect": {
+        "priority": ["pytest", "unittest"],
+        "fileIndicators": {
+          "pytest": ["pytest.ini", "conftest.py"],
+          "unittest": ["tests/__init__.py"]
+        }
+      }
+    },
+    "rust": {
+      "frameworks": {
+        "cargo": {
+          "name": "Cargo Test",
+          "command": "cargo test",
+          "configFiles": ["Cargo.toml"],
+          "testPatterns": ["src/**/*.rs", "tests/**/*.rs"],
+          "coverage": {
+            "command": "cargo tarpaulin --out Html --out Stdout",
+            "outputDir": "tarpaulin-report.html",
+            "thresholds": {
+              "line": 80
+            }
+          },
+          "watchMode": "cargo watch -x test",
+          "docTests": "cargo test --doc",
+          "integrationTests": "cargo test --test '*'",
+          "benchmarks": "cargo bench"
+        }
+      },
+      "autoDetect": {
+        "priority": ["cargo"],
+        "fileIndicators": {
+          "cargo": ["Cargo.toml"]
+        }
+      }
+    },
+    "go": {
+      "frameworks": {
+        "goTest": {
+          "name": "go test",
+          "command": "go test ./...",
+          "configFiles": ["go.mod"],
+          "testPatterns": ["*_test.go"],
+          "coverage": {
+            "command": "go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out -o coverage.html",
+            "outputDir": "coverage.html",
+            "thresholds": {
+              "line": 80
+            }
+          },
+          "raceDetection": "go test -race ./...",
+          "benchmarks": "go test -bench=. -benchmem",
+          "verbose": "go test -v ./..."
+        }
+      },
+      "autoDetect": {
+        "priority": ["goTest"],
+        "fileIndicators": {
+          "goTest": ["go.mod"]
+        }
+      }
+    },
+    "java": {
+      "frameworks": {
+        "maven": {
+          "name": "Maven Surefire",
+          "command": "mvn test",
+          "configFiles": ["pom.xml"],
+          "testPatterns": ["src/test/java/**/*.java"],
+          "coverage": {
+            "command": "mvn jacoco:report",
+            "outputDir": "target/site/jacoco",
+            "thresholds": {
+              "line": 80,
+              "branch": 80
+            }
+          }
+        },
+        "gradle": {
+          "name": "Gradle Test",
+          "command": "gradle test",
+          "configFiles": ["build.gradle", "build.gradle.kts"],
+          "testPatterns": ["src/test/**/*.java", "src/test/**/*.kt"],
+          "coverage": {
+            "command": "gradle jacocoTestReport",
+            "outputDir": "build/reports/jacoco"
+          }
+        }
+      },
+      "autoDetect": {
+        "priority": ["maven", "gradle"],
+        "fileIndicators": {
+          "maven": ["pom.xml"],
+          "gradle": ["build.gradle", "build.gradle.kts"]
+        }
+      }
+    }
+  },
+  "bughunterIntegration": {
+    "description": "BugHunter 与测试框架的集成策略",
+    "onFix": {
+      "runTests": true,
+      "testSelection": "smart",
+      "smartSelectionRules": [
+        "运行与被修改文件相关的测试",
+        "运行失败的测试优先",
+        "运行受影响的集成测试"
+      ]
+    },
+    "onScan": {
+      "detectTestCoverage": true,
+      "identifyUntestedCode": true,
+      "suggestTestsForBugs": true
+    },
+    "onReport": {
+      "includeTestResults": true,
+      "includeCoverageDelta": true,
+      "trackFlakyTests": true
+    },
+    "commands": {
+      "verifyFix": {
+        "description": "验证修复是否通过测试",
+        "steps": [
+          "检测项目使用的测试框架",
+          "运行相关测试套件",
+          "收集测试结果和覆盖率",
+          "生成验证报告"
+        ]
+      },
+      "generateTests": {
+        "description": "为无测试覆盖的 Bug 生成测试用例",
+        "steps": [
+          "分析 Bug 类型和修复代码",
+          "生成单元测试模板",
+          "生成边界条件测试",
+          "插入到合适的测试文件"
+        ]
+      }
+    }
+  },
+  "ciCd": {
+    "description": "CI/CD 环境配置",
+    "githubActions": {
+      "workflowTemplate": ".github/workflows/bughunter-test.yml",
+      "triggers": ["push", "pull_request"],
+      "parallelJobs": true,
+      "testSharding": true
+    },
+    "gitlabCi": {
+      "pipelineTemplate": ".gitlab-ci-bughunter.yml",
+      "stages": ["test", "coverage", "report"]
+    }
+  }
+}
