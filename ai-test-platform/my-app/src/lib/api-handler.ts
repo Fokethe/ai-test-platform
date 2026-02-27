@@ -107,6 +107,41 @@ export function withMiddleware(...middlewares: ((handler: ApiHandler) => ApiHand
   };
 }
 
+/**
+ * 解析 JSON 请求体
+ * 统一处理解析错误，避免重复代码
+ */
+export async function parseJsonBody<T = unknown>(
+  request: NextRequest
+): Promise<{ success: true; data: T } | { success: false; error: ReturnType<typeof error> }> {
+  try {
+    const body = await request.json();
+    return { success: true, data: body as T };
+  } catch (error) {
+    console.error('Failed to parse JSON body:', error);
+    return { 
+      success: false, 
+      error: errors.badRequest('无效的 JSON 请求体') 
+    };
+  }
+}
+
+/**
+ * 构建查询参数
+ * 统一处理分页和过滤参数
+ */
+export function buildQueryParams(searchParams: URLSearchParams) {
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20', 10)));
+  
+  return {
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  };
+}
+
 // 常用的 API 路由创建辅助函数
 export function createApiRoute(handlers: {
   GET?: ApiHandler;

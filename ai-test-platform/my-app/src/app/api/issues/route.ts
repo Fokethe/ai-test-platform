@@ -12,6 +12,8 @@ import {
   errors,
   buildMeta,
 } from '@/lib/api-response';
+import { Prisma } from '@prisma/client';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 
 // GET /api/issues
 export async function GET(request: NextRequest) {
@@ -23,23 +25,22 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const severity = searchParams.get('severity');
     const assigneeId = searchParams.get('assigneeId');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
     
-    const where: any = {};
+    const where: Prisma.IssueWhereInput = {};
     
     if (projectId) where.projectId = projectId;
-    if (type) where.type = type;
-    if (status) where.status = status;
-    if (severity) where.severity = severity;
+    if (type) where.type = type as Prisma.IssueWhereInput['type'];
+    if (status) where.status = status as Prisma.IssueWhereInput['status'];
+    if (severity) where.severity = severity as Prisma.IssueWhereInput['severity'];
     if (assigneeId) where.assigneeId = assigneeId;
     
     const total = await prisma.issue.count({ where });
     
     const issues = await prisma.issue.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { createdAt: 'desc' },
       include: {
         reporter: {
@@ -63,30 +64,43 @@ export async function GET(request: NextRequest) {
 
 // POST /api/issues
 export async function POST(request: NextRequest) {
+  const parseResult = await parseJsonBody<{
+    title: string;
+    description?: string;
+    type?: string;
+    severity?: string;
+    priority?: string;
+    projectId: string;
+    testId?: string;
+    runId?: string;
+  }>(request);
+  
+  if (!parseResult.success) {
+    return parseResult.error;
+  }
+  
+  const {
+    title,
+    description,
+    type: issueType = 'BUG',
+    severity: issueSeverity = 'MEDIUM',
+    priority = 'MEDIUM',
+    projectId,
+    testId,
+    runId,
+  } = parseResult.data;
+  
+  if (!title || !projectId) {
+    return errors.badRequest('标题和项目ID不能为空');
+  }
+  
   try {
-    const body = await request.json();
-    
-    const {
-      title,
-      description,
-      type = 'BUG',
-      severity = 'MEDIUM',
-      priority = 'MEDIUM',
-      projectId,
-      testId,
-      runId,
-    } = body;
-    
-    if (!title || !projectId) {
-      return errors.badRequest('标题和项目ID不能为空');
-    }
-    
     const issue = await prisma.issue.create({
       data: {
         title,
         description,
-        type,
-        severity,
+        type: issueType as Prisma.IssueCreateInput['type'],
+        severity: issueSeverity as Prisma.IssueCreateInput['severity'],
         priority,
         projectId,
         testId,
