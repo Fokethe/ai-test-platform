@@ -462,7 +462,7 @@ function AIGeneratePanel() {
             输入功能需求，AI 自动生成测试用例
           </p>
           <Button variant="outline" className="w-full" asChild>
-            <Link href="/tests/ai-generate">开始生成</Link>
+            <Link href="/ai-generate">开始生成</Link>
           </Button>
         </div>
         
