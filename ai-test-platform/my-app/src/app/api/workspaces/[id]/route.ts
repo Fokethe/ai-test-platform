@@ -6,7 +6,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { itemResponse, errorResponse, errors } from '@/lib/api-response';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth';\nimport { parseJsonBody } from '@/lib/api-handler';
 
 // GET /api/workspaces/[id] - 获取工作空间详情
 export async function GET(
@@ -16,7 +16,7 @@ export async function GET(
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const { id } = await params;
@@ -65,7 +65,7 @@ export async function GET(
     return itemResponse(workspace);
   } catch (error) {
     console.error('Failed to fetch workspace:', error);
-    return Response.json(errorResponse('获取工作空间详情失败'), { status: 500 });
+    return errorResponse('获取工作空间详情失败', 500);
   }
 }
 
@@ -77,11 +77,16 @@ export async function PUT(
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const { id } = await params;
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return errors.badRequest('无效的 JSON 请求体');
+    }
     const { name, description } = body;
 
     // 检查权限（只有 OWNER 和 ADMIN 可以修改）
@@ -120,7 +125,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const { id } = await params;

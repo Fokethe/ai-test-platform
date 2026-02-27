@@ -5,14 +5,15 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import {
   listResponse,
-  itemResponse,
   createdResponse,
   errorResponse,
   errors,
   buildMeta,
 } from '@/lib/api-response';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 
 // GET /api/tests - 列表
 export async function GET(request: NextRequest) {
@@ -24,11 +25,10 @@ export async function GET(request: NextRequest) {
     const parentId = searchParams.get('parentId');
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
     
     // 构建查询条件
-    const where: any = {};
+    const where: Prisma.TestWhereInput = {};
     
     if (type) {
       where.type = type;
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.name = {
         contains: search,
-        mode: 'insensitive',
       };
     }
     
@@ -62,8 +61,8 @@ export async function GET(request: NextRequest) {
     // 查询数据
     const tests = await prisma.test.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
       include: {
         children: {
@@ -84,25 +83,39 @@ export async function GET(request: NextRequest) {
 
 // POST /api/tests - 创建
 export async function POST(request: NextRequest) {
+  const parseResult = await parseJsonBody<{
+    name: string;
+    description?: string;
+    type?: string;
+    content?: unknown;
+    projectId: string;
+    parentId?: string | null;
+    tags?: unknown;
+    priority?: string;
+    source?: string;
+  }>(request);
+  
+  if (!parseResult.success) {
+    return parseResult.error;
+  }
+  
+  const {
+    name,
+    description,
+    type = 'CASE',
+    content,
+    projectId,
+    parentId,
+    tags,
+    priority = 'MEDIUM',
+    source = 'MANUAL',
+  } = parseResult.data;
+  
+  if (!name || !projectId) {
+    return errors.badRequest('名称和项目ID不能为空');
+  }
+  
   try {
-    const body = await request.json();
-    
-    const {
-      name,
-      description,
-      type = 'CASE',
-      content,
-      projectId,
-      parentId,
-      tags,
-      priority = 'MEDIUM',
-      source = 'MANUAL',
-    } = body;
-    
-    if (!name || !projectId) {
-      return errors.badRequest('名称和项目ID不能为空');
-    }
-    
     const test = await prisma.test.create({
       data: {
         name,

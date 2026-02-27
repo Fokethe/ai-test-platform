@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import {
   listResponse,
   createdResponse,
@@ -12,6 +13,7 @@ import {
   errors,
   buildMeta,
 } from '@/lib/api-response';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 
 // GET /api/assets
 export async function GET(request: NextRequest) {
@@ -21,18 +23,17 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId');
     const type = searchParams.get('type');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
     
-    const where: any = {};
+    const where: Prisma.AssetWhereInput = {};
     
     if (projectId) where.projectId = projectId;
-    if (type) where.type = type;
+    if (type) where.type = type as Prisma.AssetWhereInput['type'];
     
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search } },
+        { description: { contains: search } },
       ];
     }
     
@@ -40,8 +41,8 @@ export async function GET(request: NextRequest) {
     
     const assets = await prisma.asset.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
     });
     
@@ -54,33 +55,46 @@ export async function GET(request: NextRequest) {
 
 // POST /api/assets
 export async function POST(request: NextRequest) {
+  const parseResult = await parseJsonBody<{
+    title: string;
+    description?: string;
+    type?: string;
+    content?: string;
+    selector?: string;
+    url?: string;
+    tags?: unknown;
+    projectId: string;
+  }>(request);
+  
+  if (!parseResult.success) {
+    return parseResult.error;
+  }
+  
+  const {
+    title,
+    description,
+    type: assetType = 'DOC',
+    content,
+    selector,
+    url,
+    tags,
+    projectId,
+  } = parseResult.data;
+  
+  if (!title || !projectId) {
+    return errors.badRequest('标题和项目ID不能为空');
+  }
+  
   try {
-    const body = await request.json();
-    
-    const {
-      title,
-      description,
-      type = 'DOC',
-      content,
-      selector,
-      url,
-      tags,
-      projectId,
-    } = body;
-    
-    if (!title || !projectId) {
-      return errors.badRequest('标题和项目ID不能为空');
-    }
-    
     const asset = await prisma.asset.create({
       data: {
         title,
         description,
-        type,
-        content,
-        selector,
-        url,
-        tags: typeof tags === 'object' ? JSON.stringify(tags) : tags,
+        type: assetType as Prisma.AssetCreateInput['type'],
+        content: content ?? null,
+        selector: selector ?? null,
+        url: url ?? null,
+        tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
         projectId,
         createdBy: 'system', // TODO: 从 session 获取
       },

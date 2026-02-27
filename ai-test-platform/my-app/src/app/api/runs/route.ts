@@ -5,14 +5,15 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import {
   listResponse,
-  itemResponse,
   createdResponse,
   errorResponse,
   errors,
   buildMeta,
 } from '@/lib/api-response';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 
 // GET /api/runs
 export async function GET(request: NextRequest) {
@@ -22,29 +23,28 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId');
     const status = searchParams.get('status');
     const type = searchParams.get('type');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
     
-    const where: any = {};
+    const where: Prisma.RunWhereInput = {};
     
     if (projectId) {
       where.projectId = projectId;
     }
     
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.RunWhereInput['status'];
     }
     
     if (type) {
-      where.type = type;
+      where.type = type as Prisma.RunWhereInput['type'];
     }
     
     const total = await prisma.run.count({ where });
     
     const runs = await prisma.run.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { createdAt: 'desc' },
       include: {
         executions: {
@@ -69,26 +69,36 @@ export async function GET(request: NextRequest) {
 
 // POST /api/runs
 export async function POST(request: NextRequest) {
+  const parseResult = await parseJsonBody<{
+    name: string;
+    description?: string;
+    type?: string;
+    projectId?: string;
+    testIds: string[];
+  }>(request);
+  
+  if (!parseResult.success) {
+    return parseResult.error;
+  }
+  
+  const {
+    name,
+    description,
+    type: runType = 'MANUAL',
+    projectId,
+    testIds,
+  } = parseResult.data;
+  
+  if (!name || !testIds || !Array.isArray(testIds)) {
+    return errors.badRequest('名称和测试ID列表不能为空');
+  }
+  
   try {
-    const body = await request.json();
-    
-    const {
-      name,
-      description,
-      type = 'MANUAL',
-      projectId,
-      testIds,
-    } = body;
-    
-    if (!name || !testIds || !Array.isArray(testIds)) {
-      return errors.badRequest('名称和测试ID列表不能为空');
-    }
-    
     const run = await prisma.run.create({
       data: {
         name,
         description,
-        type,
+        type: runType as Prisma.RunCreateInput['type'],
         projectId,
         totalCount: testIds.length,
         status: 'PENDING',

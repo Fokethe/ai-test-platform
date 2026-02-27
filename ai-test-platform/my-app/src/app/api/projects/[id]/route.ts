@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse, notFoundResponse } from '@/lib/api-response';
+import { successResponse, errorResponse, notFoundResponse, errors } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 
 // GET - 获取项目详情
@@ -19,7 +19,7 @@ export async function GET(
     const { id } = await params;
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const project = await prisma.project.findUnique({
@@ -51,7 +51,7 @@ export async function GET(
     });
 
     if (!project) {
-      return Response.json(notFoundResponse('项目不存在'), { status: 404 });
+      return errors.notFound('项目');
     }
 
     return successResponse({
@@ -64,7 +64,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Get project error:', error);
-    return Response.json(errorResponse('获取项目详情失败'), { status: 500 });
+    return errorResponse('获取项目详情失败', 500);
   }
 }
 
@@ -77,15 +77,20 @@ export async function PUT(
     const { id } = await params;
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return errors.badRequest('无效的 JSON 请求体');
+    }
     const { name, description, status } = body;
 
     const existing = await prisma.project.findUnique({ where: { id } });
     if (!existing) {
-      return Response.json(notFoundResponse('项目不存在'), { status: 404 });
+      return errors.notFound('项目');
     }
 
     const updated = await prisma.project.update({
@@ -101,7 +106,7 @@ export async function PUT(
     return successResponse(updated, '更新成功');
   } catch (error) {
     console.error('Update project error:', error);
-    return Response.json(errorResponse('更新失败'), { status: 500 });
+    return errorResponse('更新失败', 500);
   }
 }
 
@@ -114,12 +119,12 @@ export async function DELETE(
     const { id } = await params;
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const existing = await prisma.project.findUnique({ where: { id } });
     if (!existing) {
-      return Response.json(notFoundResponse('项目不存在'), { status: 404 });
+      return errors.notFound('项目');
     }
 
     await prisma.project.delete({ where: { id } });
@@ -127,6 +132,6 @@ export async function DELETE(
     return successResponse(null, '删除成功');
   } catch (error) {
     console.error('Delete project error:', error);
-    return Response.json(errorResponse('删除失败'), { status: 500 });
+    return errorResponse('删除失败', 500);
   }
 }

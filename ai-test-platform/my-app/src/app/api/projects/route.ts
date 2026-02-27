@@ -5,7 +5,9 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { listResponse, itemResponse, createdResponse, errorResponse, errors, buildMeta } from '@/lib/api-response';
+import { listResponse, createdResponse, errorResponse, errors, buildMeta } from '@/lib/api-response';
+import { Prisma } from '@prisma/client';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
 
 // GET /api/projects - 获取项目列表
@@ -13,30 +15,28 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get('workspaceId');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
 
-    const where: any = {};
+    const where: Prisma.ProjectWhereInput = {};
     
     if (workspaceId) {
       where.workspaceId = workspaceId;
     }
     
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.ProjectWhereInput['status'];
     }
     
     if (search) {
       where.name = {
         contains: search,
-        mode: 'insensitive',
       };
     }
 
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
 
     const projects = await prisma.project.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
       include: {
         workspace: {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     return listResponse(formattedProjects, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error('Failed to fetch projects:', error);
-    return Response.json(errorResponse('获取项目列表失败'), { status: 500 });
+    return errorResponse('获取项目列表失败', 500);
   }
 }
 
@@ -77,11 +77,20 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { name, description, workspaceId } = body;
+    const parseResult = await parseJsonBody<{
+      name: string;
+      description?: string;
+      workspaceId: string;
+    }>(request);
+    
+    if (!parseResult.success) {
+      return parseResult.error;
+    }
+    
+    const { name, description, workspaceId } = parseResult.data;
 
     if (!name || !workspaceId) {
       return errors.badRequest('项目名称和工作空间ID不能为空');
@@ -97,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!membership) {
-      return Response.json(errorResponse('无权在该工作空间创建项目', 403), { status: 403 });
+      return errors.forbidden();
     }
 
     const project = await prisma.project.create({
@@ -112,6 +121,6 @@ export async function POST(request: NextRequest) {
     return createdResponse(project);
   } catch (error) {
     console.error('Failed to create project:', error);
-    return Response.json(errorResponse('创建项目失败'), { status: 500 });
+    return errorResponse('创建项目失败', 500);
   }
 }
