@@ -14,6 +14,7 @@ description: Bug修复工作流 - 诊断→修复→验证→提交 完整流程
 ```
 
 或关键词：
+
 - "修复bug"
 - "debug"
 - "报错了"
@@ -41,7 +42,7 @@ description: Bug修复工作流 - 诊断→修复→验证→提交 完整流程
 │  └─ 验证修复质量                                             │
 ├─────────────────────────────────────────────────────────────┤
 │  Step 5: doc-system                                         │
-│  ├─ 记录问题到 progress.txt                                  │
+│  ├─ 记录问题到 progress.md                                  │
 │  └─ 更新技术债务区                                           │
 ├─────────────────────────────────────────────────────────────┤
 │  Step 6: git-commit                                         │
@@ -66,16 +67,16 @@ description: Bug修复工作流 - 诊断→修复→验证→提交 完整流程
 用户: 报错了，帮我修复
 AI: [自动执行 /skill:bug-fix]
     📊 当前消耗: $0.045
-    
+
     [debug-diagnosis] 分析中...
     🔍 根因: projectId 无效导致外键约束失败
     💡 方案: 从 URL 参数获取 projectId
-    
+
     [danger-signals] 检查中...
     ✓ 第 1 次修复，继续
-    
+
     [显示 diff]
-    
+
 用户: 确认修复
 AI: [执行 code-review → git-commit → /cost]
     ✓ 修复完成
