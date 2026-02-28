@@ -1,0 +1,1 @@
+const fs=require('fs');const base='ai-test-platform/';fs.writeFileSync(base+'CONTRIBUTING.md','# CONTRIBUTING.md\n\n Test Platform - 贡献指南\n\n## 1. 开发环境搭建\n\n### 1.1 环境要求\n\n
