@@ -1,0 +1,85 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for lib/ai/queue/scheduler.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">lib/ai/queue</a> scheduler.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/58</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/28</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/18</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Queue, Job, JobsOptions } from 'bullmq'; <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span>export enum P</span>riority { <span class="cstat-no" title="statement not covered" >H</span>IGH = 1, <span class="cstat-no" title="statement not covered" >M</span>EDIUM = 5, <span class="cstat-no" title="statement not covered" >L</span>OW = 10 }</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export enum J</span>obStatus { <span class="cstat-no" title="statement not covered" >P</span>ENDING = 'pending', <span class="cstat-no" title="statement not covered" >S</span>CHEDULED = 'scheduled', <span class="cstat-no" title="statement not covered" >C</span>OMPLETED = 'completed', <span class="cstat-no" title="statement not covered" >F</span>AILED = 'failed' }</span> export interface SchedulerConfig { connection?: { host: string; port: number; }; } export interface JobData { data: any; scheduledAt: number; executeAt?: number; cron?: string; priority?: Priority; priorityName?: string; dependsOn?: string[]; status: string; } <span class="cstat-no" title="statement not covered" >export class T</span>askScheduler { private queue: Queue; <span class="fstat-no" title="function not covered" >constructor(q</span>ueueName: string, config?: SchedulerConfig) { <span class="cstat-no" title="statement not covered" >this.queue = new Queue(queueName, { connection: config?.connection }); </span>} async <span class="fstat-no" title="function not covered" >close(</span>): Promise&lt;void&gt; { <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >await t</span>his.queue.close(); </span>} async <span class="fstat-no" title="function not covered" >s</span>cheduleJob(</span>data: any, delay: number): Promise&lt;string&gt; { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >const n</span>ow = <span class="cstat-no" title="statement not covered" >Date.now();</span> const jobData: JobData = <span class="cstat-no" title="statement not covered" >{ data, scheduledAt: now, executeAt: now + Math.max(0, delay), status: 'scheduled' };</span> const job = <span class="cstat-no" title="statement not covered" >await this.queue.add('delayed-job', jobData, { delay: Math.max(0, delay) });</span> <span class="cstat-no" title="statement not covered" >return job.id as string; </span>} private <span class="fstat-no" title="function not covered" >v</span>alidateCronPattern(</span>cron: string): boolean { <span class="cstat-no" title="statement not covered" >if (!cron || cron.trim() === '') <span class="cstat-no" title="statement not covered" >return false; </span></span>const parts = <span class="cstat-no" title="statement not covered" >cron.trim().split(' ');</span> <span class="cstat-no" title="statement not covered" >return parts.length === 5; </span>} async <span class="fstat-no" title="function not covered" >scheduleCron(</span>cron: string, data: any): Promise&lt;string&gt; { <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >if (!</span>this.validateCronPattern(cron)) { <span class="cstat-no" title="statement not covered" >throw new Error('Invalid cron pattern'); </span>} </span>const jobData: JobData = <span class="cstat-no" title="statement not covered" >{ data, cron, scheduledAt: Date.now(), status: 'scheduled' };</span> const opts: JobsOptions = <span class="cstat-no" title="statement not covered" >{ repeat: { cron } as any };</span> const job = <span class="cstat-no" title="statement not covered" >await this.queue.add('cron-job', jobData, opts);</span> <span class="cstat-no" title="statement not covered" >return job.id as string; </span>} async <span class="fstat-no" title="function not covered" >a</span>ddPriorityJob(</span>data: any, priority: Priority): Promise&lt;string&gt; { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >const p</span>riorityNames: Record&lt;number, string&gt; = <span class="cstat-no" title="statement not covered" >{ [Priority.HIGH]: 'high', [Priority.MEDIUM]: 'medium', [Priority.LOW]: 'low' };</span> const jobData: JobData = <span class="cstat-no" title="statement not covered" >{ data, priority, priorityName: priorityNames[priority], scheduledAt: Date.now(), status: 'scheduled' };</span> const job = <span class="cstat-no" title="statement not covered" >await this.queue.add('priority-job', jobData, { priority });</span> <span class="cstat-no" title="statement not covered" >return job.id as string; </span>} async <span class="fstat-no" title="function not covered" >a</span>ddDependentJob(</span>data: any, dependsOn: string[]): Promise&lt;string&gt; { <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >if (!</span>dependsOn || dependsOn.length === 0) { <span class="cstat-no" title="statement not covered" >throw new Error('Dependencies array cannot be empty'); </span>} <span class="cstat-no" title="statement not covered" ></span>for (const depId of dependsOn) { const depJob = <span class="cstat-no" title="statement not covered" >await this.queue.getJob(depId);</span> <span class="cstat-no" title="statement not covered" >if (!depJob) { <span class="cstat-no" title="statement not covered" >throw new Error('Dependency job ' + depId + ' not found'); </span>} </span>} </span>const jobData: JobData = <span class="cstat-no" title="statement not covered" >{ data, dependsOn, scheduledAt: Date.now(), status: 'waiting' };</span> const job = <span class="cstat-no" title="statement not covered" >await this.queue.add('dependent-job', jobData);</span> <span class="cstat-no" title="statement not covered" >return job.id as string; </span>} async <span class="fstat-no" title="function not covered" >c</span>ancelJob(</span>id: string): Promise&lt;boolean&gt; { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >const j</span>ob = <span class="cstat-no" title="statement not covered" >await this.queue.getJob(id);</span> <span class="cstat-no" title="statement not covered" >if (!job) <span class="cstat-no" title="statement not covered" >return false; <span class="cstat-no" title="statement not covered" ></span></span>await job.remove(); <span class="cstat-no" title="statement not covered" ></span>return true; </span>} async <span class="fstat-no" title="function not covered" >r</span>escheduleJob(</span>id: string, newDelay: number): Promise&lt;string&gt; { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >const j</span>ob = <span class="cstat-no" title="statement not covered" >await this.queue.getJob(id);</span> <span class="cstat-no" title="statement not covered" >if (!job) { <span class="cstat-no" title="statement not covered" >throw new Error('Job ' + id + ' not found'); </span>} </span>const originalData = <span class="cstat-no" title="statement not covered" >(job.data || {}).data || job.data;</span> <span class="cstat-no" title="statement not covered" >await job.remove(); <span class="cstat-no" title="statement not covered" ></span>return this.scheduleJob(originalData, newDelay); </span>} }</span></pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-02-28T01:24:18.207Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    

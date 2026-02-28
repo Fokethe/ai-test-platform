@@ -1,0 +1,85 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for lib/ai/mcp/tools/jira.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">lib/ai/mcp/tools</a> jira.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/53</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/32</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/12</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export interface JiraAuth { type: 'basic' | 'oauth'; username?: string; token?: string; accessToken?: string; } export interface JiraConfig { baseUrl: string; auth: JiraAuth; projectKey: string; } export interface JiraIssue { id: string; key: string; summary: string; description?: string; issueType?: string; status?: string; priority?: string; created?: string; updated?: string; } export interface JiraSearchResult { issues: JiraIssue[]; total: number; startAt: number; maxResults: number; } export interface TestResult { testName: string; status: 'passed' | 'failed' | 'skipped'; errorMessage?: string; duration?: number; } export interface CreateIssueData { summary: string; description?: string; issueType?: string; priority?: string; labels?: string[]; } export interface UpdateIssueData { summary?: string; description?: string; priority?: string; labels?: string[]; } export interface JiraComment { id: string; body: string; created?: string; author?: string; } <span class="cstat-no" title="statement not covered" >export class J</span>iraTool { private config: JiraConfig; private issues: Map&lt;string, JiraIssue&gt; = <span class="cstat-no" title="statement not covered" >new Map();</span> private comments: Map&lt;string, JiraComment[]&gt; = <span class="cstat-no" title="statement not covered" >new Map();</span> private issueCounter: number = <span class="cstat-no" title="statement not covered" >1;</span> <span class="fstat-no" title="function not covered" >constructor(c</span>onfig: JiraConfig) { <span class="cstat-no" title="statement not covered" >this.config = config; </span>} <span class="fstat-no" title="function not covered" >getConfig(</span>): JiraConfig { <span class="cstat-no" title="statement not covered" >return { ...this.config }; </span>} private <span class="fstat-no" title="function not covered" >getAuthHeaders(</span>): Record&lt;string, string&gt; { <span class="cstat-no" title="statement not covered" >if (this.config.auth.type === 'oauth') { <span class="cstat-no" title="statement not covered" >return { 'Authorization': 'Bearer ' + this.config.auth.accessToken, 'Content-Type': 'application/json' }; </span>} else { const credentials = <span class="cstat-no" title="statement not covered" >Buffer.from(this.config.auth.username + ':' + this.config.auth.token).toString('base64');</span> <span class="cstat-no" title="statement not covered" >return { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' }; </span>} </span>} <span class="fstat-no" title="function not covered" >async </span>createIssue(data: CreateIssueData): Promise&lt;JiraIssue&gt; { <span class="cstat-no" title="statement not covered" >if (!data.summary) { <span class="cstat-no" title="statement not covered" >throw new Error('Summary is required'); </span>} </span>const key = <span class="cstat-no" title="statement not covered" >this.config.projectKey + '-' + this.issueCounter++;</span> const issue: JiraIssue = <span class="cstat-no" title="statement not covered" >{ id: 'id-' + key, key, summary: data.summary, description: data.description || '', issueType: data.issueType || 'Task', priority: data.priority || 'Medium', status: 'Open', created: new Date().toISOString(), updated: new Date().toISOString() };</span> <span class="cstat-no" title="statement not covered" >this.issues.set(key, issue); <span class="cstat-no" title="statement not covered" ></span>return issue; </span>} <span class="fstat-no" title="function not covered" >async </span>getIssue(id: string): Promise&lt;JiraIssue&gt; { const issue = <span class="cstat-no" title="statement not covered" >this.issues.get(id);</span> <span class="cstat-no" title="statement not covered" >if (!issue) { <span class="cstat-no" title="statement not covered" >throw new Error('Issue not found'); </span>} <span class="cstat-no" title="statement not covered" ></span>return issue; </span>} <span class="fstat-no" title="function not covered" >async </span>updateIssue(id: string, data: UpdateIssueData): Promise&lt;JiraIssue&gt; { const existingIssue = <span class="cstat-no" title="statement not covered" >this.issues.get(id);</span> <span class="cstat-no" title="statement not covered" >if (!existingIssue) { <span class="cstat-no" title="statement not covered" >throw new Error('Issue not found'); </span>} </span>const updatedIssue: JiraIssue = <span class="cstat-no" title="statement not covered" >{ ...existingIssue, summary: data.summary || existingIssue.summary, description: data.description || existingIssue.description, priority: data.priority || existingIssue.priority, updated: new Date().toISOString() };</span> <span class="cstat-no" title="statement not covered" >this.issues.set(id, updatedIssue); <span class="cstat-no" title="statement not covered" ></span>return updatedIssue; </span>} <span class="fstat-no" title="function not covered" >async </span>searchIssues(jql: string): Promise&lt;JiraSearchResult&gt; { const allIssues = <span class="cstat-no" title="statement not covered" >Array.from(this.issues.values());</span> const filteredIssues = <span class="cstat-no" title="statement not covered" >allIssues.filter(<span class="fstat-no" title="function not covered" >issue </span>=&gt; { <span class="cstat-no" title="statement not covered" >return jql.includes(issue.key) || jql.includes(this.config.projectKey); </span>});</span> <span class="cstat-no" title="statement not covered" >return { issues: filteredIssues, total: filteredIssues.length, startAt: 0, maxResults: filteredIssues.length }; </span>} <span class="fstat-no" title="function not covered" >async </span>addComment(id: string, comment: string): Promise&lt;JiraComment&gt; { const issue = <span class="cstat-no" title="statement not covered" >this.issues.get(id);</span> <span class="cstat-no" title="statement not covered" >if (!issue) { <span class="cstat-no" title="statement not covered" >throw new Error('Issue not found'); </span>} </span>const newComment: JiraComment = <span class="cstat-no" title="statement not covered" >{ id: 'comment-' + Date.now(), body: comment, created: new Date().toISOString() };</span> const issueComments = <span class="cstat-no" title="statement not covered" >this.comments.get(id) || [];</span> <span class="cstat-no" title="statement not covered" >issueComments.push(newComment); <span class="cstat-no" title="statement not covered" ></span>this.comments.set(id, issueComments); <span class="cstat-no" title="statement not covered" ></span>return newComment; </span>} <span class="fstat-no" title="function not covered" >async </span>syncTestResult(result: TestResult): Promise&lt;JiraIssue | null&gt; { <span class="cstat-no" title="statement not covered" >if (result.status !== 'failed') { <span class="cstat-no" title="statement not covered" >return null; </span>} </span>const description = <span class="cstat-no" title="statement not covered" >'Test failed: ' + result.testName + ' Error: ' + (result.errorMessage || 'No error message') + ' Duration: ' + (result.duration || 0) + 'ms Status: ' + result.status;</span> <span class="cstat-no" title="statement not covered" >return this.createIssue({ summary: '[Test Failed] ' + result.testName, description, issueType: 'Bug', priority: 'High' }); </span>} <span class="fstat-no" title="function not covered" >async </span>batchCreateIssues(data: CreateIssueData[]): Promise&lt;JiraIssue[]&gt; { const createdIssues: JiraIssue[] = <span class="cstat-no" title="statement not covered" >[];</span> <span class="cstat-no" title="statement not covered" >for (const issueData of data) { const issue = <span class="cstat-no" title="statement not covered" >await this.createIssue(issueData);</span> <span class="cstat-no" title="statement not covered" >createdIssues.push(issue); </span>} <span class="cstat-no" title="statement not covered" ></span>return createdIssues; </span>} <span class="fstat-no" title="function not covered" >async </span>batchUpdateIssues(updates: { id: string; data: UpdateIssueData }[]): Promise&lt;JiraIssue[]&gt; { const updatedIssues: JiraIssue[] = <span class="cstat-no" title="statement not covered" >[];</span> <span class="cstat-no" title="statement not covered" >for (const { id, data } of updates) { const issue = <span class="cstat-no" title="statement not covered" >await this.updateIssue(id, data);</span> <span class="cstat-no" title="statement not covered" >updatedIssues.push(issue); </span>} <span class="cstat-no" title="statement not covered" ></span>return updatedIssues; </span>} } <span class="cstat-no" title="statement not covered" >export default JiraTool;</span></pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-02-28T01:31:49.345Z
+            </div>
+        <script src="../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../sorter.js"></script>
+        <script src="../../../../block-navigation.js"></script>
+    </body>
+</html>
+    
