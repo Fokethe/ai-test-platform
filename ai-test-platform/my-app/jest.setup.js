@@ -1,5 +1,14 @@
 require('@testing-library/jest-dom');
 
+// TextEncoder/TextDecoder polyfill for LangChain
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// ReadableStream polyfill for LangChain
+const { ReadableStream } = require('stream/web');
+global.ReadableStream = ReadableStream;
+
 // Next.js Request/Response polyfills for API route testing
 global.Request = class Request {
   constructor(input, init = {}) {
