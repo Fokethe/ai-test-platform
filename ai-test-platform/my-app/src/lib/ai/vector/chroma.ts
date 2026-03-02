@@ -1,3 +1,4 @@
+// encoding: utf-8
 import { ChromaClient, Collection } from "chromadb";
 
 export interface VectorDocument {
@@ -60,3 +61,50 @@ export class ChromaService {
   }
 
   async addDocuments(collectionName: string, documents: VectorDocument[]): Promise<void> {
+    const collection = await this.getCollection(collectionName);
+    await collection.add({
+      ids: documents.map(d => d.id),
+      documents: documents.map(d => d.content),
+      embeddings: documents.map(d => d.embedding),
+      metadatas: documents.map(d => d.metadata as Record<string, unknown>),
+    });
+  }
+
+  async search(
+    collectionName: string,
+    queryEmbedding: number[],
+    nResults: number = 10,
+    where?: object
+  ): Promise<SearchResult[]> {
+    const collection = await this.getCollection(collectionName);
+    const results = await collection.query({
+      queryEmbeddings: [queryEmbedding],
+      nResults,
+      where: where as Record<string, unknown>,
+    });
+
+    if (!results.ids || results.ids.length === 0) {
+      return [];
+    }
+
+    const ids = results.ids[0] as string[];
+    const documents = (results.documents?.[0] as string[]) || [];
+    const metadatas = (results.metadatas?.[0] as object[]) || [];
+    const distances = (results.distances?.[0] as number[]) || [];
+
+    return ids.map((id, index) => ({
+      id,
+      content: documents[index] || "",
+      metadata: metadatas[index] || {},
+      distance: distances[index] || 0,
+      projectId: (metadatas[index] as { projectId?: string })?.projectId || "",
+    }));
+  }
+
+  async deleteDocument(collectionName: string, documentId: string): Promise<void> {
+    const collection = await this.getCollection(collectionName);
+    await collection.delete({ ids: [documentId] });
+  }
+}
+
+export const chromaService = new ChromaService();

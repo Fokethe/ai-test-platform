@@ -1,6 +1,227 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1772242561463" clover="3.2.0">
-  <project timestamp="1772242561463" name="All files">
-    <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0" elements="0" coveredelements="0" complexity="0" loc="0" ncloc="0" packages="0" files="0" classes="0"/>
+<coverage generated="1772455338876" clover="3.2.0">
+  <project timestamp="1772455338876" name="All files">
+    <metrics statements="197" coveredstatements="164" conditionals="109" coveredconditionals="56" methods="55" coveredmethods="51" elements="361" coveredelements="271" complexity="0" loc="197" ncloc="197" packages="3" files="5" classes="5"/>
+    <package name="mcp">
+      <metrics statements="67" coveredstatements="55" conditionals="38" coveredconditionals="18" methods="22" coveredmethods="20"/>
+      <file name="mcp-client.ts" path="F:\ai-test-platform\ai-test-platform\src\lib\ai\mcp\mcp-client.ts">
+        <metrics statements="37" coveredstatements="27" conditionals="22" coveredconditionals="7" methods="13" coveredmethods="11"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="22" count="4" type="stmt"/>
+        <line num="25" count="6" type="stmt"/>
+        <line num="33" count="1" type="stmt"/>
+        <line num="37" count="5" type="stmt"/>
+        <line num="43" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="44" count="4" type="stmt"/>
+        <line num="45" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="47" count="0" type="stmt"/>
+        <line num="49" count="0" type="stmt"/>
+        <line num="53" count="4" type="stmt"/>
+        <line num="54" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="55" count="4" type="stmt"/>
+        <line num="63" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="64" count="1" type="stmt"/>
+        <line num="65" count="1" type="stmt"/>
+        <line num="73" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="74" count="1" type="stmt"/>
+        <line num="76" count="6" type="stmt"/>
+        <line num="83" count="2" type="stmt"/>
+        <line num="84" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="85" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="87" count="1" type="stmt"/>
+        <line num="94" count="1" type="stmt"/>
+        <line num="98" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="99" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="101" count="1" type="stmt"/>
+        <line num="108" count="0" type="stmt"/>
+        <line num="112" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="113" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="115" count="0" type="stmt"/>
+        <line num="122" count="0" type="stmt"/>
+        <line num="129" count="3" type="stmt"/>
+      </file>
+      <file name="mcp-server.ts" path="F:\ai-test-platform\ai-test-platform\src\lib\ai\mcp\mcp-server.ts">
+        <metrics statements="30" coveredstatements="28" conditionals="16" coveredconditionals="11" methods="9" coveredmethods="9"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="33" count="15" type="stmt"/>
+        <line num="34" count="15" type="stmt"/>
+        <line num="40" count="6" type="stmt"/>
+        <line num="47" count="1" type="stmt"/>
+        <line num="54" count="5" type="stmt"/>
+        <line num="61" count="3" type="stmt"/>
+        <line num="68" count="2" type="stmt"/>
+        <line num="75" count="12" type="stmt"/>
+        <line num="76" count="12" type="cond" truecount="6" falsecount="0"/>
+        <line num="78" count="4" type="stmt"/>
+        <line num="84" count="2" type="stmt"/>
+        <line num="86" count="2" type="stmt"/>
+        <line num="94" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="95" count="3" type="stmt"/>
+        <line num="96" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="97" count="1" type="stmt"/>
+        <line num="99" count="2" type="stmt"/>
+        <line num="100" count="2" type="stmt"/>
+        <line num="104" count="1" type="stmt"/>
+        <line num="106" count="1" type="stmt"/>
+        <line num="114" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="115" count="1" type="stmt"/>
+        <line num="116" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="117" count="0" type="stmt"/>
+        <line num="119" count="1" type="stmt"/>
+        <line num="120" count="1" type="stmt"/>
+        <line num="124" count="1" type="stmt"/>
+        <line num="127" count="0" type="stmt"/>
+        <line num="138" count="5" type="stmt"/>
+      </file>
+    </package>
+    <package name="mcp.tools">
+      <metrics statements="49" coveredstatements="41" conditionals="41" coveredconditionals="21" methods="10" coveredmethods="9"/>
+      <file name="browser-tool.ts" path="F:\ai-test-platform\ai-test-platform\src\lib\ai\mcp\tools\browser-tool.ts">
+        <metrics statements="49" coveredstatements="41" conditionals="41" coveredconditionals="21" methods="10" coveredmethods="9"/>
+        <line num="1" count="1" type="stmt"/>
+        <line num="10" count="1" type="stmt"/>
+        <line num="11" count="9" type="stmt"/>
+        <line num="12" count="9" type="stmt"/>
+        <line num="13" count="9" type="stmt"/>
+        <line num="17" count="9" type="stmt"/>
+        <line num="21" count="8" type="stmt"/>
+        <line num="22" count="8" type="stmt"/>
+        <line num="23" count="8" type="stmt"/>
+        <line num="24" count="8" type="stmt"/>
+        <line num="25" count="8" type="stmt"/>
+        <line num="27" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="32" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="33" count="1" type="stmt"/>
+        <line num="34" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="35" count="1" type="stmt"/>
+        <line num="37" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="42" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="43" count="1" type="stmt"/>
+        <line num="44" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="45" count="1" type="stmt"/>
+        <line num="47" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="52" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="53" count="1" type="stmt"/>
+        <line num="54" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="55" count="1" type="stmt"/>
+        <line num="57" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="62" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="63" count="1" type="stmt"/>
+        <line num="65" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="66" count="0" type="stmt"/>
+        <line num="68" count="1" type="stmt"/>
+        <line num="70" count="1" type="stmt"/>
+        <line num="71" count="1" type="stmt"/>
+        <line num="73" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="78" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="79" count="2" type="stmt"/>
+        <line num="80" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="82" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="83" count="1" type="stmt"/>
+        <line num="85" count="1" type="stmt"/>
+        <line num="87" count="2" type="stmt"/>
+        <line num="89" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="94" count="10" type="stmt"/>
+        <line num="95" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="96" count="10" type="stmt"/>
+        <line num="97" count="10" type="stmt"/>
+        <line num="99" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="103" count="1" type="cond" truecount="2" falsecount="0"/>
+      </file>
+    </package>
+    <package name="queue">
+      <metrics statements="81" coveredstatements="68" conditionals="30" coveredconditionals="17" methods="23" coveredmethods="22"/>
+      <file name="queue-service.ts" path="F:\ai-test-platform\ai-test-platform\src\lib\ai\queue\queue-service.ts">
+        <metrics statements="48" coveredstatements="44" conditionals="22" coveredconditionals="13" methods="14" coveredmethods="14"/>
+        <line num="38" count="1" type="stmt"/>
+        <line num="39" count="10" type="stmt"/>
+        <line num="40" count="10" type="stmt"/>
+        <line num="41" count="10" type="stmt"/>
+        <line num="47" count="10" type="stmt"/>
+        <line num="48" count="10" type="cond" truecount="1" falsecount="1"/>
+        <line num="49" count="10" type="stmt"/>
+        <line num="57" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="58" count="5" type="stmt"/>
+        <line num="64" count="5" type="stmt"/>
+        <line num="65" count="5" type="stmt"/>
+        <line num="68" count="5" type="stmt"/>
+        <line num="70" count="5" type="stmt"/>
+        <line num="77" count="10" type="cond" truecount="1" falsecount="1"/>
+        <line num="78" count="10" type="stmt"/>
+        <line num="80" count="10" type="stmt"/>
+        <line num="81" count="10" type="stmt"/>
+        <line num="82" count="10" type="cond" truecount="3" falsecount="1"/>
+        <line num="83" count="0" type="stmt"/>
+        <line num="84" count="0" type="stmt"/>
+        <line num="87" count="10" type="stmt"/>
+        <line num="88" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="89" count="5" type="stmt"/>
+        <line num="90" count="5" type="stmt"/>
+        <line num="94" count="5" type="stmt"/>
+        <line num="95" count="5" type="stmt"/>
+        <line num="97" count="5" type="stmt"/>
+        <line num="98" count="5" type="stmt"/>
+        <line num="99" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="100" count="5" type="stmt"/>
+        <line num="102" count="0" type="stmt"/>
+        <line num="103" count="0" type="stmt"/>
+        <line num="109" count="5" type="stmt"/>
+        <line num="110" count="5" type="stmt"/>
+        <line num="113" count="5" type="stmt"/>
+        <line num="120" count="1" type="stmt"/>
+        <line num="121" count="1" type="stmt"/>
+        <line num="128" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="129" count="2" type="stmt"/>
+        <line num="130" count="1" type="stmt"/>
+        <line num="131" count="1" type="stmt"/>
+        <line num="132" count="1" type="stmt"/>
+        <line num="133" count="1" type="stmt"/>
+        <line num="141" count="1" type="stmt"/>
+        <line num="142" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="143" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="144" count="1" type="stmt"/>
+        <line num="152" count="1" type="stmt"/>
+      </file>
+      <file name="task-scheduler.ts" path="F:\ai-test-platform\ai-test-platform\src\lib\ai\queue\task-scheduler.ts">
+        <metrics statements="33" coveredstatements="24" conditionals="8" coveredconditionals="4" methods="9" coveredmethods="8"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="23" count="5" type="stmt"/>
+        <line num="24" count="5" type="stmt"/>
+        <line num="27" count="5" type="stmt"/>
+        <line num="34" count="1" type="stmt"/>
+        <line num="41" count="6" type="stmt"/>
+        <line num="43" count="6" type="stmt"/>
+        <line num="53" count="6" type="stmt"/>
+        <line num="56" count="6" type="stmt"/>
+        <line num="57" count="0" type="stmt"/>
+        <line num="58" count="0" type="stmt"/>
+        <line num="59" count="0" type="stmt"/>
+        <line num="60" count="0" type="stmt"/>
+        <line num="63" count="6" type="stmt"/>
+        <line num="64" count="6" type="stmt"/>
+        <line num="71" count="2" type="stmt"/>
+        <line num="72" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="73" count="2" type="stmt"/>
+        <line num="74" count="2" type="stmt"/>
+        <line num="76" count="2" type="stmt"/>
+        <line num="83" count="2" type="stmt"/>
+        <line num="90" count="2" type="stmt"/>
+        <line num="97" count="1" type="stmt"/>
+        <line num="98" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="99" count="0" type="stmt"/>
+        <line num="100" count="0" type="stmt"/>
+        <line num="101" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="102" count="0" type="stmt"/>
+        <line num="103" count="0" type="stmt"/>
+        <line num="113" count="5" type="stmt"/>
+        <line num="114" count="4" type="stmt"/>
+        <line num="116" count="5" type="stmt"/>
+        <line num="117" count="5" type="stmt"/>
+      </file>
+    </package>
   </project>
 </coverage>

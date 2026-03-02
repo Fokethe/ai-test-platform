@@ -1,0 +1,22 @@
+name: auto-cleanup
+description: 自动清理项目文件，删除空代码、临时文件、临时目录，并将生成的文件进行分类
+version: 1.0.0
+triggers:
+  - 开发完成
+  - 功能完成
+  - 代码写好了
+  - 测试完成
+  - 测试结束
+  - 验证通过
+  - /cleanup
+  - 清理项目
+  - 整理文件
+actions:
+  - scan_empty_files
+  - delete_temp_files
+  - classify_files
+  - git_commit
+categories:
+  - cleanup
+  - maintenance
+  - project-management

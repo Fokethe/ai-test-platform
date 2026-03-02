@@ -1,7 +1,0 @@
-"import { Queue, Job, JobsOptions } from 'bullmq';"  
-""  
-"export enum Priority {"  
-"  HIGH = 1,"  
-"  MEDIUM = 5,"  
-"  LOW = 10"  
-"}" 

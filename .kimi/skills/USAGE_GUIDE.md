@@ -43,6 +43,12 @@ AI 自动: cost-control → socratic-inquiry → task-planner → doc-system
 
 # 🐛 启动 BugHunter
 /bughunter
+
+# 🧹 自动清理项目
+/cleanup
+
+# 🏥 系统健康检查
+/health
 ```
 
 ### 基础调用方式（按需加载 Skill）
@@ -75,6 +81,8 @@ AI 自动: cost-control → socratic-inquiry → task-planner → doc-system
 | **健康检查** | "检查健康度"、"项目体检" | cost-control → context-management → danger-signals → code-review |
 | **深度修复** | "BugHunter"、"深度修复" | cost-control → bughunter-loop (扫描→分析→修复→验证→迭代) |
 | **多任务调度** | "使用 subagent"、"并行处理" | cost-control → multi-task-scheduler |
+| **自动清理** | "开发完成"、"测试完成"、"/cleanup" | cost-control → auto-cleanup |
+| **健康检查** | "/health"、"检查健康度" | cost-control → health-check |
 
 ### 方式二：单个 Skill 触发
 
@@ -320,8 +328,11 @@ AI: [自动执行 cost-control → multi-task-scheduler]
 │  "重构代码"       → 🔧 审查 → 规划 → 重构 → 审查               │
 │  "使用 subagent"  → 🔄 并行调度多任务                          │
 │  "BugHunter"      → 🐛 深度扫描修复                            │
+│  "开发完成"       → 🧹 自动清理项目文件                        │
+│  "/health"        → 🏥 系统健康检查                            │
 ├─────────────────────────────────────────────────────────────────┤
-│  快捷指令: /cost  /compact  /next  /plan  /parallel  /bughunter │
+│  快捷指令: /cost  /compact  /next  /plan  /parallel  /bughunter  │
+│            /cleanup  /health                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
