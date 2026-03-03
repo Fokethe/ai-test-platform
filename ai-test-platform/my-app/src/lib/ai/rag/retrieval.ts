@@ -110,6 +110,9 @@ function calculateSimilarity(testPoint: TestPoint, testCase: TestCase): number {
  * 提取模块名称
  */
 function extractModule(feature: string): string {
+  if (!feature || typeof feature !== 'string') {
+    return ''
+  }
   return feature.toLowerCase().replace(/模块$/, '').trim()
 }
 

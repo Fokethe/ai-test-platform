@@ -10,18 +10,22 @@
  * 4. 提取文档标题
  */
 
-// 支持的文档类型
-export type DocumentType = 'txt' | 'md' | 'pdf' | 'docx';
+// 支持的文档类型（当前仅支持文本格式）
+export type DocumentType = 'txt' | 'md';
 
 // 支持的文件扩展名映射
 const SUPPORTED_EXTENSIONS: Record<string, DocumentType> = {
   'txt': 'txt',
   'md': 'md',
   'markdown': 'md',
-  'pdf': 'pdf',
-  'docx': 'docx',
-  'doc': 'docx',
 };
+
+// TODO: 未来支持 PDF/DOCX 解析
+// const FUTURE_SUPPORTED_EXTENSIONS: Record<string, 'pdf' | 'docx'> = {
+//   'pdf': 'pdf',
+//   'docx': 'docx',
+//   'doc': 'docx',
+// };
 
 // 最大文件大小：10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;

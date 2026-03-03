@@ -29,10 +29,8 @@ describe('DocumentParser', () => {
       const testCases = [
         { filename: 'req.txt', expected: 'txt' },
         { filename: 'req.md', expected: 'md' },
-        { filename: 'req.pdf', expected: 'pdf' },
-        { filename: 'req.docx', expected: 'docx' },
-        { filename: 'req.doc', expected: 'docx' },
         { filename: 'REQ.TXT', expected: 'txt' },
+        { filename: 'README.md', expected: 'md' },
       ];
 
       for (const { filename, expected } of testCases) {
@@ -40,6 +38,14 @@ describe('DocumentParser', () => {
         const result = await parser.parse(content, filename);
         expect(result.type).toBe(expected);
       }
+    });
+
+    it('应该拒绝 PDF 和 DOCX 文件（暂不支持）', async () => {
+      const content = Buffer.from('test content');
+      
+      await expect(parser.parse(content, 'req.pdf')).rejects.toThrow('不支持的文件类型');
+      await expect(parser.parse(content, 'req.docx')).rejects.toThrow('不支持的文件类型');
+      await expect(parser.parse(content, 'req.doc')).rejects.toThrow('不支持的文件类型');
     });
 
     it('应该处理不支持的文件类型', async () => {
@@ -80,18 +86,21 @@ describe('DocumentParser', () => {
     it('应该根据扩展名识别文档类型', () => {
       expect(parser.detectDocumentType('file.txt')).toBe('txt');
       expect(parser.detectDocumentType('file.md')).toBe('md');
-      expect(parser.detectDocumentType('file.pdf')).toBe('pdf');
-      expect(parser.detectDocumentType('file.docx')).toBe('docx');
-      expect(parser.detectDocumentType('file.doc')).toBe('docx');
     });
 
     it('应该处理大写扩展名', () => {
       expect(parser.detectDocumentType('FILE.TXT')).toBe('txt');
-      expect(parser.detectDocumentType('FILE.PDF')).toBe('pdf');
+      expect(parser.detectDocumentType('FILE.MD')).toBe('md');
     });
 
     it('应该处理无扩展名文件', () => {
       expect(parser.detectDocumentType('README')).toBe('txt');
+    });
+
+    it('应该返回 null 对于不支持的类型（PDF/DOCX 暂不支持）', () => {
+      expect(parser.detectDocumentType('file.pdf')).toBeNull();
+      expect(parser.detectDocumentType('file.docx')).toBeNull();
+      expect(parser.detectDocumentType('file.doc')).toBeNull();
     });
   });
 
@@ -137,7 +146,12 @@ describe('DocumentParser', () => {
 
     it('应该验证支持的文件类型', () => {
       expect(() => parser.validateFile(Buffer.from('test'), 'test.txt')).not.toThrow();
-      expect(() => parser.validateFile(Buffer.from('test'), 'test.pdf')).not.toThrow();
+      expect(() => parser.validateFile(Buffer.from('test'), 'test.md')).not.toThrow();
+    });
+
+    it('应该拒绝 PDF/DOCX 文件（暂不支持）', () => {
+      expect(() => parser.validateFile(Buffer.from('test'), 'test.pdf')).toThrow('不支持的文件类型');
+      expect(() => parser.validateFile(Buffer.from('test'), 'test.docx')).toThrow('不支持的文件类型');
     });
 
     it('应该拒绝不支持的文件类型', () => {

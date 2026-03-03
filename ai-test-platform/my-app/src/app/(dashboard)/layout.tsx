@@ -115,10 +115,10 @@ const mainNavItems: NavItem[] = [
     href: '/integrations',
   },
   {
-    id: 'inbox',
+    id: 'notifications',
     label: '通知',
     icon: Bell,
-    href: '/inbox',
+    href: '/notifications',
     badge: 0, // TODO: 从 API 获取
   },
 ];

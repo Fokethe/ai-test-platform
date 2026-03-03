@@ -63,7 +63,7 @@ export default function IntegrationsPage() {
   const stats = {
     total: integrations.length,
     active: integrations.filter((i) => i.isActive).length,
-    failed: 0, // 简化
+    failed: 0, // 简�?
     deliveries: integrations.reduce((acc, i) => acc + (i._count?.deliveries || 0), 0),
   };
 
@@ -84,7 +84,7 @@ export default function IntegrationsPage() {
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>添加新集成</DialogTitle>
+              <DialogTitle>添加新集�?/DialogTitle>
             </DialogHeader>
             <AddIntegrationForm onSuccess={() => {
               setShowAddDialog(false);
@@ -96,10 +96,10 @@ export default function IntegrationsPage() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="总集成" value={stats.total} icon={Plug} />
-        <StatCard label="运行中" value={stats.active} icon={CheckCircle} color="green" />
+        <StatCard label="总集�? value={stats.total} icon={Plug} />
+        <StatCard label="运行�? value={stats.active} icon={CheckCircle} color="green" />
         <StatCard label="异常" value={stats.failed} icon={XCircle} color={stats.failed > 0 ? 'red' : 'slate'} />
-        <StatCard label="总投递" value={stats.deliveries} icon={Send} />
+        <StatCard label="总投�? value={stats.deliveries} icon={Send} />
       </div>
 
       {/* List */}
@@ -143,10 +143,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
     <div className="border rounded-lg p-12 text-center">
       <Plug className="w-12 h-12 mx-auto mb-4 text-slate-300" />
       <p className="text-slate-500">暂无集成</p>
-      <p className="text-sm text-slate-400 mt-1">添加 GitHub、GitLab、Slack 等集成</p>
+      <p className="text-sm text-slate-400 mt-1">添加 GitHub、GitLab、Slack 等集�?/p>
       <Button className="mt-4" onClick={onAdd}>
         <Plus className="w-4 h-4 mr-2" />
-        添加第一个集成
+        添加第一个集�?
       </Button>
     </div>
   );
@@ -154,7 +154,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 function IntegrationCard({ integration, onRefresh }: { integration: Integration; onRefresh: () => void }) {
   const Icon = getIntegrationIcon(integration.type);
-  const events = JSON.parse(integration.events || '[]');
+  const events = integration.events ? (() => { try { return JSON.parse(integration.events); } catch { return []; } })() : [];
 
   return (
     <div className="flex items-start justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
@@ -166,12 +166,12 @@ function IntegrationCard({ integration, onRefresh }: { integration: Integration;
           <div className="flex items-center gap-2">
             <h3 className="font-medium">{integration.name}</h3>
             <Badge className={integration.isActive ? 'bg-green-100 text-green-700' : ''} variant="secondary">
-              {integration.isActive ? '运行中' : '已停用'}
+              {integration.isActive ? '运行�? : '已停�?}
             </Badge>
           </div>
           <p className="text-sm text-slate-500 mt-1 truncate max-w-md">{integration.url}</p>
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-slate-400">投递: {integration._count?.deliveries || 0} 次</span>
+            <span className="text-xs text-slate-400">投�? {integration._count?.deliveries || 0} �?/span>
             {events.slice(0, 3).map((event: string) => (
               <Badge key={event} variant="secondary" className="text-xs">{event}</Badge>
             ))}
@@ -257,7 +257,7 @@ function AddIntegrationForm({ onSuccess }: { onSuccess: () => void }) {
           <option value="JENKINS">Jenkins</option>
           <option value="SLACK">Slack</option>
           <option value="DINGTALK">钉钉</option>
-          <option value="CUSTOM">自定义</option>
+          <option value="CUSTOM">自定�?/option>
         </select>
       </div>
       <div>
@@ -265,12 +265,13 @@ function AddIntegrationForm({ onSuccess }: { onSuccess: () => void }) {
         <Input name="url" placeholder="https://..." required />
       </div>
       <div>
-        <label className="text-sm font-medium">Secret (可选)</label>
+        <label className="text-sm font-medium">Secret (可�?</label>
         <Input name="secret" type="password" placeholder="签名密钥" />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />创建中...</> : '创建集成'}
+        {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />创建�?..</> : '创建集成'}
       </Button>
     </form>
   );
 }
+

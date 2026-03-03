@@ -284,7 +284,18 @@ function AssetList({
 
 // 资产卡片
 function AssetCard({ asset }: { asset: Asset }) {
-  const tags = asset.tags ? JSON.parse(asset.tags) : [];
+  // 添加安全解析函数
+function safeJsonParse<T>(json: string | undefined, defaultValue: T): T {
+  if (!json) return defaultValue;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+// 使用安全解析
+const tags = safeJsonParse<string[]>(asset.tags, []);
 
   const getIcon = () => {
     switch (asset.type) {

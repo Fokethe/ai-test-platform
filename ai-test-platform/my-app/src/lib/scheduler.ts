@@ -190,7 +190,16 @@ class SchedulerEngineClass {
       return;
     }
 
-    const testCaseIds = JSON.parse(task.testCaseIds || '[]');
+    // 安全解析 JSON，添加错误处理
+    let testCaseIds: string[] = [];
+    try {
+      testCaseIds = JSON.parse(task.testCaseIds || '[]');
+    } catch (parseError) {
+      console.error(`[Scheduler] Failed to parse testCaseIds for task ${taskId}:`, parseError);
+      // 尝试作为逗号分隔的字符串解析
+      testCaseIds = task.testCaseIds?.split(',').filter(id => id.trim()) || [];
+    }
+    
     if (testCaseIds.length === 0) {
       throw new Error('No test cases assigned to task');
     }

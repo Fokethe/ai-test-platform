@@ -24,9 +24,10 @@
 | 设计还原 | "还原设计" "设计稿" "截图转代码" | cost-control → visual-coding → task-planner → code-review |
 | 文档整理 | "整理文档" "处理文档" "文档太大" | cost-control → doc-processor → 整合 |
 | 代码提交 | "提交代码" "commit" "写commit" | cost-control → code-review → doc-system → git-commit |
-| 健康检查 | "检查健康" "检查健康度" "状态检查" | cost-control → context-management → danger-signals → code-review |
+| 健康检查 | "检查健康" "检查健康度" "状态检查" | cost-control → context-management → danger-signals → code-review → cost-control |
 | 深度修复 | "BugHunter" "深度修复" "自动修复" | cost-control → bughunter-loop |
 | 多任务调度 | "使用 subagent" "并行处理" | cost-control → multi-task-scheduler |
+| 自动清理 | "清理项目" | cost-control → auto-cleanup |
 
 【特殊指令】:
 - "加载 Skill XX" → 从 .clinerules.skill-library.md 加载指定 Skill
@@ -325,14 +326,19 @@ while (true) {
 5. **所有输出文件必须包含 UTF-8 编码声明**: `# encoding: utf-8`
 
 【快捷指令汇总】:
-| 指令 | 功能 | 所属 Skill |
-|------|------|-----------|
-| `/cost` | 显示当前累计消耗 | Cost Control |
-| `/compact` | 压缩上下文 | Context Management |
-| `/next` | 继续下一阶段/下一块 | Task Planner / Doc Processor |
-| `/plan` | 重新生成计划 | Task Planner |
-| `/parallel` | 启动多任务调度 | Multi-Task Scheduler |
-| `/bughunter` | 启动深度修复 | BugHunter |
+| 指令 | 功能 | 所属 Skill | 适用范围 |
+|------|------|-----------|----------|
+| `/cost` | 显示当前累计消耗 | Cost Control | 🔵 通用 |
+| `/compact` | 压缩上下文 | Context Management | 🟣 Cline 专用 |
+| `/next` | 继续下一阶段/下一块 | Task Planner / Doc Processor | 🔵 通用 |
+| `/plan` | 重新生成计划 | Task Planner | 🔵 通用 |
+| `/parallel` | 启动多任务调度 | Multi-Task Scheduler | 🟣 Cline 专用 |
+| `/bughunter` | 启动深度修复 | BugHunter | 🟣 Cline 专用 |
+| `/cleanup` | 自动清理项目 | AutoCleanup | 🟣 Cline 专用 |
+| `/health` | 系统健康检查 | System Health Check | 🟣 Cline 专用 |
+| `/inspect` | 功能深度审查 | Functionality Deep Inspector | 🟣 Cline 专用 |
+
+> **图例说明**: 🟣 Cline 专用 | 🔵 通用（Cline + Kimi）| 🟢 Kimi 专用（见 .kimi/skills/USAGE_GUIDE.md）
 
 【优先级规则】:
 ```
@@ -464,24 +470,43 @@ chore: 自动清理项目文件
 
 【触发方式】: 
 - 定期自动触发（每 10 轮对话）
-- 手动触发: "/health"、"检查项目健康"、"项目体检"
+- 手动触发: "/health"、"检查健康度"、"检查项目健康"、"项目体检"
+- Intent 触发: "检查健康"、"健康检查"
+
+【执行流程】:
+```
+cost-control → context-management → danger-signals → code-review → cost-control
+  └── 1. 【context-management】压缩上下文，防止失忆
+  └── 2. 【danger-signals】检测危险信号（上下文占用、消耗等）
+  └── 3. 【code-review】检查代码健康度（测试覆盖率、类型错误、构建状态）
+  └── 4. 【cost-control】统计消耗，生成健康报告
+```
 
 【检查项目】:
-1. **文件健康度**: 空文件数量、临时文件数量
-2. **代码健康度**: TypeScript 错误数、测试通过率
-3. **Git 健康度**: 未提交更改数、冲突检测
-4. **依赖健康度**: 过期依赖检测、安全漏洞扫描
+1. **上下文健康度**: 上下文占用率、对话轮数、历史记录长度
+2. **危险信号**: 重复内容、修复次数、类型安全、消耗预警
+3. **代码健康度**: 可读性、重复代码、错误处理、性能、安全、类型安全
+4. **消耗统计**: 当前消耗、累计消耗、上下文占用
 
 【输出格式】:
 ```
-🏥 项目健康检查报告
+🏥 系统健康检查报告
 
-📊 健康评分: {score}/100
+📊 当前消耗: $0.089
 
-├─ 🗂️  文件健康: {status} ({empty_files} 空文件, {temp_files} 临时文件)
-├─ 💻 代码健康: {status} ({ts_errors} TS错误, {test_pass}/{test_total} 测试通过)
-├─ 📦 Git健康: {status} ({uncommitted} 未提交, {unpushed} 未推送)
-└─ 🔒 依赖健康: {status} ({outdated} 过期依赖)
+[context-management] 上下文已压缩
+当前进度: 测试管理功能开发完成 80%
+对话轮数: 15轮
+
+[danger-signals] 🚨 检测到信号:
+- 上下文占用 > 60%
+- 建议执行 /compact 或新开对话
+
+[code-review] 健康度检查:
+- 测试覆盖率: 87%
+- 类型错误: 27 个（非阻塞）
+- 构建状态: ✅
+- 安全漏洞: 0个
 
 💡 建议行动:
 1. [建议1]
@@ -491,3 +516,127 @@ chore: 自动清理项目文件
 【快捷指令】:
 - `/health` - 执行健康检查
 - `/health --fix` - 自动修复可修复的问题
+
+## Skill 13: 功能深度审查器 (Functionality Deep Inspector)
+
+【触发方式】:
+- 用户输入: "深度检查功能完整度"、"扫描空代码"、"检查功能缺失"、"/inspect"
+- 自动触发: BugHunter 启动前的可选前置步骤、代码审查时检测到大量页面文件
+- 健康检查时: 发现功能完整度低于阈值
+
+【核心检查维度】:
+
+### 1. 空代码检查
+- **空文件**: 0字节、只有注释、只有导出语句
+- **空函数**: 只有函数定义没有实现体
+- **空页面**: 只有框架组件没有内容
+- **空组件**: 只有props定义没有渲染逻辑
+- **空API路由**: 只有路由定义没有处理函数
+
+### 2. 空页面检查
+- **重定向页面**: 检查是否合理，是否缺少内容
+- **占位页面**: 只有"开发中"、"TODO"等占位符
+- **骨架屏页面**: 只有加载状态没有实际内容
+- **404/错误页面**: 是否正确配置
+
+### 3. 缺失功能检查
+- **UI占位**: 有按钮但没有onClick处理
+- **菜单项**: 有菜单选项但点击无反应
+- **表单提交**: 有表单但没有提交处理
+- **API调用缺失**: 前端调用但后端路由不存在
+- **功能入口**: 有需求文档但无对应功能入口
+
+### 4. 功能无法实现检查
+- **前后端不对齐**: API路径、方法、参数不匹配
+- **模拟数据**: 使用硬编码数据代替真实API
+- **TODO/FIXME**: 标记未完成的功能
+- **依赖缺失**: 缺少必要的第三方库或服务
+- **环境配置**: 缺少必要的环境变量或配置
+
+【检查流程】:
+```
+阶段 1: 功能项识别
+  └── 扫描页面/API/组件/工具函数
+  └── 生成功能项清单
+
+阶段 2: 功能点拆解
+  └── 按钮: 每个按钮的点击处理
+  └── 表单: 字段、验证、提交
+  └── 表格: 列、排序、筛选、分页
+  └── 弹窗: 打开、关闭、确认逻辑
+  └── Tabs: 每个Tab的内容完整性
+  └── 链接: 跳转目标有效性
+
+阶段 3: 实现状态检查
+  └── ✅ 完整实现: 有UI+有逻辑+有API
+  └── ⚠️ 部分实现: 有UI但逻辑不完整
+  └── ❌ 未实现: UI或功能完全缺失
+  └── 🎭 模拟实现: UI存在但使用假数据
+
+阶段 4: 前后端对齐检查
+  └── 提取前端API调用
+  └── 检查后端路由是否存在
+  └── 检查HTTP方法是否匹配
+  └── 检查请求/响应结构
+
+阶段 5: 生成分级报告
+  └── 统计概览: 功能项/功能点/实现率
+  └── 高优先级: 影响核心功能
+  └── 中优先级: 影响使用体验
+  └── 低优先级: 锦上添花
+  └── 修复建议: 具体修复方案
+```
+
+【输出格式】:
+```
+🔍 功能深度审查报告
+
+📊 统计概览:
+├─ 功能项总数: {n}
+├─ 功能点总数: {n}
+├─ 完整实现: {n} ({rate}%)
+├─ 部分实现: {n} ({rate}%)
+├─ 未实现: {n} ({rate}%)
+└─ 模拟实现: {n} ({rate}%)
+
+🔴 高优先级问题 (影响核心功能):
+├─ 1. [功能项] - [功能点]
+│   位置: [文件路径]
+│   问题: [详细描述]
+│   建议: [修复方案]
+└─ ...
+
+🟡 中优先级问题 (影响使用体验):
+└─ ...
+
+🟢 低优先级问题 (锦上添花):
+└─ ...
+
+📋 前后端对齐问题:
+├─ 前端有后端无: [功能] 调用 [API] 但后端不存在
+└─ 后端有前端无: [API] 存在但无对应UI
+
+💡 修复建议:
+1. 立即修复 (本周): [高优先级列表]
+2. 短期修复 (本月): [中优先级列表]
+3. 长期规划 (下月): [低优先级列表]
+```
+
+【快捷指令】:
+- `/inspect` - 启动功能深度审查
+- `/inspect --quick` - 快速检查（仅高优先级）
+- `/inspect --full` - 完整检查（所有功能点）
+- `/inspect --page=path` - 检查指定页面
+- `/inspect --api` - 仅检查API对齐
+- `/inspect --ui` - 仅检查UI占位
+
+【集成建议】:
+- 作为 BugHunter 的前置步骤: `bughunter-loop` 之前自动执行
+- 作为代码审查的一部分: 审查时检查功能完整度
+- 作为项目健康检查: 定期扫描功能缺失
+
+【参考案例】:
+ai-test-platform 项目检查发现:
+- 30个页面，150个功能点
+- 发现39个问题（8高18中13低）
+- 功能完整度从58%提升到85%

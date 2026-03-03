@@ -9,6 +9,15 @@ import { listResponse, createdResponse, errorResponse, errors, buildMeta } from 
 import { Prisma } from '@prisma/client';
 import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
+import { z } from 'zod';
+
+// Project 创建验证 Schema
+const createProjectSchema = z.object({
+  name: z.string().min(1, '项目名称不能为空').max(100, '项目名称最多100个字符'),
+  description: z.string().max(500, '项目描述最多500个字符').optional(),
+  workspaceId: z.string().min(1, '工作空间ID不能为空'),
+  status: z.enum(['ACTIVE', 'ARCHIVED', 'DELETED']).optional(),
+});
 
 // GET /api/projects - 获取项目列表
 export async function GET(request: NextRequest) {
@@ -80,21 +89,23 @@ export async function POST(request: NextRequest) {
       return errors.unauthorized();
     }
 
-    const parseResult = await parseJsonBody<{
-      name: string;
-      description?: string;
-      workspaceId: string;
-    }>(request);
+    const parseResult = await parseJsonBody<unknown>(request);
     
     if (!parseResult.success) {
       return parseResult.error;
     }
-    
-    const { name, description, workspaceId } = parseResult.data;
 
-    if (!name || !workspaceId) {
-      return errors.badRequest('项目名称和工作空间ID不能为空');
+    // Zod 验证
+    const validationResult = createProjectSchema.safeParse(parseResult.data);
+    
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors.map(err => 
+        `${err.path.join('.')}: ${err.message}`
+      ).join('; ');
+      return errors.badRequest(`输入验证失败: ${errorMessages}`);
     }
+    
+    const { name, description, workspaceId } = validationResult.data;
 
     // 检查用户是否有权限在该工作空间创建项目
     const membership = await prisma.workspaceMember.findFirst({
@@ -114,7 +125,7 @@ export async function POST(request: NextRequest) {
         name,
         description,
         workspaceId,
-        status: 'ACTIVE',
+        status: validationResult.data.status || 'ACTIVE',
       },
     });
 

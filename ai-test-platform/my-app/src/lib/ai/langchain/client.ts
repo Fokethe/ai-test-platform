@@ -46,9 +46,16 @@ export class LangChainClient {
    */
   private mergeWithDefaults(config: LangChainClientConfig): Required<LangChainClientConfig> {
     const providerConfig = PROVIDER_CONFIGS[config.provider];
+    
+    // 严格检查 API Key
+    const apiKey = config.apiKey?.trim();
+    if (!apiKey) {
+      throw new Error(`未配置 ${config.provider} 的 API Key，请设置环境变量或传入 apiKey 参数`);
+    }
+    
     return {
       provider: config.provider,
-      apiKey: config.apiKey,
+      apiKey,
       baseUrl: config.baseUrl || providerConfig.baseUrl,
       model: config.model || providerConfig.defaultModel,
       temperature: config.temperature ?? 0.3,

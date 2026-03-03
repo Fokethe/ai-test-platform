@@ -42,8 +42,42 @@ global.NextRequest = class NextRequest extends Request {
   }
 };
 
+// 保存原始的 Response 类
+const OriginalResponse = global.Response;
+
+// 确保 Response.json 方法存在
+if (!global.Response.json) {
+  global.Response.json = function(body, init = {}) {
+    return new OriginalResponse(JSON.stringify(body), {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...(init.headers || {}),
+      },
+    });
+  };
+}
+
+// Mock next-auth
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  getServerSession: jest.fn(() => Promise.resolve({ user: { email: 'test@example.com', id: 'test-user' } })),
+}));
+
+jest.mock('@/lib/auth', () => ({
+  authOptions: {},
+  auth: jest.fn(() => Promise.resolve({ user: { email: 'test@example.com', id: 'test-user' } })),
+}));
+
 global.NextResponse = class NextResponse extends Response {
   static json(body, init = {}) {
+    // 使用父类的静态 json 方法（如果存在）
+    if (Response.json && Response.json !== NextResponse.json) {
+      return Response.json(body, init);
+    }
+    
+    // 否则创建自定义响应
     const response = new NextResponse(JSON.stringify(body), {
       ...init,
       headers: {

@@ -130,10 +130,20 @@ export class FewShotSelector {
     const remaining = [...candidates]
 
     // 先选择最相似的
+    const firstCase = remaining.shift()
+    if (!firstCase) {
+      return {
+        examples: [],
+        totalAvailable: 0,
+        strategy: 'diversity',
+        categories: [],
+        diversity: 0,
+      }
+    }
     selected.push({
-      ...remaining.shift()!,
+      ...firstCase,
       diversityScore: 1.0,
-      category: remaining[0]?.testCase.module,
+      category: firstCase.testCase.module,
     })
 
     // 然后选择与已选样本差异最大的
@@ -161,7 +171,7 @@ export class FewShotSelector {
 
     return {
       examples: selected,
-      totalAvailable: candidates.length,
+      totalAvailable: this.knowledgeBase.length,
       strategy: 'diversity',
       categories: [...new Set(selected.map((e) => e.category || '未知'))],
       diversity: this.calculateDiversity(selected),
@@ -231,7 +241,7 @@ export class FewShotSelector {
 
     return {
       examples: selected,
-      totalAvailable: candidates.length,
+      totalAvailable: this.knowledgeBase.length,
       strategy: 'coverage',
       categories: modules,
       diversity: this.calculateDiversity(selected),
@@ -299,7 +309,7 @@ export class FewShotSelector {
 
     return {
       examples: selected,
-      totalAvailable: candidates.length,
+      totalAvailable: this.knowledgeBase.length,
       strategy: 'combined',
       categories: [...new Set(selected.map((e) => e.category || '未知'))],
       diversity: this.calculateDiversity(selected),

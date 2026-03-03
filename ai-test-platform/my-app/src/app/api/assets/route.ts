@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import {
   listResponse,
   createdResponse,
@@ -14,9 +15,28 @@ import {
   buildMeta,
 } from '@/lib/api-response';
 import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { auth } from '@/lib/auth';
+
+// 输入验证 schema
+const createAssetSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  type: z.enum(['DOC', 'PAGE', 'SNIPPET', 'IMAGE']).default('DOC'),
+  content: z.string().max(50000).optional(),
+  selector: z.string().max(500).optional(),
+  url: z.string().url().max(2000).optional(),
+  tags: z.array(z.string()).optional(),
+  projectId: z.string().uuid(),
+});
 
 // GET /api/assets
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const session = await auth();
+  if (!session?.user) {
+    return errors.unauthorized('请先登录');
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     
@@ -55,6 +75,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/assets
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const session = await auth();
+  if (!session?.user) {
+    return errors.unauthorized('请先登录');
+  }
+
   const parseResult = await parseJsonBody<{
     title: string;
     description?: string;
@@ -81,22 +107,26 @@ export async function POST(request: NextRequest) {
     projectId,
   } = parseResult.data;
   
-  if (!title || !projectId) {
-    return errors.badRequest('标题和项目ID不能为空');
+  // Zod 验证
+  const validationResult = createAssetSchema.safeParse(parseResult.data);
+  if (!validationResult.success) {
+    return errors.validationError(validationResult.error);
   }
+  
+  const validatedData = validationResult.data;
   
   try {
     const asset = await prisma.asset.create({
       data: {
-        title,
-        description,
-        type: assetType as Prisma.AssetCreateInput['type'],
-        content: content ?? null,
-        selector: selector ?? null,
-        url: url ?? null,
-        tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
-        projectId,
-        createdBy: 'system', // TODO: 从 session 获取
+        title: validatedData.title,
+        description: validatedData.description,
+        type: validatedData.type as Prisma.AssetCreateInput['type'],
+        content: validatedData.content ?? null,
+        selector: validatedData.selector ?? null,
+        url: validatedData.url ?? null,
+        tags: validatedData.tags ? JSON.stringify(validatedData.tags) : null,
+        projectId: validatedData.projectId,
+        createdBy: session.user.id,
       },
     });
     

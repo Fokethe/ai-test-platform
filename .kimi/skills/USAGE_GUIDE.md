@@ -25,31 +25,19 @@ AI 自动: cost-control → socratic-inquiry → task-planner → doc-system
 
 ### 🎯 快捷指令（推荐）
 
-```bash
-# 💰 查看消耗
-/cost
+| 指令         | 功能              | 适用范围     |
+| ------------ | ----------------- | ------------ |
+| `/cost`      | 💰 查看消耗       | 🔵 通用      |
+| `/compact`   | 📦 压缩上下文     | 🟢 Kimi 专用 |
+| `/next`      | ⏭️ 继续下一阶段   | 🔵 通用      |
+| `/plan`      | 📋 重新生成计划   | 🔵 通用      |
+| `/parallel`  | 🔄 启动多任务调度 | 🟢 Kimi 专用 |
+| `/bughunter` | 🐛 启动 BugHunter | 🟢 Kimi 专用 |
+| `/cleanup`   | 🧹 自动清理项目   | 🟢 Kimi 专用 |
+| `/health`    | 🏥 系统健康检查   | 🟢 Kimi 专用 |
+| `/inspect`   | 🔍 功能深度审查   | 🟢 Kimi 专用 |
 
-# 📦 压缩上下文
-/compact
-
-# ⏭️ 继续下一阶段/下一块
-/next
-
-# 📋 重新生成计划
-/plan
-
-# 🔄 启动多任务调度
-/parallel
-
-# 🐛 启动 BugHunter
-/bughunter
-
-# 🧹 自动清理项目
-/cleanup
-
-# 🏥 系统健康检查
-/health
-```
+> **图例说明**: 🟢 Kimi 专用 | 🔵 通用（Kimi + Cline）| 🟣 Cline 专用（见 .clinerules）
 
 ### 基础调用方式（按需加载 Skill）
 
@@ -68,41 +56,42 @@ AI 自动: cost-control → socratic-inquiry → task-planner → doc-system
 
 说出场景关键词，**Skill 编排器** 自动执行完整序列：
 
-| 你想做什么 | 说这些关键词 | 自动触发的 Skill 序列 |
-|-----------|-------------|---------------------|
-| **开始新项目** | "开始新项目"、"从零开始" | cost-control → socratic-inquiry → task-planner → doc-system |
-| **功能开发** | "开发新功能"、"添加功能" | cost-control → task-planner → code-review → doc-system |
-| **TDD 开发** | "TDD 模式"、"先写测试" | cost-control → tdd-loop (红→绿→重构循环) |
-| **重构代码** | "重构代码"、"优化代码" | cost-control → code-review → task-planner → code-refactor |
-| **Bug 修复** | "修复 bug"、"报错了" | cost-control → debug-diagnosis → danger-signals → code-review |
-| **还原设计** | "还原设计"、"截图转代码" | cost-control → visual-coding → task-planner → code-review |
-| **整理文档** | "整理文档"、"文档太大" | cost-control → doc-processor → 逐块处理 → 整合 |
-| **代码提交** | "提交代码"、"commit" | cost-control → code-review → doc-system → git-commit |
-| **健康检查** | "检查健康度"、"项目体检" | cost-control → context-management → danger-signals → code-review |
-| **深度修复** | "BugHunter"、"深度修复" | cost-control → bughunter-loop (扫描→分析→修复→验证→迭代) |
-| **多任务调度** | "使用 subagent"、"并行处理" | cost-control → multi-task-scheduler |
-| **自动清理** | "开发完成"、"测试完成"、"/cleanup" | cost-control → auto-cleanup |
-| **健康检查** | "/health"、"检查健康度" | cost-control → health-check |
+| 你想做什么       | 说这些关键词                                             | 自动触发的 Skill 序列                                                           |
+| ---------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **开始新项目**   | "开始新项目"、"从零开始"                                 | cost-control → socratic-inquiry → task-planner → doc-system                     |
+| **功能开发**     | "开发新功能"、"添加功能"                                 | cost-control → task-planner → code-review → doc-system                          |
+| **TDD 开发**     | "TDD 模式"、"先写测试"                                   | cost-control → tdd-loop (红→绿→重构循环)                                        |
+| **重构代码**     | "重构代码"、"优化代码"                                   | cost-control → code-review → task-planner → code-refactor                       |
+| **Bug 修复**     | "修复 bug"、"报错了"                                     | cost-control → debug-diagnosis → danger-signals → code-review                   |
+| **还原设计**     | "还原设计"、"截图转代码"                                 | cost-control → visual-coding → task-planner → code-review                       |
+| **整理文档**     | "整理文档"、"文档太大"                                   | cost-control → doc-processor → 逐块处理 → 整合                                  |
+| **代码提交**     | "提交代码"、"commit"                                     | cost-control → code-review → doc-system → git-commit                            |
+| **健康检查**     | "/health"、"检查健康度"、"项目体检"                      | cost-control → context-management → danger-signals → code-review → cost-control |
+| **深度修复**     | "BugHunter"、"深度修复"                                  | cost-control → bughunter-loop (扫描→分析→修复→验证→迭代)                        |
+| **多任务调度**   | "使用 subagent"、"并行处理"                              | cost-control → multi-task-scheduler                                             |
+| **自动清理**     | "清理项目"/cleanup"                                      | cost-control → auto-cleanup                                                     |
+| **功能深度审查** | "/inspect"、"深度检查功能"、"扫描空代码"、"检查功能缺失" | cost-control → functionality-inspector                                          |
 
 ### 方式二：单个 Skill 触发
 
 无需记忆命令，说出以下关键词即可自动触发单个 Skill：
 
-| 你想做什么 | 说这些关键词 | 自动触发 Skill |
-|-----------|-------------|---------------|
-| 查看消耗 | "/cost"、"查一下用了多少 token" | cost-control |
-| 处理大文档 | "整理这个文档"、"文件太大了" | doc-processor |
-| 重构代码 | "重构这个文件"、"优化代码" | code-refactor |
-| 规划任务 | "帮我做个计划" | task-planner |
-| 审查代码 | "看看这代码有问题吗"、"review" | code-review |
-| 写提交信息 | "怎么提交"、"写 commit" | git-commit |
-| 了解项目规范 | "按项目规范"、"文档里说的" | project-context |
-| 澄清需求 | "我要做个新项目"、"需求不太清楚" | socratic-inquiry |
-| 初始化文档 | "创建项目文档"、"初始化" | doc-system |
-| 开始开发 | "开始开发" | workflow |
-| 还原设计稿 | "实现这个设计"、"截图转代码" | visual-coding |
-| 修复错误 | "报错了"、"修复这个错误" | debug-diagnosis |
-| 总结进度 | "/compact"、"总结下进度" | context-management |
+| 你想做什么   | 说这些关键词                     | 自动触发 Skill          |
+| ------------ | -------------------------------- | ----------------------- |
+| 查看消耗     | "/cost"、"查一下用了多少 token"  | cost-control            |
+| 处理大文档   | "整理这个文档"、"文件太大了"     | doc-processor           |
+| 重构代码     | "重构这个文件"、"优化代码"       | code-refactor           |
+| 规划任务     | "帮我做个计划"                   | task-planner            |
+| 审查代码     | "看看这代码有问题吗"、"review"   | code-review             |
+| 写提交信息   | "怎么提交"、"写 commit"          | git-commit              |
+| 了解项目规范 | "按项目规范"、"文档里说的"       | project-context         |
+| 澄清需求     | "我要做个新项目"、"需求不太清楚" | socratic-inquiry        |
+| 初始化文档   | "创建项目文档"、"初始化"         | doc-system              |
+| 开始开发     | "开始开发"                       | workflow                |
+| 还原设计稿   | "实现这个设计"、"截图转代码"     | visual-coding           |
+| 修复错误     | "报错了"、"修复这个错误"         | debug-diagnosis         |
+| 总结进度     | "/compact"、"总结下进度"         | context-management      |
+| 功能深度审查 | "/inspect"、"检查功能完整度"     | functionality-inspector |
 
 ---
 
@@ -131,6 +120,7 @@ Step 4: 执行计划
 ```
 
 **何时用 Plan Mode**：
+
 - 接手新项目 → 出架构图 + 入口分析
 - 做大功能 → 模块拆分、接口设计
 - 重构优化 → 分析问题，给出方案
@@ -140,26 +130,26 @@ Step 4: 执行计划
 
 ### 2. 提升 Prompt 质量的话术
 
-| 目的 | Prompt 话术 |
-|------|------------|
-| **角色反转** | "针对这些改动向我提问，在我通过你的测试之前不要提交" |
-| **要求自证** | "证明这套方案行得通，对比修改前后的差异" |
-| **推倒重来** | "基于你现在掌握的信息，推翻刚才的方案，换一个更优雅的实现" |
-| **先写 Spec** | "先写详细的规格说明 Spec，确认后再动手实现" |
-| **解释模式** | "边改边解释为什么这么改，开启解释模式" |
-| **架构可视化** | "给我画个 ASCII 流程图，解释模块调用链" |
-| **费曼学习** | "我解释给你听，你通过提问填补我的知识盲区" |
+| 目的           | Prompt 话术                                                |
+| -------------- | ---------------------------------------------------------- |
+| **角色反转**   | "针对这些改动向我提问，在我通过你的测试之前不要提交"       |
+| **要求自证**   | "证明这套方案行得通，对比修改前后的差异"                   |
+| **推倒重来**   | "基于你现在掌握的信息，推翻刚才的方案，换一个更优雅的实现" |
+| **先写 Spec**  | "先写详细的规格说明 Spec，确认后再动手实现"                |
+| **解释模式**   | "边改边解释为什么这么改，开启解释模式"                     |
+| **架构可视化** | "给我画个 ASCII 流程图，解释模块调用链"                    |
+| **费曼学习**   | "我解释给你听，你通过提问填补我的知识盲区"                 |
 
 ---
 
 ### 3. 成本控制最佳实践
 
-| 策略 | 操作 |
-|------|------|
-| **长任务定期压缩** | 每 10-15 轮说 `/compact`，别等报错才后悔 |
-| **切模型省成本** | 简单任务（格式化、注释）明确说"用轻量模式" |
-| **监控消耗** | 长对话必说 `/cost`，避免超额 |
-| **大文件分段** | 文档 > 30,000 字符自动触发分段处理 |
+| 策略               | 操作                                       |
+| ------------------ | ------------------------------------------ |
+| **长任务定期压缩** | 每 10-15 轮说 `/compact`，别等报错才后悔   |
+| **切模型省成本**   | 简单任务（格式化、注释）明确说"用轻量模式" |
+| **监控消耗**       | 长对话必说 `/cost`，避免超额               |
+| **大文件分段**     | 文档 > 30,000 字符自动触发分段处理         |
 
 ---
 
@@ -172,10 +162,10 @@ Step 4: 执行计划
 
 AI: [读取 .clinerules.skill-library.md 中的 Skill 11]
     🎯 已加载: 视觉还原协议 (Skill 11)
-    
+
     【触发方式】: 用户上传图片/截图后说"还原这个界面"...
     【执行流程】: 结构分析 → 设计规范提取 → 像素级还原 → ...
-    
+
     现在可以使用视觉还原功能了！
 
 用户：[上传截图] 还原这个界面
@@ -197,17 +187,17 @@ AI: [执行 Skill 11 视觉还原协议]
 
 AI: [自动执行 cost-control → task-planner]
     📊 当前消耗: $0.012
-    
+
     [task-planner 启动]
     📋 执行计划: 用户登录功能
     预估总消耗: $0.08 | 预计 12 轮对话
-    
+
     阶段 1: API 设计
     - 登录接口 → 产出: app/api/auth/login/route.ts
-    
-    阶段 2: 页面实现  
+
+    阶段 2: 页面实现
     - 登录页 → 产出: app/login/page.tsx
-    
+
     确认执行计划? [Y/N/调整]
 
 用户：Y
@@ -228,11 +218,11 @@ AI: [自动执行 workflow → code-review → doc-system → cost-control]
 
 AI: [自动执行 cost-control → debug-diagnosis → danger-signals]
     📊 当前消耗: $0.045
-    
+
     [debug-diagnosis] 分析中...
     根因：projectId 无效导致外键约束失败
     修复方案：从 URL 参数获取 projectId
-    
+
     [danger-signals] ⚠️ 第 1 次修复，继续
 
 用户：确认修复
@@ -251,55 +241,82 @@ AI: [自动执行 code-review → doc-system → cost-control]
 
 AI: [自动执行 cost-control → context-management → danger-signals → code-review → cost-control]
     📊 当前消耗: $0.089
-    
+
     [context-management] 上下文已压缩
     当前进度: 测试管理功能开发完成 80%
-    
+
     [danger-signals] 🚨 检测到信号:
     - 上下文占用 > 60%
-    - 建议执行 /compact 或新开会话
-    
+    - 建议执行 /compact 或新开对话
+
     [code-review] 健康度检查:
     - 测试覆盖率: 87%
     - 类型错误: 27 个（非阻塞）
     - 构建状态: ✅
-    
+
     📊 会话总结: $0.089 / 15 轮
 ```
 
 ---
 
-### 示例 4：使用多任务调度（SubAgent）
+### 示例 4：功能深度审查
+
+```
+用户：深度检查功能完整度
+
+AI: [自动执行 cost-control → functionality-inspector]
+    📊 当前消耗: $0.045
+
+    [functionality-inspector] 功能深度审查中...
+
+    🔍 功能深度审查报告
+
+    📊 统计概览:
+    ├─ 功能项总数: 30
+    ├─ 功能点总数: 150
+    ├─ 完整实现: 90 (60%)
+    ├─ 部分实现: 30 (20%)
+    └─ 未实现: 20 (13%)
+
+    🔴 高优先级问题 (8项):
+    ├─ 1. 测试中心 - 列表删除
+    │   问题: 只有UI按钮，无onClick逻辑
+    └─ ...
+```
+
+---
+
+### 示例 5：使用多任务调度（SubAgent）
 
 ```
 用户：并行处理这 3 个任务：1) 重构 utils 2) 优化组件 3) 修复 bug
 
 AI: [自动执行 cost-control → multi-task-scheduler]
     📊 当前消耗: $0.015
-    
+
     [multi-task-scheduler 启动]
     🔄 分析任务依赖关系...
-    
+
     子任务 1: 重构 utils (优先级: 高)
     子任务 2: 优化组件 (优先级: 中, 依赖: 子任务 1)
     子任务 3: 修复 bug (优先级: 高)
-    
+
     并行调度: 子任务 1 + 子任务 3
     然后执行: 子任务 2
-    
+
     [启动 2 个 subagent 并行执行...]
-    
+
     📊 批次 1/2 完成:
     - 子任务 1: ✅ utils 重构完成
     - 子任务 3: ✅ bug 修复完成
-    
+
     📊 批次 2/2 完成:
     - 子任务 2: ✅ 组件优化完成
-    
+
     📝 文档已更新:
     - kimi.batch-1.md
     - progress.batch-1.md
-    
+
     📊 总消耗: $0.089
 ```
 
@@ -310,7 +327,7 @@ AI: [自动执行 cost-control → multi-task-scheduler]
 在序列执行过程中：
 
 - **说"跳过"** → 跳过当前 Skill，继续下一个
-- **说"停止"** → 终止整个序列  
+- **说"停止"** → 终止整个序列
 - **说"/cost"** → 立即显示消耗（不中断序列）
 - **说"/plan"** → 立即进入 task-planner
 
@@ -330,9 +347,10 @@ AI: [自动执行 cost-control → multi-task-scheduler]
 │  "BugHunter"      → 🐛 深度扫描修复                            │
 │  "开发完成"       → 🧹 自动清理项目文件                        │
 │  "/health"        → 🏥 系统健康检查                            │
+│  "/inspect"       → 🔍 功能深度审查                            │
 ├─────────────────────────────────────────────────────────────────┤
 │  快捷指令: /cost  /compact  /next  /plan  /parallel  /bughunter  │
-│            /cleanup  /health                                     │
+│            /cleanup  /health  /inspect                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -340,8 +358,10 @@ AI: [自动执行 cost-control → multi-task-scheduler]
 
 ## Skill 库说明
 
-### 核心 Skill（精简版 - 10个）
+### 核心 Skill（精简版 - 13个）
+
 位于 `.clinerules`，覆盖 95% 日常开发场景：
+
 - Skill 0: Skill 编排器
 - Skill 1: 成本控制
 - Skill 2: 大文档分段
@@ -353,11 +373,101 @@ AI: [自动执行 cost-control → multi-task-scheduler]
 - Skill 8: 危险信号
 - Skill 9: BugHunter
 - Skill 10: 多任务调度
+- Skill 11: 自动清理
+- Skill 12: 系统健康检查
+- **Skill 13: 功能深度审查器** ⭐ 新增
 
 ### 备用 Skill 库（按需加载 - 18个）
+
 位于 `.clinerules.skill-library.md`：
-- Skill 11+: 视觉还原、TDD 循环、代码重构、持久化规划、上下文管理等
+
+- Skill 14+: 视觉还原、TDD 循环、代码重构、持久化规划、上下文管理等
 
 ---
 
-*配置版本: 2.0 | 最后更新: 2026-02-28 | 核心 Skill: 10个 | 备用 Skill: 18个*
+## 新增：功能深度审查器 (Functionality Deep Inspector)
+
+### 触发方式
+
+```bash
+# 完整检查
+/inspect
+
+# 快速检查（仅高优先级问题）
+/inspect --quick
+
+# 检查指定页面
+/inspect --page=/tests
+
+# 仅检查API对齐
+/inspect --api
+
+# 仅检查UI占位
+/inspect --ui
+
+# 关键词触发
+"深度检查功能完整度"
+"扫描空代码"
+"检查功能缺失"
+"功能深度审查"
+```
+
+### 使用场景
+
+1. **新项目接手** - 全面了解项目功能完整度
+2. **BugHunter前** - 作为前置检查发现功能缺失
+3. **代码审查时** - 检查新页面功能是否完整
+4. **定期体检** - 每月一次检查功能健康度
+
+### 检查内容
+
+| 检查维度     | 具体内容                       | 示例                  |
+| ------------ | ------------------------------ | --------------------- |
+| **空代码**   | 空文件、空函数、空页面、空组件 | `lib/api.ts` 完全为空 |
+| **空页面**   | 重定向页、占位页、骨架屏       | 只有加载动画无内容    |
+| **缺失功能** | UI占位、菜单无效、表单无提交   | 删除按钮只有UI        |
+| **无法实现** | 前后端不对齐、模拟数据、TODO   | 调用API但后端不存在   |
+
+### 输出示例
+
+```
+🔍 功能深度审查报告
+
+📊 统计概览:
+├─ 功能项总数: 30
+├─ 功能点总数: 150
+├─ 完整实现: 90 (60%)
+├─ 部分实现: 30 (20%)
+├─ 未实现: 20 (13%)
+└─ 模拟实现: 10 (7%)
+
+🔴 高优先级问题 (8项):
+├─ 1. 测试中心 - 列表删除
+│   位置: tests/page.tsx
+│   问题: 只有UI按钮，无onClick逻辑
+│   建议: 补充删除API调用
+├─ 2. AI生成 - 保存用例
+│   位置: ai-generate/testcases/page.tsx
+│   问题: 调用/api/testcases/batch但后端路由不存在
+│   建议: 创建后端API路由
+└─ ...
+
+💡 修复建议:
+1. 立即修复 (本周): 8项
+2. 短期修复 (本月): 18项
+3. 长期规划 (下月): 13项
+```
+
+### 与 BugHunter 配合使用
+
+```
+最佳实践:
+1. 先执行 /inspect 检查功能缺失
+2. 修复高优先级功能问题
+3. 再执行 /bughunter 深度修复代码质量
+4. 最后执行 /health 检查整体健康度
+```
+
+---
+
+_配置版本: 2.0 | 最后更新: 2026-03-03 | 核心 Skill: 13个 | 备用 Skill: 18个_

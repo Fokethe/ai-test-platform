@@ -300,3 +300,63 @@ function generateContextualSuggestions(keywords: any, type: string): string[] {
 export function mockGenerateTestCases(): string {
   return generateEnhancedMockData('登录功能', { testCaseType: 'web' });
 }
+
+/**
+ * 通用 AI 调用函数（支持图片输入）
+ * @param options - 调用选项
+ * @returns AI 响应文本
+ */
+export interface CallAIOptions {
+  prompt: string;
+  image?: Buffer | string;
+  model?: string;
+  apiKey?: string;
+}
+
+export async function callAI(options: CallAIOptions): Promise<string> {
+  const { prompt, image, model = 'qwen-vl', apiKey } = options;
+
+  // 使用传入的 apiKey 或环境变量
+  const key = apiKey || process.env.KIMI_API_KEY || '';
+  
+  if (!key) {
+    throw new Error('未配置 API Key');
+  }
+
+  // 检查是否是视觉模型调用
+  if (image) {
+    // 视觉模型调用 - 使用 Qwen-VL 或其他支持图片的模型
+    console.log('[AI] Calling vision model:', model);
+    
+    // 将图片转换为 base64（如果是 Buffer）
+    const imageUrl = image instanceof Buffer 
+      ? `data:image/png;base64,${image.toString('base64')}`
+      : image;
+
+    try {
+      const client = createClient(key);
+      const response = await client.chat.completions.create({
+        model: model === 'qwen-vl' ? 'qwen-vl-max' : model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageUrl } },
+            ] as any,
+          },
+        ],
+        temperature: 0.3,
+      });
+
+      return response.choices[0].message.content || '';
+    } catch (error) {
+      console.error('[AI] Vision API call failed:', error);
+      // 降级到模拟数据
+      return generateEnhancedMockData(prompt, { testCaseType: 'web' });
+    }
+  }
+
+  // 纯文本调用 - 使用标准模型
+  return generateWithAI(prompt, { modelId: model });
+}

@@ -381,9 +381,19 @@ function TestList({
   );
 }
 
+// 安全解析 JSON
+function safeJsonParse<T>(json: string | undefined, defaultValue: T): T {
+  if (!json) return defaultValue;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
 // 单个测试项 - 使用 React.memo 优化渲染
 const TestItem = React.memo(function TestItem({ test }: { test: Test }) {
-  const tags = test.tags ? JSON.parse(test.tags) : [];
+  const tags = safeJsonParse<string[]>(test.tags, []);
 
   return (
     <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
