@@ -5,8 +5,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { Users, Plus, Search, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Plus, Search, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,14 +28,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-
-// 模拟用户数据
-const mockUsers = [
-  { id: '1', name: '系统管理员', email: 'admin@example.com', role: 'ADMIN', status: 'ACTIVE' },
-  { id: '2', name: '测试工程师', email: 'tester@example.com', role: 'MEMBER', status: 'ACTIVE' },
-  { id: '3', name: '访客用户', email: 'guest@example.com', role: 'VIEWER', status: 'INACTIVE' },
-];
 
 const roleLabels: Record<string, string> = {
   ADMIN: '管理员',
@@ -49,25 +43,141 @@ const roleColors: Record<string, string> = {
   VIEWER: 'bg-slate-100 text-slate-800',
 };
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  image?: string;
+}
+
 export default function UsersPage() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('MEMBER');
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 获取用户列表
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const query = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '';
+      const res = await fetch(`/api/users${query}`);
+      const data = await res.json();
+      if (data.code === 0) {
+        setUsers(data.data);
+      } else {
+        toast.error(data.message || '获取用户列表失败');
+      }
+    } catch (error) {
+      toast.error('获取用户列表失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
 
-  const handleInvite = () => {
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // 邀请用户
+  const handleInvite = async () => {
     if (!inviteEmail) {
       toast.error('请输入邮箱地址');
       return;
     }
-    toast.success(`邀请已发送至 ${inviteEmail}`);
-    setInviteEmail('');
-    setInviteDialogOpen(false);
+    setActionLoading('invite');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        toast.success(`邀请已发送至 ${inviteEmail}`);
+        setInviteEmail('');
+        setInviteDialogOpen(false);
+        fetchUsers();
+      } else {
+        toast.error(data.message || '邀请失败');
+      }
+    } catch (error) {
+      toast.error('邀请失败');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // 更新用户角色
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        toast.success('角色已更新');
+        fetchUsers();
+      } else {
+        toast.error(data.message || '更新失败');
+      }
+    } catch (error) {
+      toast.error('更新失败');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // 重置密码
+  const handleResetPassword = async (userId: string) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetPassword: true }),
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        toast.success('密码重置邮件已发送');
+      } else {
+        toast.error(data.message || '重置失败');
+      }
+    } catch (error) {
+      toast.error('重置失败');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // 删除用户
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('确定要删除此用户吗？此操作不可撤销。')) return;
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        toast.success('用户已删除');
+        fetchUsers();
+      } else {
+        toast.error(data.message || '删除失败');
+      }
+    } catch (error) {
+      toast.error('删除失败');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   return (
@@ -104,12 +214,27 @@ export default function UsersPage() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>角色</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择角色" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MEMBER">成员</SelectItem>
+                    <SelectItem value="VIEWER">访客</SelectItem>
+                    <SelectItem value="ADMIN">管理员</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
                 取消
               </Button>
-              <Button onClick={handleInvite}>发送邀请</Button>
+              <Button onClick={handleInvite} disabled={actionLoading === 'invite'}>
+                {actionLoading === 'invite' ? '发送中...' : '发送邀请'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -133,11 +258,11 @@ export default function UsersPage() {
       {/* User List */}
       <Card>
         <CardHeader>
-          <CardTitle>团队成员 ({filteredUsers.length})</CardTitle>
+          <CardTitle>团队成员 ({users.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredUsers.map((user) => (
+            {users.map((user) => (
               <div
                 key={user.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
@@ -160,20 +285,29 @@ export default function UsersPage() {
                   </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" disabled={actionLoading === user.id}>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>编辑权限</DropdownMenuItem>
-                      <DropdownMenuItem>重置密码</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">删除用户</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleUpdateRole(user.id, user.role === 'ADMIN' ? 'MEMBER' : 'ADMIN')}>
+                        {user.role === 'ADMIN' ? '降级为成员' : '提升为管理员'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleResetPassword(user.id)}>
+                        重置密码
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-red-600"
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
+                        删除用户
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </div>
             ))}
-            {filteredUsers.length === 0 && (
+            {users.length === 0 && (
               <div className="text-center py-8 text-slate-500">
                 没有找到匹配的用户
               </div>

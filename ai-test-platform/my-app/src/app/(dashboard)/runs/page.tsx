@@ -19,6 +19,9 @@ import {
   XCircle,
   AlertCircle,
   ChevronRight,
+  MoreHorizontal,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +29,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Pagination } from '@/components/ui/pagination';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -64,6 +74,8 @@ export default function RunCenterPage() {
   const defaultTab = searchParams.get('tab') || 'history';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
   
   // 分页状态
   const [page, setPage] = useState(1);
@@ -242,8 +254,9 @@ function RunHistoryPanel({ runs, isLoading }: { runs: Run[]; isLoading: boolean 
 }
 
 // 执行项
-function RunItem({ run }: { run: Run }) {
+function RunItem({ run, onRefresh }: { run: Run; onRefresh?: () => void }) {
   const passRate = run.totalCount > 0 ? Math.round((run.passedCount / run.totalCount) * 100) : 0;
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   
   const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
     COMPLETED: { icon: CheckCircle, color: 'text-green-600', label: '完成' },
@@ -256,6 +269,62 @@ function RunItem({ run }: { run: Run }) {
   const config = statusConfig[run.status] || statusConfig.PENDING;
   const Icon = config.icon;
 
+  // 重新执行
+  const handleRerun = async () => {
+    setActionLoading('rerun');
+    try {
+      const res = await fetch(`/api/runs/${run.id}/rerun`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('重新执行已启动');
+        onRefresh?.();
+      } else {
+        toast.error('启动失败');
+      }
+    } catch (e) {
+      toast.error('启动失败');
+    }
+    setActionLoading(null);
+  };
+
+  // 取消执行
+  const handleCancel = async () => {
+    setActionLoading('cancel');
+    try {
+      const res = await fetch(`/api/runs/${run.id}`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' })
+      });
+      if (res.ok) {
+        toast.success('执行已取消');
+        onRefresh?.();
+      } else {
+        toast.error('取消失败');
+      }
+    } catch (e) {
+      toast.error('取消失败');
+    }
+    setActionLoading(null);
+  };
+
+  // 删除执行
+  const handleDelete = async () => {
+    if (!confirm('确定要删除此执行记录吗？')) return;
+    setActionLoading('delete');
+    try {
+      const res = await fetch(`/api/runs/${run.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('执行记录已删除');
+        onRefresh?.();
+      } else {
+        toast.error('删除失败');
+      }
+    } catch (e) {
+      toast.error('删除失败');
+    }
+    setActionLoading(null);
+  };
+
   return (
     <div className="p-4 hover:bg-slate-50 transition-colors">
       <div className="flex items-start justify-between">
@@ -266,6 +335,7 @@ function RunItem({ run }: { run: Run }) {
               {run.name}
             </Link>
             <Badge variant="outline">{config.label}</Badge>
+            <Badge variant="secondary" className="text-xs">{run.type}</Badge>
           </div>
           
           <div className="mt-3 space-y-2">
@@ -283,11 +353,37 @@ function RunItem({ run }: { run: Run }) {
           </div>
         </div>
         
-        <div className="text-right">
-          <p className="text-sm text-slate-500">{new Date(run.createdAt).toLocaleString()}</p>
-          {run.duration && (
-            <p className="text-xs text-slate-400 mt-1">耗时: {Math.round(run.duration / 1000)}s</p>
-          )}
+        <div className="flex items-center gap-2">
+          <div className="text-right mr-4">
+            <p className="text-sm text-slate-500">{new Date(run.createdAt).toLocaleString()}</p>
+            {run.duration && (
+              <p className="text-xs text-slate-400 mt-1">耗时: {Math.round(run.duration / 1000)}s</p>
+            )}
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" disabled={!!actionLoading}>
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleRerun} disabled={actionLoading === 'rerun'}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                {actionLoading === 'rerun' ? '启动中...' : '重新执行'}
+              </DropdownMenuItem>
+              {(run.status === 'PENDING' || run.status === 'RUNNING') && (
+                <DropdownMenuItem onClick={handleCancel} disabled={actionLoading === 'cancel'}>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  {actionLoading === 'cancel' ? '取消中...' : '取消执行'}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={handleDelete} disabled={actionLoading === 'delete'} className="text-red-600">
+                <Trash2 className="w-4 h-4 mr-2" />
+                {actionLoading === 'delete' ? '删除中...' : '删除记录'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

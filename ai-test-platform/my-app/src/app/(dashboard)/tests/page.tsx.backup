@@ -1,0 +1,916 @@
+/**
+ * TestCenter Page - 合并用例/套件/AI生成
+ * 连接真实 API，支持分页和性能优化
+ * TDD Round 4.2 & 4.3: 添加导入导出功能
+ */
+
+'use client';
+
+import React, { useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import useSWR from 'swr';
+import {
+  Beaker,
+  Plus,
+  Folder,
+  Sparkles,
+  Search,
+  Loader2,
+  MoreHorizontal,
+  FolderOpen,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  FileJson,
+  FileText,
+  X,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Pagination } from '@/components/ui/pagination';
+import { InfiniteScroll } from '@/components/ui/virtual-list';
+import { toast } from 'sonner';
+import Link from 'next/link';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface Test {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'CASE' | 'SUITE' | 'FOLDER';
+  status: string;
+  priority: string;
+  tags?: string;
+  createdAt: string;
+  _count?: { executions: number };
+}
+
+interface PaginationMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// 使用 useMemo 缓存 fetcher 配置
+const swrOptions = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 5000,
+};
+
+// 支持的导入格式
+const IMPORT_FORMATS = [
+  { ext: '.xlsx', name: 'Excel', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  { ext: '.json', name: 'JSON', mime: 'application/json' },
+  { ext: '.csv', name: 'CSV', mime: 'text/csv' },
+];
+
+export default function TestCenterPage() {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'cases';
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // 筛选状态
+  const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  
+  // 排序状态
+  const [sortField, setSortField] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // 分页状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
+  // 无限滚动状态（用于大数据场景）
+  const [infiniteItems, setInfiniteItems] = useState<Test[]>([]);
+  const [infinitePage, setInfinitePage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [useInfiniteScroll, setUseInfiniteScroll] = useState(false);
+
+  // 导入状态
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // 根据当前 tab 确定 type 参数
+  const getTypeParam = () => {
+    switch (activeTab) {
+      case 'cases':
+        return 'CASE';
+      case 'suites':
+        return 'SUITE';
+      default:
+        return '';
+    }
+  };
+
+  // 构建 API URL
+  const buildApiUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    const type = getTypeParam();
+    if (type) params.set('type', type);
+    if (searchQuery) params.set('search', searchQuery);
+    if (priorityFilter) params.set('priority', priorityFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (sortField) {
+      params.set('sort', sortField);
+      params.set('order', sortOrder);
+    }
+    params.set('page', page.toString());
+    params.set('pageSize', pageSize.toString());
+    return `/api/tests?${params.toString()}`;
+  }, [activeTab, searchQuery, priorityFilter, statusFilter, sortField, sortOrder, page, pageSize]);
+
+  // 处理优先级筛选
+  const handlePriorityFilter = (value: string) => {
+    setPriorityFilter(value === 'ALL' ? '' : value);
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+  };
+
+  // 处理状态筛选
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value === 'ALL' ? '' : value);
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+  };
+
+  // 处理排序
+  const handleSort = (value: string) => {
+    const [field, order] = value.split(':');
+    setSortField(field);
+    setSortOrder(order as 'asc' | 'desc');
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+  };
+
+  // 清除所有筛选
+  const handleClearFilters = () => {
+    setPriorityFilter('');
+    setStatusFilter('');
+    setSortField('createdAt');
+    setSortOrder('desc');
+    setSearchQuery('');
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+  };
+
+  // 是否有激活的筛选
+  const hasActiveFilters = priorityFilter || statusFilter || searchQuery;
+
+  // 获取数据
+  const { data, error, isLoading, mutate } = useSWR(
+    activeTab !== 'ai' ? buildApiUrl() : null,
+    fetcher,
+    swrOptions
+  );
+
+  const tests: Test[] = data?.data?.list || [];
+  const meta: PaginationMeta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+
+  // 删除测试
+  const handleDeleteTest = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/tests/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (result.code === 0) {
+        mutate();
+      } else {
+        alert(result.message || '删除失败');
+      }
+    } catch (e) {
+      alert('删除失败');
+    }
+  }, [mutate]);
+
+  // 处理搜索
+  const handleSearch = () => {
+    setPage(1);
+    setInfinitePage(1);
+    setInfiniteItems([]);
+    mutate();
+  };
+
+  // 加载更多（无限滚动）
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoading) return;
+    
+    const nextPage = infinitePage + 1;
+    const params = new URLSearchParams();
+    const type = getTypeParam();
+    if (type) params.set('type', type);
+    if (searchQuery) params.set('search', searchQuery);
+    params.set('page', nextPage.toString());
+    params.set('pageSize', '20');
+    
+    try {
+      const res = await fetch(`/api/tests?${params.toString()}`);
+      const result = await res.json();
+      
+      if (result.data?.list?.length > 0) {
+        setInfiniteItems(prev => [...prev, ...result.data.list]);
+        setInfinitePage(nextPage);
+        setHasMore(result.data.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      console.error('Load more failed:', e);
+    }
+  }, [hasMore, isLoading, infinitePage, searchQuery, activeTab]);
+
+  // 切换分页模式
+  const togglePaginationMode = () => {
+    setUseInfiniteScroll(!useInfiniteScroll);
+    setInfiniteItems(tests);
+    setInfinitePage(page);
+    setHasMore(meta.page < meta.totalPages);
+  };
+
+  // 处理导入文件选择
+  const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+    }
+  };
+
+  // 执行导入
+  const handleImport = async () => {
+    if (!importFile) return;
+    
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      
+      const response = await fetch('/api/tests/import', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success('导入成功', {
+          description: `成功导入 ${result.data?.count || 0} 条测试用例`,
+        });
+        setImportDialogOpen(false);
+        setImportFile(null);
+        mutate(); // 刷新列表
+      } else {
+        throw new Error(result.error || '导入失败');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '导入失败';
+      toast.error('导入失败', { description: message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // 执行导出
+  const handleExport = async (format: 'xlsx' | 'json' | 'csv') => {
+    try {
+      const params = new URLSearchParams();
+      params.set('format', format);
+      if (searchQuery) params.set('search', searchQuery);
+      if (activeTab !== 'ai') params.set('type', getTypeParam());
+      
+      const response = await fetch(`/api/tests/export?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tests-export-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('导出成功', {
+        description: `已导出为 ${format.toUpperCase()} 格式`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '导出失败';
+      toast.error('导出失败', { description: message });
+    }
+  };
+
+  const tabs = [
+    { id: 'cases', label: '用例', icon: Beaker },
+    { id: 'suites', label: '套件', icon: Folder },
+    { id: 'ai', label: 'AI生成', icon: Sparkles },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">测试中心</h1>
+          <p className="text-slate-500">
+            共 {meta?.total || 0} 个{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeTab !== 'ai' && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePaginationMode}
+                className="text-slate-500"
+              >
+                {useInfiniteScroll ? '分页模式' : '无限滚动'}
+              </Button>
+              {/* 导入按钮 */}
+              <Button
+                data-testid="import-button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportDialogOpen(true)}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                导入
+              </Button>
+              {/* 导出按钮 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    data-testid="export-button"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    导出
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    导出为 Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('json')}>
+                    <FileJson className="w-4 h-4 mr-2" />
+                    导出为 JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    导出为 CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+          <Button asChild>
+            <Link href={`/tests/new?type=${getTypeParam()}`}>
+              <Plus className="w-4 h-4 mr-2" />
+              新建{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        {/* 搜索行 */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="搜索测试用例、套件..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
+          <Button variant="outline" onClick={handleSearch}>
+            搜索
+          </Button>
+        </div>
+
+        {/* 筛选和排序行 */}
+        {activeTab !== 'ai' && (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 优先级筛选 */}
+            <Select
+              value={priorityFilter || 'ALL'}
+              onValueChange={handlePriorityFilter}
+            >
+              <SelectTrigger 
+                data-testid="priority-filter"
+                className="w-[140px]"
+              >
+                <SelectValue placeholder="优先级" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部优先级</SelectItem>
+                <SelectItem value="CRITICAL">紧急</SelectItem>
+                <SelectItem value="HIGH">高优先级</SelectItem>
+                <SelectItem value="MEDIUM">中</SelectItem>
+                <SelectItem value="LOW">低</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* 状态筛选 */}
+            <Select
+              value={statusFilter || 'ALL'}
+              onValueChange={handleStatusFilter}
+            >
+              <SelectTrigger 
+                data-testid="status-filter"
+                className="w-[140px]"
+              >
+                <SelectValue placeholder="状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部状态</SelectItem>
+                <SelectItem value="ACTIVE">已激活</SelectItem>
+                <SelectItem value="DRAFT">草稿</SelectItem>
+                <SelectItem value="DEPRECATED">已弃用</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* 排序 */}
+            <Select
+              value={`${sortField}:${sortOrder}`}
+              onValueChange={handleSort}
+            >
+              <SelectTrigger 
+                data-testid="sort-select"
+                className="w-[160px]"
+              >
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="排序" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdAt:desc">最新创建</SelectItem>
+                <SelectItem value="createdAt:asc">最早创建</SelectItem>
+                <SelectItem value="name:asc">名称 A-Z</SelectItem>
+                <SelectItem value="name:desc">名称 Z-A</SelectItem>
+                <SelectItem value="priority:desc">优先级高到低</SelectItem>
+                <SelectItem value="priority:asc">优先级低到高</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* 清除筛选按钮 */}
+            {hasActiveFilters && (
+              <Button
+                data-testid="clear-filters-button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="text-slate-500"
+              >
+                <X className="w-4 h-4 mr-1" />
+                清除筛选
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v);
+        setPage(1);
+        setInfinitePage(1);
+        setInfiniteItems([]);
+      }}>
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              <tab.icon className="w-4 h-4 mr-2" />
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="cases" className="mt-6">
+          {useInfiniteScroll ? (
+            <InfiniteTestList
+              tests={infiniteItems.length > 0 ? infiniteItems : tests}
+              hasMore={hasMore}
+              isLoading={isLoading}
+              onLoadMore={loadMore}
+              onDelete={handleDeleteTest}
+            />
+          ) : (
+            <>
+              <TestList
+                tests={tests}
+                isLoading={isLoading}
+                error={error}
+                emptyText="暂无测试用例"
+                onRefresh={() => mutate()}
+                onDelete={handleDeleteTest}
+              />
+              <Pagination
+                currentPage={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="suites" className="mt-6">
+          {useInfiniteScroll ? (
+            <InfiniteTestList
+              tests={infiniteItems.length > 0 ? infiniteItems : tests}
+              hasMore={hasMore}
+              isLoading={isLoading}
+              onLoadMore={loadMore}
+              onDelete={handleDeleteTest}
+            />
+          ) : (
+            <>
+              <TestList
+                tests={tests}
+                isLoading={isLoading}
+                error={error}
+                emptyText="暂无测试套件"
+                onRefresh={() => mutate()}
+                onDelete={handleDeleteTest}
+              />
+              <Pagination
+                currentPage={page}
+                totalPages={meta.totalPages}
+                totalItems={meta.total}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="ai" className="mt-6">
+          <AIGeneratePanel />
+        </TabsContent>
+      </Tabs>
+
+      {/* 导入对话框 */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>导入测试用例</DialogTitle>
+            <DialogDescription>
+              选择要导入的文件，支持 Excel、JSON、CSV 格式
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* 文件格式说明 */}
+            <div className="flex gap-2">
+              {IMPORT_FORMATS.map(format => (
+                <Badge key={format.ext} variant="secondary">
+                  {format.ext}
+                </Badge>
+              ))}
+            </div>
+            
+            {/* 文件选择 */}
+            {!importFile ? (
+              <div
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                onClick={() => importInputRef.current?.click()}
+              >
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  data-testid="import-file-input"
+                  onChange={handleImportFileSelect}
+                  accept=".xlsx,.json,.csv"
+                  className="hidden"
+                />
+                <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-sm text-slate-500">点击选择文件</p>
+                <p className="text-xs text-slate-400 mt-1">支持 .xlsx、.json、.csv</p>
+              </div>
+            ) : (
+              <div className="border rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                  <div>
+                    <p className="font-medium">{importFile.name}</p>
+                    <p className="text-xs text-slate-500">
+                      {(importFile.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setImportFile(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setImportDialogOpen(false);
+                setImportFile(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              data-testid="confirm-import-button"
+              onClick={handleImport}
+              disabled={!importFile || importing}
+            >
+              {importing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  导入中...
+                </>
+              ) : (
+                '确认导入'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// 无限滚动测试列表
+function InfiniteTestList({
+  tests,
+  hasMore,
+  isLoading,
+  onLoadMore,
+  onDelete,
+}: {
+  tests: Test[];
+  hasMore: boolean;
+  isLoading: boolean;
+  onLoadMore: () => void;
+  onDelete?: (id: string) => void;
+}) {
+  if (tests.length === 0 && !isLoading) {
+    return (
+      <div className="border rounded-lg p-12 text-center">
+        <Beaker className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+        <p className="text-slate-500">暂无测试用例</p>
+        <Button variant="outline" className="mt-4" asChild>
+          <Link href="/tests/new">创建第一个</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg divide-y">
+      <InfiniteScroll
+        items={tests}
+        hasMore={hasMore}
+        isLoading={isLoading}
+        onLoadMore={onLoadMore}
+        renderItem={(test) => <TestItem test={test} onDelete={onDelete} />}
+      />
+    </div>
+  );
+}
+
+// 测试列表组件
+function TestList({
+  tests,
+  isLoading,
+  error,
+  emptyText,
+  onRefresh,
+  onDelete,
+}: {
+  tests: Test[];
+  isLoading: boolean;
+  error: any;
+  emptyText: string;
+  onRefresh: () => void;
+  onDelete?: (id: string) => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">加载失败</p>
+        <Button variant="outline" className="mt-4" onClick={onRefresh}>
+          重试
+        </Button>
+      </div>
+    );
+  }
+
+  if (tests.length === 0) {
+    return (
+      <div className="border rounded-lg p-12 text-center">
+        <Beaker className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+        <p className="text-slate-500">{emptyText}</p>
+        <Button variant="outline" className="mt-4" asChild>
+          <Link href="/tests/new">创建第一个</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg divide-y">
+      {tests.map((test) => (
+        <TestItem key={test.id} test={test} onDelete={onDelete} />
+      ))}
+    </div>
+  );
+}
+
+// 安全解析 JSON
+function safeJsonParse<T>(json: string | undefined, defaultValue: T): T {
+  if (!json) return defaultValue;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+// 单个测试项 - 使用 React.memo 优化渲染
+const TestItem = React.memo(function TestItem({ 
+  test,
+  onDelete 
+}: { 
+  test: Test;
+  onDelete?: (id: string) => void;
+}) {
+  const tags = safeJsonParse<string[]>(test.tags, []);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    if (!confirm(`确定要删除测试 "${test.name}" 吗？`)) return;
+    setDeleting(true);
+    await onDelete(test.id);
+    setDeleting(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/tests/${test.id}`}
+            className="font-medium hover:text-blue-600 truncate"
+          >
+            {test.name}
+          </Link>
+          <PriorityBadge priority={test.priority} />
+        </div>
+        {test.description && (
+          <p className="text-sm text-slate-500 mt-1 truncate">{test.description}</p>
+        )}
+        <div className="flex items-center gap-2 mt-2">
+          {tags.slice(0, 5).map((tag: string) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+          {tags.length > 5 && (
+            <Badge variant="outline" className="text-xs">+{tags.length - 5}</Badge>
+          )}
+          <span className="text-xs text-slate-400">
+            执行 {test._count?.executions || 0} 次
+          </span>
+        </div>
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" disabled={deleting}>
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/tests/${test.id}`}>查看</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/tests/${test.id}/edit`}>编辑</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            className="text-red-600"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? '删除中...' : '删除'}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+});
+
+// 优先级标签
+function PriorityBadge({ priority }: { priority: string }) {
+  const colors: Record<string, string> = {
+    CRITICAL: 'bg-red-100 text-red-700',
+    HIGH: 'bg-orange-100 text-orange-700',
+    MEDIUM: 'bg-yellow-100 text-yellow-700',
+    LOW: 'bg-slate-100 text-slate-700',
+  };
+
+  return (
+    <Badge className={colors[priority] || colors.MEDIUM} variant="secondary">
+      {priority === 'CRITICAL' ? '紧急' : priority === 'HIGH' ? '高' : priority === 'MEDIUM' ? '中' : '低'}
+    </Badge>
+  );
+}
+
+// AI 生成面板
+function AIGeneratePanel() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="border rounded-lg p-6 hover:border-blue-300 transition-colors">
+          <Sparkles className="w-8 h-8 mb-4 text-blue-500" />
+          <h3 className="font-medium mb-2">从需求生成</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            输入功能需求，AI 自动生成测试用例
+          </p>
+          <Button variant="outline" className="w-full" asChild>
+            <Link href="/ai-generate">开始生成</Link>
+          </Button>
+        </div>
+        
+        <div className="border rounded-lg p-6 hover:border-blue-300 transition-colors">
+          <FolderOpen className="w-8 h-8 mb-4 text-green-500" />
+          <h3 className="font-medium mb-2">从页面生成</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            选择页面，AI 自动识别元素并生成用例
+          </p>
+          <Button variant="outline" className="w-full" asChild>
+            <Link href="/assets?type=page">选择页面</Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

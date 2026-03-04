@@ -96,13 +96,17 @@ export async function generateTestCases(
   const hasApiKey = !!apiKey || !!process.env.KIMI_API_KEY;
   
   if (!hasApiKey) {
-    console.log('[AI] No API Key configured, using enhanced mock data');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AI] No API Key configured, using enhanced mock data');
+    }
     await new Promise(resolve => setTimeout(resolve, 1500));
     return generateEnhancedMockData(requirement, promptOptions);
   }
 
   try {
-    console.log('[AI] Calling Moonshot API with temperature:', temperature);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AI] Calling Moonshot API with temperature:', temperature);
+    }
     const client = createClient(apiKey);
     
     const response = await client.chat.completions.create({
@@ -119,11 +123,15 @@ export async function generateTestCases(
     });
 
     const content = response.choices[0].message.content;
-    console.log('[AI] API response received, length:', content?.length);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AI] API response received, length:', content?.length);
+    }
     return content || '';
   } catch (error) {
     console.error('[AI] API call failed:', error);
-    console.log('[AI] Falling back to enhanced mock data');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AI] Falling back to enhanced mock data');
+    }
     return generateEnhancedMockData(requirement, promptOptions);
   }
 }

@@ -89,7 +89,9 @@ export function middleware(request: NextRequest) {
   if (apiRedirect) {
     const newUrl = apiRedirect(request);
     if (newUrl) {
-      console.log(`[Middleware] API Redirect: ${pathname} -> ${newUrl}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Middleware] API Redirect: ${pathname} -> ${newUrl}`);
+      }
       return NextResponse.rewrite(new URL(newUrl));
     }
   }
@@ -97,7 +99,9 @@ export function middleware(request: NextRequest) {
   // 2. 检查页面路由重定向
   const pageRedirect = PAGE_REDIRECTS[pathname];
   if (pageRedirect) {
-    console.log(`[Middleware] Page Redirect: ${pathname} -> ${pageRedirect}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Middleware] Page Redirect: ${pathname} -> ${pageRedirect}`);
+    }
     return NextResponse.redirect(new URL(pageRedirect, request.url));
   }
 

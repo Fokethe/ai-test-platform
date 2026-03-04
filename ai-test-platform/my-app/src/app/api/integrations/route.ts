@@ -12,6 +12,7 @@ import {
   errors,
   buildMeta,
 } from '@/lib/api-response';
+import { auth } from '@/lib/auth';
 
 // GET /api/integrations
 export async function GET(request: NextRequest) {
@@ -54,6 +55,10 @@ export async function GET(request: NextRequest) {
 // POST /api/integrations
 export async function POST(request: NextRequest) {
   try {
+    // 获取当前用户
+    const session = await auth();
+    const userId = session?.user?.id || 'system';
+    
     const body = await request.json();
     
     const {
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
         events: typeof events === 'object' ? JSON.stringify(events) : events,
         config: typeof config === 'object' ? JSON.stringify(config) : config,
         projectId,
-        createdBy: 'system', // TODO: 从 session 获取
+        createdBy: userId,
         isActive: true,
       },
     });

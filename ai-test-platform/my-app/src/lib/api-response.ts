@@ -118,6 +118,13 @@ export function errorResponse(
 }
 
 /**
+ * 未授权响应
+ */
+export function unauthorizedResponse() {
+  return errorResponse('未授权', 'UNAUTHORIZED', 401);
+}
+
+/**
  * 常见错误响应
  */
 export const errors = {
@@ -133,8 +140,14 @@ export const errors = {
   forbidden: () =>
     errorResponse('禁止访问', 'FORBIDDEN', 403),
   
+  conflict: (message = '资源冲突') =>
+    errorResponse(message, 'CONFLICT', 409),
+  
   validationError: (details: Record<string, string[]>) =>
     errorResponse('参数验证失败', 'VALIDATION_ERROR', 400, details),
+  
+  internalError: () =>
+    errorResponse('服务器内部错误', 'INTERNAL_ERROR', 500),
 };
 
 /**

@@ -1,26 +1,42 @@
 /**
  * Activity Log Page
  * 活动日志页面 (原 /admin/logs)
+ * TDD Batch 5.2: 实现导出和清空功能
  */
 
 'use client';
 
-import { useState } from 'react';
-import { Activity, Filter, Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, Filter, Download, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
-// 模拟活动日志数据
-const mockLogs = [
-  { id: '1', action: '创建工作空间', user: 'Admin', target: '测试团队', time: '2024-01-15 10:30', type: 'CREATE' },
-  { id: '2', action: '执行测试', user: 'Admin', target: '登录流程测试', time: '2024-01-15 11:00', type: 'EXECUTE' },
-  { id: '3', action: '更新用例', user: 'Admin', target: 'TC-001', time: '2024-01-15 14:20', type: 'UPDATE' },
-  { id: '4', action: '删除项目', user: 'Admin', target: '旧项目', time: '2024-01-14 16:45', type: 'DELETE' },
-  { id: '5', action: '登录系统', user: 'Admin', target: '-', time: '2024-01-15 09:00', type: 'LOGIN' },
-];
+interface Log {
+  id: string;
+  action: string;
+  user: string;
+  target: string;
+  time: string;
+  type: string;
+}
 
 const typeColors: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-800',
@@ -31,15 +47,96 @@ const typeColors: Record<string, string> = {
 };
 
 export default function ActivityPage() {
+  const [logs, setLogs] = useState<Log[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
 
-  const filteredLogs = mockLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         log.target.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === 'ALL' || log.type === filter;
-    return matchesSearch && matchesFilter;
-  });
+  // 加载日志数据
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.set('search', searchQuery);
+      if (filter !== 'ALL') params.set('type', filter);
+      
+      const response = await fetch(`/api/logs?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+      } else {
+        toast.error('加载日志失败');
+      }
+    } catch (error) {
+      toast.error('加载日志失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, filter]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  // 导出日志
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch('/api/logs/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: exportFormat }),
+      });
+
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `activity-logs-${new Date().toISOString().split('T')[0]}.${exportFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('导出成功');
+      setIsExportDialogOpen(false);
+    } catch (error) {
+      toast.error('导出失败');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // 清空日志
+  const handleClear = async () => {
+    setClearing(true);
+    try {
+      const response = await fetch('/api/logs/clear', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('清空失败');
+      }
+
+      toast.success('日志已清空');
+      setIsClearDialogOpen(false);
+      loadLogs(); // 刷新日志列表
+    } catch (error) {
+      toast.error('清空失败');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -52,10 +149,24 @@ export default function ActivityPage() {
           </h1>
           <p className="text-slate-500 mt-1">查看系统操作记录</p>
         </div>
-        <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          导出日志
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsClearDialogOpen(true)}
+            disabled={logs.length === 0}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            清空日志
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsExportDialogOpen(true)}
+            disabled={logs.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            导出日志
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -88,12 +199,12 @@ export default function ActivityPage() {
       {/* Log List */}
       <Card>
         <CardHeader>
-          <CardTitle>最近活动</CardTitle>
+          <CardTitle>最近活动 {loading && <Loader2 className="inline h-4 w-4 animate-spin ml-2" />}</CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px]">
             <div className="space-y-4">
-              {filteredLogs.map((log) => (
+              {logs.map((log) => (
                 <div
                   key={log.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
@@ -112,7 +223,7 @@ export default function ActivityPage() {
                   <span className="text-sm text-slate-400">{log.time}</span>
                 </div>
               ))}
-              {filteredLogs.length === 0 && (
+              {logs.length === 0 && !loading && (
                 <div className="text-center py-8 text-slate-500">
                   没有找到匹配的日志
                 </div>
@@ -121,6 +232,84 @@ export default function ActivityPage() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* 导出对话框 */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>导出日志</DialogTitle>
+            <DialogDescription>
+              选择导出格式，导出当前筛选的日志记录
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex gap-4">
+              <Button
+                variant={exportFormat === 'csv' ? 'default' : 'outline'}
+                onClick={() => setExportFormat('csv')}
+                className="flex-1"
+              >
+                CSV 格式
+              </Button>
+              <Button
+                variant={exportFormat === 'json' ? 'default' : 'outline'}
+                onClick={() => setExportFormat('json')}
+                className="flex-1"
+              >
+                JSON 格式
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleExport} disabled={exporting}>
+              {exporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  导出中...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  确认导出
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 清空确认对话框 */}
+      <Dialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认清空</DialogTitle>
+            <DialogDescription>
+              确定要清空所有日志吗？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsClearDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleClear} disabled={clearing}>
+              {clearing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  清空中...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  确认清空
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

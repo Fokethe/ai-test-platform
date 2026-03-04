@@ -107,7 +107,9 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user }) {
-      console.log('User signed in:', user.email);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('User signed in:', user.email);
+      }
     },
   },
   debug: process.env.NODE_ENV === 'development',

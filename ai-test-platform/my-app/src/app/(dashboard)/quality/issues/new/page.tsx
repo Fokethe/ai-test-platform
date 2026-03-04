@@ -4,14 +4,102 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bug, Plus, Loader2, ArrowLeft } from 'lucide-react';
+import { Bug, Loader2, ArrowLeft, Upload, X, FileImage, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
+import { toast } from 'sonner';
+
+// 附件上传组件
+function AttachmentUpload() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback((selectedFiles: FileList | null) => {
+    if (!selectedFiles) return;
+    
+    const newFiles = Array.from(selectedFiles);
+    const validFiles = newFiles.filter(file => {
+      // 限制文件大小 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} 超过10MB限制`);
+        return false;
+      }
+      return true;
+    });
+    
+    setFiles(prev => [...prev, ...validFiles]);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    handleFileSelect(e.dataTransfer.files);
+  }, [handleFileSelect]);
+
+  const removeFile = useCallback((index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return <FileImage className="h-5 w-5 text-blue-500" />;
+    return <FileText className="h-5 w-5 text-slate-500" />;
+  };
+
+  return (
+    <div>
+      <label className="text-sm font-medium">附件</label>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => handleFileSelect(e.target.files)}
+        multiple
+        accept="image/*,.txt,.log,.pdf"
+        className="hidden"
+      />
+      
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => fileInputRef.current?.click()}
+        className="mt-2 border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-slate-300 transition-colors"
+      >
+        <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+        <p className="text-sm text-slate-600">拖拽文件到此处，或点击上传</p>
+        <p className="text-xs text-slate-400 mt-1">支持图片、PDF、文本文件，单个文件最大10MB</p>
+      </div>
+
+      {files.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {files.map((file, index) => (
+            <div key={index} className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
+              {getFileIcon(file)}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{file.name}</p>
+                <p className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeFile(index);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CreateIssuePage() {
   const router = useRouter();
@@ -126,13 +214,7 @@ export default function CreateIssuePage() {
         </div>
 
         {/* 截图/附件 */}
-        <div>
-          <label className="text-sm font-medium">附件</label>
-          <div className="mt-2 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
-            <p className="text-slate-500">拖拽文件到此处，或点击上传</p>
-            <p className="text-xs text-slate-400 mt-1">支持图片、视频、日志文件</p>
-          </div>
-        </div>
+        <AttachmentUpload />
 
         {/* 操作按钮 */}
         <div className="flex gap-4 pt-6 border-t">

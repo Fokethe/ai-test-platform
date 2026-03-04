@@ -1,12 +1,13 @@
 /**
  * System Settings Page
  * 系统配置页面
+ * TDD Batch 5.3: 对接真实API
  */
 
 'use client';
 
-import { useState } from 'react';
-import { Settings, Save, Database, Shield, Bell, Mail } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Save, Database, Shield, Bell, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -14,26 +15,98 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
+interface SystemConfig {
+  emailNotifications: boolean;
+  webhookNotifications: boolean;
+  require2FA: boolean;
+  sessionTimeout: number;
+  autoCleanup: boolean;
+  retentionDays: number;
+}
+
 export default function SystemSettingsPage() {
-  const [settings, setSettings] = useState({
-    // 通知设置
+  const [settings, setSettings] = useState<SystemConfig>({
     emailNotifications: true,
     webhookNotifications: false,
-    // 安全设置
     require2FA: false,
     sessionTimeout: 30,
-    // 存储设置
     autoCleanup: true,
     retentionDays: 90,
   });
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // 加载系统配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/system/config');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data) {
+            setSettings({
+              emailNotifications: data.data.emailNotifications ?? true,
+              webhookNotifications: data.data.webhookNotifications ?? false,
+              require2FA: data.data.require2FA ?? false,
+              sessionTimeout: data.data.sessionTimeout ?? 30,
+              autoCleanup: data.data.autoCleanup ?? true,
+              retentionDays: data.data.retentionDays ?? 90,
+            });
+          }
+        }
+      } catch (error) {
+        toast.error('加载配置失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    toast.success('系统设置已保存');
-    setSaving(false);
+    try {
+      const response = await fetch('/api/system/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      if (response.ok) {
+        toast.success('系统设置已保存');
+      } else {
+        toast.error('保存失败');
+      }
+    } catch (error) {
+      toast.error('保存失败');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Settings className="h-6 w-6" />
+              系统配置
+            </h1>
+            <p className="text-slate-500 mt-1">管理系统全局设置</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

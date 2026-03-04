@@ -13,7 +13,11 @@ module.exports = {
         '!**/app/api/**/__tests__/**/*.test.ts',
       ],
       transform: {
-        '^.+\.tsx?$': 'babel-jest',
+        '^.+\.tsx?$': ['ts-jest', {
+          tsconfig: {
+            jsx: 'react-jsx',
+          },
+        }],
       },
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
@@ -30,7 +34,11 @@ module.exports = {
         '**/app/api/**/__tests__/**/*.test.ts',
       ],
       transform: {
-        '^.+\.tsx?$': 'babel-jest',
+        '^.+\.tsx?$': ['ts-jest', {
+          tsconfig: {
+            jsx: 'react-jsx',
+          },
+        }],
       },
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',

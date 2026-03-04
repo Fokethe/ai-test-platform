@@ -130,7 +130,9 @@ class SchedulerEngineClass {
     }
 
     this.isRunning = true;
-    console.log(`[Scheduler] Initialized with ${tasks.length} tasks`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Scheduler] Initialized with ${tasks.length} tasks`);
+    }
   }
 
   /**
@@ -160,7 +162,9 @@ class SchedulerEngineClass {
         this.timers.set(task.id, timeoutId);
       }
 
-      console.log(`[Scheduler] Task "${task.name}" scheduled for ${nextRun.toISOString()}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Scheduler] Task "${task.name}" scheduled for ${nextRun.toISOString()}`);
+      }
     } catch (error) {
       console.error(`[Scheduler] Failed to schedule task ${task.id}:`, error);
     }
@@ -186,7 +190,9 @@ class SchedulerEngineClass {
     });
 
     if (!task || !task.isActive) {
-      console.log(`[Scheduler] Task ${taskId} not found or inactive`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Scheduler] Task ${taskId} not found or inactive`);
+      }
       return;
     }
 
@@ -204,7 +210,9 @@ class SchedulerEngineClass {
       throw new Error('No test cases assigned to task');
     }
 
-    console.log(`[Scheduler] Executing task "${task.name}" with ${testCaseIds.length} test cases`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Scheduler] Executing task "${task.name}" with ${testCaseIds.length} test cases`);
+    }
 
     // 创建测试运行记录
     const testRun = await prisma.testRun.create({
@@ -242,7 +250,9 @@ class SchedulerEngineClass {
           },
         });
 
-        console.log(`[Scheduler] Task "${task.name}" completed: ${passed} passed, ${failed} failed`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Scheduler] Task "${task.name}" completed: ${passed} passed, ${failed} failed`);
+        }
       })
       .catch((error) => {
         console.error(`[Scheduler] Task "${task.name}" failed:`, error);
@@ -266,7 +276,9 @@ class SchedulerEngineClass {
   stop(): void {
     for (const [taskId, timeoutId] of this.timers) {
       clearTimeout(timeoutId);
-      console.log(`[Scheduler] Cancelled task ${taskId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Scheduler] Cancelled task ${taskId}`);
+      }
     }
     this.timers.clear();
     this.isRunning = false;

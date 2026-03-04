@@ -82,6 +82,7 @@ model User {
   inbox            Inbox[]
   reportedIssues   Issue[] @relation("IssueReporter")
   assignedIssues   Issue[] @relation("IssueAssignee")
+  customFields     CustomField[]
 
   @@map("users")
 }
@@ -628,7 +629,61 @@ model AiRequirement {
   testPoints    TestPoint[]
   
   @@index([projectId, createdAt])
-  @@map("ai_requirements")
+  @@map("activities")
+}
+
+// ==================== 自定义字段模块 ====================
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTISELECT
+  DATE
+  BOOLEAN
+}
+
+model CustomField {
+  id          String   @id @default(cuid())
+  name        String   // 字段名称 (显示名)
+  key         String   // 字段标识 (英文, 用于API)
+  description String?  // 字段描述
+  
+  type        CustomFieldType // 字段类型
+  options     String?  // JSON - 选项列表 (for SELECT/MULTISELECT)
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+  
+  projectId   String   @map("project_id")
+  createdBy   String   @map("created_by")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values      CustomFieldValue[]
+  
+  @@unique([projectId, key])
+  @@index([projectId, type])
+  @@map("custom_fields")
+}
+
+model CustomFieldValue {
+  id        String @id @default(cuid())
+  value     String // 存储为字符串，根据类型解析
+  
+  fieldId   String @map("field_id")
+  field     CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  
+  testId    String @map("test_id")
+  test      Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@unique([fieldId, testId])
+  @@index([testId])
+  @@map("custom_field_values")
 }
 
 model TestPoint {
@@ -692,6 +747,7 @@ model Test {
   children    Test[]    @relation("TestHierarchy")
   executions  Execution[]
   issues      Issue[]
+  customFieldValues CustomFieldValue[]
   
   @@index([projectId, type])
   @@index([parentId])

@@ -85,13 +85,55 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    // TODO: 存储到数据库（暂时跳过，后续实现）
-    // await prisma.requirement.create({ data: result });
+    // 存储到数据库
+    try {
+      // 创建需求记录
+      const savedRequirement = await prisma.aiRequirement.create({
+        data: {
+          id,
+          title: parsedDoc.title,
+          type: parsedDoc.type,
+          filename: parsedDoc.filename,
+          content: parsedDoc.content,
+          rawText: parsedDoc.rawText,
+          size: parsedDoc.size,
+          features: JSON.stringify(parsedRequirement.features),
+          businessRules: JSON.stringify(parsedRequirement.businessRules),
+          projectId,
+          createdBy: null,
+        },
+      });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
+      // 存储测试点
+      if (parsedRequirement.testPoints && parsedRequirement.testPoints.length > 0) {
+        await prisma.testPoint.createMany({
+          data: parsedRequirement.testPoints.map((point: any, index: number) => ({
+            id: randomUUID(),
+            name: point.name,
+            description: point.description,
+            priority: point.priority || 'MEDIUM',
+            relatedFeature: point.relatedFeature || '',
+            requirementId: id,
+            order: index,
+            createdAt: new Date(),
+          })),
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...result,
+          dbId: savedRequirement.id,
+        },
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return NextResponse.json({
+        success: false,
+        error: '数据库存储失败',
+      }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('Upload error:', error);

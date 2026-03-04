@@ -23,6 +23,8 @@ import {
   Bug,
   Beaker,
   RotateCcw,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -182,6 +184,19 @@ export default function RunDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* 查看报告按钮 */}
+          {!isRunning && (
+            <Button 
+              variant="outline" 
+              asChild
+              data-testid="view-report-button"
+            >
+              <Link href={`/runs/${id}/report`}>
+                <FileText className="w-4 h-4 mr-2" />
+                查看报告
+              </Link>
+            </Button>
+          )}
           {isRunning ? (
             <Button variant="outline" onClick={handleCancel} disabled={isCancelling}>
               <XCircle className="w-4 h-4 mr-2" />

@@ -107,6 +107,14 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeleteAvatarDialog, setShowDeleteAvatarDialog] = useState(false);
+  
+  // 邮箱修改对话框
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailData, setEmailData] = useState({
+    newEmail: '',
+    password: '',
+  });
 
   // 加载用户数据
   useEffect(() => {
@@ -304,6 +312,44 @@ export default function ProfilePage() {
     }
   };
 
+  // 修改邮箱
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!emailData.newEmail || !emailData.password) {
+      toast.error('请填写所有字段');
+      return;
+    }
+
+    setEmailLoading(true);
+    try {
+      const res = await fetch('/api/user/profile/email', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailData.newEmail,
+          password: emailData.password,
+        }),
+      });
+
+      const result = await res.json();
+      
+      if (result.code === 0) {
+        toast.success('邮箱修改成功');
+        setFormData(prev => ({ ...prev, email: result.data.email }));
+        setEmailData({ newEmail: '', password: '' });
+        setShowEmailDialog(false);
+        await update();
+      } else {
+        toast.error(result.message || '修改失败');
+      }
+    } catch (error) {
+      toast.error('修改邮箱失败');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -398,10 +444,20 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  <Mail className="inline h-4 w-4 mr-1" />
-                  邮箱
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email">
+                    <Mail className="inline h-4 w-4 mr-1" />
+                    邮箱
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowEmailDialog(true)}
+                  >
+                    修改邮箱
+                  </Button>
+                </div>
                 <Input
                   id="email"
                   type="email"
@@ -409,7 +465,6 @@ export default function ProfilePage() {
                   disabled
                   placeholder="您的邮箱"
                 />
-                <p className="text-xs text-slate-500">邮箱暂不支持修改</p>
               </div>
 
               <Button type="submit" disabled={loading}>
@@ -666,6 +721,58 @@ export default function ProfilePage() {
               删除
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 修改邮箱对话框 */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>修改邮箱</DialogTitle>
+            <DialogDescription>
+              请输入新邮箱地址和当前密码进行验证
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleChangeEmail} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newEmail">新邮箱地址</Label>
+              <Input
+                id="newEmail"
+                type="email"
+                placeholder="请输入新邮箱"
+                value={emailData.newEmail}
+                onChange={(e) => setEmailData({ ...emailData, newEmail: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emailPassword">当前密码</Label>
+              <Input
+                id="emailPassword"
+                type="password"
+                placeholder="请输入当前密码验证身份"
+                value={emailData.password}
+                onChange={(e) => setEmailData({ ...emailData, password: e.target.value })}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowEmailDialog(false);
+                  setEmailData({ newEmail: '', password: '' });
+                }}
+              >
+                取消
+              </Button>
+              <Button type="submit" disabled={emailLoading}>
+                {emailLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                确认修改
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -14,6 +14,7 @@ import {
   buildMeta,
 } from '@/lib/api-response';
 import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { auth } from '@/lib/auth';
 
 // GET /api/tests - 列表
 export async function GET(request: NextRequest) {
@@ -83,6 +84,10 @@ export async function GET(request: NextRequest) {
 
 // POST /api/tests - 创建
 export async function POST(request: NextRequest) {
+  // 获取当前用户
+  const session = await auth();
+  const userId = session?.user?.id || 'system';
+  
   const parseResult = await parseJsonBody<{
     name: string;
     description?: string;
@@ -127,7 +132,7 @@ export async function POST(request: NextRequest) {
         tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
         priority,
         source,
-        createdBy: 'system', // TODO: 从 session 获取
+        createdBy: userId,
       },
     });
     
