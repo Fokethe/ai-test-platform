@@ -37,7 +37,7 @@ export async function GET(
     const { id } = await params
 
     // 查询知识库条目
-    const knowledge = await prisma.knowledgeBase.findUnique({
+    const knowledge = await prisma.knowledgeEntry.findUnique({
       where: { id },
       include: {
         author: {
@@ -90,7 +90,7 @@ export async function PUT(
     const { id } = await params
 
     // 检查知识库条目是否存在
-    const existing = await prisma.knowledgeBase.findUnique({
+    const existing = await prisma.knowledgeEntry.findUnique({
       where: { id },
     })
 
@@ -108,7 +108,7 @@ export async function PUT(
     const data = updateKnowledgeSchema.parse(body)
 
     // 更新知识库条目
-    const knowledge = await prisma.knowledgeBase.update({
+    const knowledge = await prisma.knowledgeEntry.update({
       where: { id },
       data: {
         ...(data.title && { title: data.title }),
@@ -139,7 +139,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '数据验证失败', details: error.errors },
+        { error: '数据验证失败', details: error.issues },
         { status: 400 }
       )
     }
@@ -165,7 +165,7 @@ export async function DELETE(
     const { id } = await params
 
     // 检查知识库条目是否存在
-    const existing = await prisma.knowledgeBase.findUnique({
+    const existing = await prisma.knowledgeEntry.findUnique({
       where: { id },
     })
 
@@ -180,7 +180,7 @@ export async function DELETE(
     }
 
     // 删除知识库条目
-    await prisma.knowledgeBase.delete({
+    await prisma.knowledgeEntry.delete({
       where: { id },
     })
 

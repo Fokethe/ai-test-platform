@@ -2,7 +2,7 @@
 /**
  * TDD Round 13 - 知识库管理 API
  * GET /api/knowledge - 列表查询（支持分页、搜索）
- * POST /api/knowledge - 创建知识条目
+ * POST /api/knowledge - 创建知识库条目
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 查询总数
-    const total = await prisma.knowledgeBase.count({ where })
+    const total = await prisma.knowledgeEntry.count({ where })
 
     // 查询列表
-    const items = await prisma.knowledgeBase.findMany({
+    const items = await prisma.knowledgeEntry.findMany({
       where,
       skip,
       take: pageSize,
@@ -120,11 +120,11 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('获取知识库列表失败:', error)
+    console.error('获取知识库列表失败', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '参数验证失败', details: error.errors },
+        { error: '参数验证失败', details: error.issues },
         { status: 400 }
       )
     }
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建知识库条目
-    const knowledge = await prisma.knowledgeBase.create({
+    const knowledge = await prisma.knowledgeEntry.create({
       data: {
         title: data.title,
         content: data.content,
@@ -182,11 +182,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: knowledge }, { status: 201 })
   } catch (error) {
-    console.error('创建知识库条目失败:', error)
+    console.error('创建知识库条目失败', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '数据验证失败', details: error.errors },
+        { error: '数据验证失败', details: error.issues },
         { status: 400 }
       )
     }
@@ -216,7 +216,7 @@ async function checkProjectAccess(userId: string, projectId: string): Promise<bo
 
     return !!project
   } catch (error) {
-    console.error('检查项目权限失败:', error)
+    console.error('检查项目权限失败', error)
     return false
   }
 }

@@ -4,7 +4,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import RequirementReviewPage from '../page';
+import RequirementReviewPage from '../[id]/page';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({

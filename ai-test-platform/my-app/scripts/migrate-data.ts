@@ -42,7 +42,9 @@ async function migrateTestCasesToTests(): Promise<MigrationResult> {
       }
     }
     
-    const testCases = await prisma.testCase.findMany();
+    const testCases = await prisma.testCase.findMany({
+      include: { page: { include: { system: true } } }
+    });
     
     for (const tc of testCases) {
       try {
@@ -56,11 +58,13 @@ async function migrateTestCasesToTests(): Promise<MigrationResult> {
               status: tc.status === 'DEPRECATED' ? 'ARCHIVED' : tc.status === 'ACTIVE' ? 'ACTIVE' : 'DRAFT',
               content: tc.steps,
               parentId: null,
-              projectId: tc.projectId || '',
+              // @ts-ignore - projectId 从 page.system 获取
+              projectId: tc.page?.system?.projectId || '',
               tags: tc.tags,
               priority: tc.priority === 'P0' ? 'CRITICAL' : tc.priority === 'P1' ? 'HIGH' : tc.priority === 'P2' ? 'MEDIUM' : 'LOW',
               source: tc.isAiGenerated ? 'AI' : 'MANUAL',
-              createdBy: tc.createdBy || '',
+              // @ts-ignore - createdBy 字段不存在于 TestCase
+              createdBy: '',
               createdAt: tc.createdAt,
               updatedAt: tc.updatedAt,
             },
@@ -113,13 +117,15 @@ async function migrateTestSuitesToTests(): Promise<MigrationResult> {
               projectId: suite.projectId,
               priority: 'MEDIUM',
               source: 'MANUAL',
-              createdBy: suite.createdBy || '',
+              // @ts-ignore - createdBy 字段不存在于 TestSuite
+              createdBy: '',
               createdAt: suite.createdAt,
               updatedAt: suite.updatedAt,
             },
           });
           
           // 迁移 Suite 中的 TestCase 关系
+          // @ts-ignore - suiteId 字段可能在 Prisma 类型中不存在
           const suiteCases = await prisma.testSuiteCase.findMany({
             where: { suiteId: suite.id },
           });

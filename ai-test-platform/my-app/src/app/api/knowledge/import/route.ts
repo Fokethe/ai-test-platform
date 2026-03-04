@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
       try {
         // 检查是否已存在相同标题的条目
-        const existing = await prisma.knowledgeBase.findFirst({
+        const existing = await prisma.knowledgeEntry.findFirst({
           where: {
             projectId: data.projectId,
             title: item.title,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         let knowledge
         if (existing) {
           // 更新已存在的条目
-          knowledge = await prisma.knowledgeBase.update({
+          knowledge = await prisma.knowledgeEntry.update({
             where: { id: existing.id },
             data: {
               content: item.content,
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
           })
         } else {
           // 创建新条目
-          knowledge = await prisma.knowledgeBase.create({
+          knowledge = await prisma.knowledgeEntry.create({
             data: {
               title: item.title,
               content: item.content,
@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('批量导入知识库失败:', error)
+    console.error('批量导入知识库失败', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '数据验证失败', details: error.errors },
+        { error: '数据验证失败', details: error.issues },
         { status: 400 }
       )
     }
@@ -156,7 +156,7 @@ async function checkProjectAccess(userId: string, projectId: string): Promise<bo
 
     return !!project
   } catch (error) {
-    console.error('检查项目权限失败:', error)
+    console.error('检查项目权限失败', error)
     return false
   }
 }

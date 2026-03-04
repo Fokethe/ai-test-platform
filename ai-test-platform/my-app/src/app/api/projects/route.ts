@@ -1,3 +1,4 @@
+// encoding: utf-8
 /**
  * Projects API
  * 项目管理
@@ -13,8 +14,8 @@ import { z } from 'zod';
 
 // Project 创建验证 Schema
 const createProjectSchema = z.object({
-  name: z.string().min(1, '项目名称不能为空').max(100, '项目名称最多100个字符'),
-  description: z.string().max(500, '项目描述最多500个字符').optional(),
+  name: z.string().min(1, '项目名称不能为空').max(100, '项目名称最大100个字符'),
+  description: z.string().max(500, '项目描述最大500个字符').optional(),
   workspaceId: z.string().min(1, '工作空间ID不能为空'),
   status: z.enum(['ACTIVE', 'ARCHIVED', 'DELETED']).optional(),
 });
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
     const validationResult = createProjectSchema.safeParse(parseResult.data);
     
     if (!validationResult.success) {
-      const errorMessages = validationResult.error.errors.map(err => 
+      const errorMessages = validationResult.error.issues.map(err => 
         `${err.path.join('.')}: ${err.message}`
       ).join('; ');
       return errors.badRequest(`输入验证失败: ${errorMessages}`);

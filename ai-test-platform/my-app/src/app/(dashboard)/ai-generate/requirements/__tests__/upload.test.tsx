@@ -6,7 +6,7 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
-import RequirementUploadPage from '../page'
+import RequirementUploadPage from '../upload/page'
 
 // Mock Next.js navigation
 const mockPush = jest.fn()
