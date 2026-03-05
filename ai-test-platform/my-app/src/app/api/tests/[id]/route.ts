@@ -87,12 +87,12 @@ export async function GET(
       failCount: executionStats.find(s => s.status === 'FAILED')?._count.status || 0
     };
 
-    return Response.json(successResponse({
+    return successResponse({
       ...test,
       steps,
       tags,
       ...stats
-    }));
+    });
   } catch (error) {
     console.error('Get test error:', error);
     return errorResponse('获取测试详情失败', 500);

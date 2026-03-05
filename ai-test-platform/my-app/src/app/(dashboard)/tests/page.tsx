@@ -31,6 +31,7 @@ import {
   CheckSquare,
   Square,
   Settings,
+  RefreshCw,
 } from 'lucide-react';
 import {
   Select,
@@ -63,8 +64,17 @@ import { Pagination } from '@/components/ui/pagination';
 import { InfiniteScroll } from '@/components/ui/virtual-list';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { safeJsonParse } from '@/lib/utils/json';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+// SWR 配置 - 30分钟定时刷新
+const swrOptions = {
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+  dedupingInterval: 2000,
+  refreshInterval: 30 * 60 * 1000, // 30分钟定时刷新
+};
 
 interface Test {
   id: string;
@@ -108,12 +118,6 @@ interface SuiteItem {
 
 type TestStatus = 'ACTIVE' | 'DRAFT' | 'DEPRECATED' | 'ARCHIVED';
 
-// 使用 useMemo 缓存 fetcher 配置
-const swrOptions = {
-  revalidateOnFocus: false,
-  revalidateOnReconnect: true,
-  dedupingInterval: 5000,
-};
 
 // 支持的导入格式
 const IMPORT_FORMATS = [
@@ -688,6 +692,15 @@ export default function TestCenterPage() {
           <Button variant="outline" onClick={handleSearch}>
             搜索
           </Button>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={async () => { console.log('手动刷新触发'); await mutate(undefined, { revalidate: true }); }}
+            disabled={isLoading}
+            title="刷新"
+          >
+            <RefreshCw className={"w-4 h-4 " + (isLoading ? 'animate-spin' : '')} />
+          </Button>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/settings/custom-fields">
               <Settings className="w-4 h-4 mr-2" />
@@ -1259,15 +1272,6 @@ function TestList({
   );
 }
 
-// 安全解析 JSON
-function safeJsonParse<T>(json: string | undefined, defaultValue: T): T {
-  if (!json) return defaultValue;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return defaultValue;
-  }
-}
 
 // 单个测试项 - 使用 React.memo 优化渲染
 const TestItem = React.memo(function TestItem({ 

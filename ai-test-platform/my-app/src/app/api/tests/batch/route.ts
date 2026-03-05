@@ -46,7 +46,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { code: 400, message: result.error.errors[0].message, data: null },
+        { code: 400, message: result.error.issues[0].message, data: null },
         { status: 400 }
       );
     }
@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { code: 400, message: result.error.errors[0].message, data: null },
+        { code: 400, message: result.error.issues[0].message, data: null },
         { status: 400 }
       );
     }
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { code: 400, message: result.error.errors[0].message, data: null },
+        { code: 400, message: result.error.issues[0].message, data: null },
         { status: 400 }
       );
     }

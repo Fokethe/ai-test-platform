@@ -82,7 +82,6 @@ model User {
   inbox            Inbox[]
   reportedIssues   Issue[] @relation("IssueReporter")
   assignedIssues   Issue[] @relation("IssueAssignee")
-  customFields     CustomField[]
 
   @@map("users")
 }
@@ -190,6 +189,7 @@ model Project {
   issues        Issue[]
   assets        Asset[]
   integrations  Integration[]
+  customFields  CustomField[]
 
   @@map("projects")
 }
@@ -628,8 +628,8 @@ model AiRequirement {
   // 关系
   testPoints    TestPoint[]
   
-  @@index([projectId, createdAt])
-  @@map("activities")
+  @@index([projectId, createdAt], map: "ai_requirements_project_id_created_at_idx")
+  @@map("ai_requirements")
 }
 
 // ==================== 自定义字段模块 ====================
@@ -938,7 +938,7 @@ model Asset {
   tags        String?    // JSON array
   
   // 关联
-  projectId   String     @map("project_id")
+  projectId   String?    @map("project_id")
   createdBy   String     @map("created_by")
   
   // 时间
@@ -946,10 +946,15 @@ model Asset {
   updatedAt   DateTime   @updatedAt @map("updated_at")
   
   // 关系
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
   
-  @@index([projectId, type])
-  @@index([tags])
+  // 性能优化索引
+  @@index([status])                      // 过滤已删除资产
+  @@index([projectId, status])           // 项目+状态查询
+  @@index([projectId, type, status])     // 列表页查询
+  @@index([updatedAt])                   // 排序
+  @@index([title])                       // 搜索
+  @@index([createdBy])
   @@map("assets")
 }
 
@@ -1085,8 +1090,8 @@ model Activity {
   
   createdAt DateTime @default(now()) @map("created_at")
   
-  @@index([projectId, createdAt])
-  @@index([targetId, createdAt])
-  @@index([actorId, createdAt])
+  @@index([projectId, createdAt], map: "activities_project_id_created_at_idx")
+  @@index([targetId, createdAt], map: "activities_target_id_created_at_idx")
+  @@index([actorId, createdAt], map: "activities_actor_id_created_at_idx")
   @@map("activities")
 }

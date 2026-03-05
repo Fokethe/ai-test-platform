@@ -24,7 +24,19 @@ export async function GET(
 
     const asset = await prisma.asset.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        type: true,
+        status: true,
+        content: true,
+        url: true,
+        selector: true,
+        tags: true,
+        projectId: true,
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: { id: true, name: true }
         }
@@ -56,11 +68,11 @@ export async function GET(
       }
     }
 
-    return Response.json(successResponse({
+    return successResponse({
       ...asset,
       tags,
       selectors
-    }));
+    });
   } catch (error) {
     console.error('Get asset error:', error);
     return errorResponse('获取资产详情失败', 500);

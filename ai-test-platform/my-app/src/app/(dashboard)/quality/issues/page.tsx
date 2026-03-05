@@ -15,6 +15,7 @@ import {
   Loader2,
   MoreHorizontal,
   Filter,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ const swrOptions = {
   revalidateOnFocus: false,
   revalidateOnReconnect: true,
   dedupingInterval: 5000,
+  refreshInterval: 30 * 60 * 1000,
 };
 
 export default function IssuesPage() {
@@ -76,8 +78,8 @@ export default function IssuesPage() {
     swrOptions
   );
 
-  const issues: Issue[] = data?.data || [];
-  const meta = data?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const issues: Issue[] = data?.data?.list || [];
+  const meta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
   const tabs = [
     { id: 'all', label: '全部' },
@@ -88,6 +90,10 @@ export default function IssuesPage() {
 
   const handleSearch = () => {
     setPage(1);
+    mutate();
+  };
+
+  const handleRefresh = () => {
     mutate();
   };
 
@@ -124,6 +130,10 @@ export default function IssuesPage() {
         <Button variant="outline" onClick={handleSearch}>
           <Filter className="w-4 h-4 mr-2" />
           筛选
+        </Button>
+        <Button variant="outline" onClick={handleRefresh}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          刷新
         </Button>
       </div>
 

@@ -95,8 +95,8 @@ export default function RunCenterPage() {
     swrOptions
   );
 
-  const runs: Run[] = runsData?.data || [];
-  const scheduled: Run[] = scheduledData?.data || [];
+  const runs: Run[] = Array.isArray(runsData?.data) ? runsData.data : [];
+  const scheduled: Run[] = Array.isArray(scheduledData?.data) ? scheduledData.data : [];
   const runsMeta: PaginationMeta = runsData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
   const scheduledMeta: PaginationMeta = scheduledData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 

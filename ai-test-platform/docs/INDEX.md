@@ -40,11 +40,20 @@ docs/
 | 健康检查 | [99-历史归档/HEALTH_CHECK_REPORT.md](./99-历史归档/HEALTH_CHECK_REPORT.md) | 系统健康度检查 |
 | 项目清理 | [99-历史归档/PROJECT_CLEANUP_REPORT.md](./99-历史归档/PROJECT_CLEANUP_REPORT.md) | 清理执行报告 |
 
+### 使用指南
+| 文档 | 位置 | 说明 |
+|------|------|------|
+| **系统账号** | [04-使用指南/系统账号.md](./04-使用指南/系统账号.md) | 内置测试账号密码 |
+| **KIMI 指南** | [04-使用指南/KIMI.md](./04-使用指南/KIMI.md) | AI 协作规范 |
+| **CLAUDE 指南** | [04-使用指南/CLAUDE.md](./04-使用指南/CLAUDE.md) | Claude 使用指南 |
+| **Vibe Coding** | [04-使用指南/Kimi_Code_Vibe_Coding_Guide.md](./04-使用指南/Kimi_Code_Vibe_Coding_Guide.md) | AI 辅助编程 |
+
 ### 角色指南
 | 角色 | 推荐文档 |
 |------|---------|
 | **产品经理** | [05-参考资料/PRD.md](./05-参考资料/PRD.md) |
 | **开发人员** | [04-使用指南/KIMI.md](./04-使用指南/KIMI.md), [CLAUDE.md](./04-使用指南/CLAUDE.md) |
+| **测试人员** | [04-使用指南/系统账号.md](./04-使用指南/系统账号.md) |
 | **AI 辅助** | [04-使用指南/Kimi_Code_Vibe_Coding_Guide.md](./04-使用指南/Kimi_Code_Vibe_Coding_Guide.md) |
 
 ---

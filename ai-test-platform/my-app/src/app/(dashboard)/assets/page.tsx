@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import {
   BookOpen,
@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Code,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
+import { safeJsonParse } from '@/lib/utils/json';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -54,10 +56,12 @@ interface PaginationMeta {
   totalPages: number;
 }
 
+// SWR 配置 - 30分钟定时刷新
 const swrOptions = {
-  revalidateOnFocus: false,
-  revalidateOnReconnect: true,
-  dedupingInterval: 5000,
+  revalidateOnFocus: true,       // 窗口聚焦时重新验证
+  revalidateOnReconnect: true,   // 重新连接时重新验证
+  dedupingInterval: 2000,        // 2秒内相同请求去重
+  refreshInterval: 30 * 60 * 1000, // 30分钟定时刷新
 };
 
 export default function AssetLibraryPage() {
@@ -89,8 +93,11 @@ export default function AssetLibraryPage() {
     swrOptions
   );
 
-  const assets: Asset[] = data?.data || [];
-  const meta: PaginationMeta = data?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const assets: Asset[] = Array.isArray(data?.data?.list) ? data.data.list : [];
+  const meta: PaginationMeta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+
+  // 调试日志
+  console.log('Asset list data:', { url: buildApiUrl(), data, error, isLoading, assetsCount: assets.length });
 
   const tabs = [
     { id: 'doc', label: '文档', icon: FileText },
@@ -134,7 +141,7 @@ export default function AssetLibraryPage() {
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Search & Refresh */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -148,6 +155,18 @@ export default function AssetLibraryPage() {
         </div>
         <Button variant="outline" onClick={handleSearch}>
           搜索
+        </Button>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={async () => {
+            console.log('手动刷新触发');
+            await mutate(undefined, { revalidate: true });
+          }}
+          disabled={isLoading}
+          title="刷新"
+        >
+          <RefreshCw className={"w-4 h-4 " + (isLoading ? 'animate-spin' : '')} />
         </Button>
       </div>
 
@@ -242,6 +261,26 @@ function AssetList({
   onRefresh: () => void;
   type: 'doc' | 'page' | 'snippet';
 }) {
+  const router = useRouter();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定要删除此资产吗？')) return;
+    
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/assets/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onRefresh();
+      } else {
+        alert('删除失败');
+      }
+    } catch {
+      alert('删除失败');
+    } finally {
+      setDeletingId(null);
+    }
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -276,26 +315,21 @@ function AssetList({
   return (
     <div className="grid gap-4">
       {assets.map((asset) => (
-        <AssetCard key={asset.id} asset={asset} />
+        <AssetCard 
+          key={asset.id} 
+          asset={asset} 
+          onDelete={() => handleDelete(asset.id)}
+          isDeleting={deletingId === asset.id}
+        />
       ))}
     </div>
   );
 }
 
 // 资产卡片
-function AssetCard({ asset }: { asset: Asset }) {
-  // 添加安全解析函数
-function safeJsonParse<T>(json: string | undefined, defaultValue: T): T {
-  if (!json) return defaultValue;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return defaultValue;
-  }
-}
-
-// 使用安全解析
-const tags = safeJsonParse<string[]>(asset.tags, []);
+function AssetCard({ asset, onDelete, isDeleting }: { asset: Asset; onDelete: () => void; isDeleting: boolean }) {
+  // 使用安全解析
+  const tags = safeJsonParse<string[]>(asset.tags, []);
 
   const getIcon = () => {
     switch (asset.type) {
@@ -398,7 +432,13 @@ const tags = safeJsonParse<string[]>(asset.tags, []);
           <DropdownMenuItem asChild>
             <Link href={`/assets/${asset.id}/edit`}>编辑</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600">删除</DropdownMenuItem>
+          <DropdownMenuItem 
+            className="text-red-600" 
+            onClick={onDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? '删除中...' : '删除'}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

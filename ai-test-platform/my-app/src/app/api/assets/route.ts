@@ -26,7 +26,7 @@ const createAssetSchema = z.object({
   selector: z.string().max(500).optional(),
   url: z.string().url().max(2000).optional(),
   tags: z.array(z.string()).optional(),
-  projectId: z.string().uuid(),
+  projectId: z.string().uuid().optional(),
 });
 
 // GET /api/assets
@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const { page, pageSize, skip, take } = buildQueryParams(searchParams);
     
-    const where: Prisma.AssetWhereInput = {};
+    const where: Prisma.AssetWhereInput = {
+      status: { not: 'ARCHIVED' }, // 过滤掉已删除的资产
+    };
     
     if (projectId) where.projectId = projectId;
     if (type) where.type = type as Prisma.AssetWhereInput['type'];
@@ -57,16 +59,35 @@ export async function GET(request: NextRequest) {
       ];
     }
     
-    const total = await prisma.asset.count({ where });
+    // 使用 Promise.all 并行执行查询
+    const [total, assets] = await Promise.all([
+      prisma.asset.count({ where }),
+      prisma.asset.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+        // 只选择需要的字段，减少数据传输
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          status: true,
+          url: true,
+          selector: true,
+          tags: true,
+          projectId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
     
-    const assets = await prisma.asset.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { updatedAt: 'desc' },
-    });
-    
-    return listResponse(assets, buildMeta(total, page, pageSize));
+    // 添加缓存头
+    const response = listResponse(assets, buildMeta(total, page, pageSize));
+    response.headers.set('Cache-Control', 'private, max-age=5, stale-while-revalidate=60');
+    return response;
   } catch (error) {
     console.error('Failed to fetch assets:', error);
     return errorResponse('获取资产列表失败');

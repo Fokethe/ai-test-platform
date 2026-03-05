@@ -398,7 +398,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem 
+                  onClick={() => signOut({ callbackUrl: '/login', redirect: true })}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   退出登录
                 </DropdownMenuItem>

@@ -38,7 +38,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import { safeJsonParse } from '@/lib/utils/json';
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+// SWR 配置 - 稳定版本
+const swrOptions = {
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+  dedupingInterval: 2000,
+};
 
 interface Integration {
   id: string;
@@ -54,11 +63,9 @@ interface Integration {
 export default function IntegrationsPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const { data, error, isLoading, mutate } = useSWR('/api/integrations', fetcher, {
-    refreshInterval: 30000,
-  });
+  const { data, error, isLoading, mutate } = useSWR('/api/integrations', fetcher, swrOptions);
 
-  const integrations: Integration[] = data?.data || [];
+  const integrations: Integration[] = data?.data?.list || [];
 
   const stats = {
     total: integrations.length,
@@ -154,7 +161,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 function IntegrationCard({ integration, onRefresh }: { integration: Integration; onRefresh: () => void }) {
   const Icon = getIntegrationIcon(integration.type);
-  const events = integration.events ? (() => { try { return JSON.parse(integration.events); } catch { return []; } })() : [];
+  const events = safeJsonParse<string[]>(integration.events, []);
 
   return (
     <div className="flex items-start justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
