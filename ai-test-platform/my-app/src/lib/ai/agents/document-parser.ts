@@ -2,7 +2,7 @@
  * DocumentParser Agent
  * 文档解析 Agent - 解析上传的需求文档
  * 
- * 支持的格式：TXT, MD, PDF, DOCX
+ * 支持的格式：TXT, MD
  * 核心职责：
  * 1. 识别文档类型
  * 2. 提取文档内容

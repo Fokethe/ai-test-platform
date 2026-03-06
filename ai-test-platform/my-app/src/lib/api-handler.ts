@@ -158,3 +158,74 @@ export function createApiRoute(handlers: {
     DELETE: handlers.DELETE ? withErrorHandler(withAuth(handlers.DELETE)) : undefined,
   };
 }
+
+/**
+ * 安全解析 JSON 请求体
+ * 解析失败返回默认值
+ */
+export async function safeParseJsonBody<T>(
+  request: NextRequest,
+  defaultValue: T
+): Promise<T> {
+  try {
+    const body = await request.json();
+    return body as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+/**
+ * 获取当前用户ID
+ */
+export function getCurrentUserId(): string {
+  return 'system';
+}
+
+/**
+ * API 处理器包装器
+ */
+export function wrapApiHandler(handler: ApiHandler): ApiHandler {
+  return async (req, context) => {
+    try {
+      return await handler(req, context);
+    } catch (err) {
+      console.error('API Error:', err);
+      
+      // 检查约束错误（唯一约束、外键约束）
+      if (err instanceof Error) {
+        const message = err.message.toLowerCase();
+        if (message.includes('unique constraint') || message.includes('foreign key constraint')) {
+          return error(err.message, 400);
+        }
+      }
+      
+      return errors.internalError();
+    }
+  };
+}
+
+/**
+ * 获取查询参数
+ */
+export function getQueryParam(
+  searchParams: URLSearchParams,
+  key: string,
+  defaultValue?: string
+): string | undefined {
+  return searchParams.get(key) || defaultValue;
+}
+
+/**
+ * 获取必需的查询参数
+ */
+export function getRequiredQueryParam(
+  searchParams: URLSearchParams,
+  key: string
+): { success: true; value: string } | { success: false; error: ReturnType<typeof error> } {
+  const value = searchParams.get(key);
+  if (!value) {
+    return { success: false, error: errors.badRequest(`缺少必需参数: ${key}`) };
+  }
+  return { success: true, value };
+}

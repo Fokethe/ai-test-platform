@@ -11,6 +11,8 @@ module.exports = {
         '**/components/**/__tests__/**/*.test.tsx',
         '**/app/**/__tests__/**/*.test.tsx',
         '!**/app/api/**/__tests__/**/*.test.ts',
+        '!**/lib/**/__tests__/*-integration*.test.ts',
+        '!**/lib/ai/agents/__tests__/storage.test.ts',
       ],
       transform: {
         '^.+\.tsx?$': ['ts-jest', {
@@ -32,6 +34,8 @@ module.exports = {
       roots: ['<rootDir>/src'],
       testMatch: [
         '**/app/api/**/__tests__/**/*.test.ts',
+        '**/lib/**/__tests__/*-integration*.test.ts',
+        '**/lib/ai/agents/__tests__/storage.test.ts',
       ],
       transform: {
         '^.+\.tsx?$': ['ts-jest', {

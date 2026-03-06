@@ -226,6 +226,16 @@ export class VisionCaseAgent {
     elements: UIElement[],
     options: GenerateOptions = {}
   ): Promise<GenerationResult> {
+
+    // Empty array check
+    if (elements.length === 0) {
+      return {
+        cases: [],
+        totalElements: 0,
+        generatedCount: 0,
+        coverage: 0,
+      }
+    }
     const opts = {
       maxCases: 5,
       includeNegativeCases: false,

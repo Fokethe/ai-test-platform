@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Loader2, Upload, FileText, X } from 'lucide-react';
 
 interface UploadedFile {
@@ -23,7 +23,6 @@ interface UploadedFile {
 
 export default function UploadPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -54,19 +53,15 @@ export default function UploadPage() {
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      toast({
-        title: '请选择文件',
+      toast.error('请选择文件', {
         description: '请至少上传一个需求文档',
-        variant: 'destructive',
       });
       return;
     }
 
     if (!title.trim()) {
-      toast({
-        title: '请输入标题',
+      toast.error('请输入标题', {
         description: '请为需求文档输入一个标题',
-        variant: 'destructive',
       });
       return;
     }
@@ -92,18 +87,15 @@ export default function UploadPage() {
 
       const data = await response.json();
 
-      toast({
-        title: '上传成功',
+      toast.success('上传成功', {
         description: `成功上传 ${files.length} 个文件`,
       });
 
       // Navigate to the uploaded requirement
       router.push(`/ai-generate/requirements/${data.data.id}`);
     } catch (error) {
-      toast({
-        title: '上传失败',
+      toast.error('上传失败', {
         description: '请检查文件格式后重试',
-        variant: 'destructive',
       });
     } finally {
       setIsUploading(false);
