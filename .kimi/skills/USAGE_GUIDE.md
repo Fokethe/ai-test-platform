@@ -1,473 +1,309 @@
-# encoding: utf-8
+# Skill 使用指南
 
-# Kimi Code Skills 使用指南
-
-## 🚀 新方式：Intent 自动触发（推荐）
-
-**无需输入 `/skill:xxx` 命令！** 直接描述你想做什么，Skill 编排器会自动识别意图并执行完整的 Skill 序列。
-
-```
-你说: "我要开发用户登录功能"
-AI 自动: cost-control → task-planner → code-review → doc-system
-
-你说: "报错了，帮我 debug"
-AI 自动: cost-control → debug-diagnosis → danger-signals → code-review
-
-你说: "开始新项目"
-AI 自动: cost-control → socratic-inquiry → task-planner → doc-system
-```
-
-**完整关键词表见下方 "Intent 自动触发" 部分。**
+> 本项目 Skill 库使用指南 - 快速查找和使用各类 Skill
 
 ---
 
-## 快速调用命令
+## 📋 快捷指令表
 
-### 🎯 快捷指令（推荐）
+### 🎯 验收与质量
 
-| 指令         | 功能              | 适用范围     |
-| ------------ | ----------------- | ------------ |
-| `/cost`      | 💰 查看消耗       | 🔵 通用      |
-| `/compact`   | 📦 压缩上下文     | 🟢 Kimi 专用 |
-| `/next`      | ⏭️ 继续下一阶段   | 🔵 通用      |
-| `/plan`      | 📋 重新生成计划   | 🔵 通用      |
-| `/parallel`  | 🔄 启动多任务调度 | 🟢 Kimi 专用 |
-| `/bughunter` | 🐛 启动 BugHunter | 🟢 Kimi 专用 |
-| `/cleanup`   | 🧹 自动清理项目   | 🟢 Kimi 专用 |
-| `/health`    | 🏥 系统健康检查   | 🟢 Kimi 专用 |
-| `/inspect`   | 🔍 功能深度审查   | 🟢 Kimi 专用 |
+| 指令 | 功能 | 使用场景 |
+|------|------|----------|
+| `/acceptance` | 启动完整11维度验收（含自动修复） | 大版本发布前、项目里程碑 |
+| `/acceptance --quick` | 快速验收（仅关键维度，不修复） | 日常检查、快速验证 |
+| `/acceptance --dim=1,3,11` | 验收指定维度 | 针对性检查 |
+| `/acceptance --no-fix` | 验收但不自动修复 | 人工控制修复 |
+| `/acceptance --fix-only` | 仅执行修复循环 | 基于上次结果修复 |
+| `/acceptance --report` | 查看最近验收报告 | 查看结果 |
+| `/acceptance --history` | 查看验收历史 | 趋势分析 |
 
-> **图例说明**: 🟢 Kimi 专用 | 🔵 通用（Kimi + Cline）| 🟣 Cline 专用（见 .clinerules）
+### 🔍 代码质量
 
-### 基础调用方式（按需加载 Skill）
+| 指令 | 功能 | 所属 Skill |
+|------|------|-----------|
+| `/bughunter` | 启动 BugHunter 默认模式 | Skill 9 |
+| `/bughunter --high` | 仅检查高优先级问题 | Skill 9 |
+| `/bughunter --dim=security` | 检查指定维度 | Skill 9 |
+| `/bughunter --scan-only` | 仅扫描不修复 | Skill 9 |
+| `/inspect` | 功能深度审查 | Skill 13 |
+| `/inspect --quick` | 快速检查（仅高优先级） | Skill 13 |
+| `/inspect --full` | 完整检查（所有功能点） | Skill 13 |
+
+### 💰 成本与监控
+
+| 指令 | 功能 | 所属 Skill |
+|------|------|-----------|
+| `/cost` | 显示当前累计消耗 | Skill 1 |
+| `/health` | 系统健康检查 | Skill 12 |
+| `/health --fix` | 自动修复可修复的问题 | Skill 12 |
+
+### 📋 规划与文档
+
+| 指令 | 功能 | 所属 Skill |
+|------|------|-----------|
+| `/plan` | 重新生成计划 | Skill 3 |
+| `/next` | 继续下一阶段 | Skill 3 |
+| `/parallel` | 启动多任务调度 | Skill 10 |
+| `/memory` | 更新 memory.md | Skill 6 |
+
+### 🧹 项目维护
+
+| 指令 | 功能 | 所属 Skill |
+|------|------|----------|
+| `/cleanup` | 执行自动清理（含根目录外溢检测） | Skill 11 |
+| `/cleanup dry-run` | 预览清理内容 | Skill 11 |
+| `/cleanup --deep` | 深度清理（含文件夹清理） | Skill 11 |
+| `/cleanup --dirs-only` | 仅清理目录 | Skill 11 |
+
+---
+
+## 🎯 Skill 触发关键词
+
+### 自动触发关键词
+
+| 关键词 | 触发 Skill |
+|--------|-----------|
+| "验收项目", "版本验收", "项目验收" | Skill 14: 第三方验收专家 |
+| "BugHunter", "深度修复", "自动修复" | Skill 9: BugHunter |
+| "深度检查功能完整度", "扫描空代码" | Skill 13: 功能深度审查器 |
+| "检查健康", "健康检查", "项目体检" | Skill 12: 系统健康检查 |
+| "清理项目", "整理文件" | Skill 11: 自动清理 |
+| "使用 subagent", "并行处理" | Skill 10: 多任务调度器 |
+| "开始新项目", "新项目", "从零开始" | Skill 5: 需求审问与项目启动 |
+| "开发新功能", "添加功能", "实现功能" | Skill 3: 任务拆解与规划 |
+| "修复bug", "debug", "报错了" | Skill 7: 调试诊断协议 |
+| "重构", "优化代码" | Skill 4: 代码审查协议 |
+
+---
+
+## 📊 Intent 自动触发表
+
+| 用户意图 | 自动执行的 Skill 序列 |
+|---------|---------------------|
+| **新项目启动** | cost-control → socratic-inquiry → task-planner → doc-system |
+| **功能开发** | cost-control → task-planner → workflow → code-review → doc-system |
+| **TDD 模式** | cost-control → tdd-loop (红→绿→重构) |
+| **代码重构** | cost-control → code-review → task-planner → code-refactor |
+| **Bug 修复** | cost-control → debug-diagnosis → danger-signals → code-review |
+| **设计还原** | cost-control → visual-coding → task-planner → code-review |
+| **文档整理** | cost-control → doc-processor → 整合 |
+| **代码提交** | cost-control → code-review → doc-system → git-commit |
+| **健康检查** | cost-control → context-management → danger-signals → code-review → cost-control |
+| **深度修复** | cost-control → bughunter-loop |
+| **多任务调度** | cost-control → multi-task-scheduler |
+| **自动清理** | cost-control → auto-cleanup |
+| **项目验收** | cost-control → acceptance-expert → auto-cleanup |
+
+---
+
+## 📚 Skill 库说明
+
+### 核心 Skill 列表 (14个)
+
+#### 🎯 编排与调度 (2个)
+- **Skill 0**: Skill 编排器 - Intent识别与自动触发
+- **Skill 10**: 多任务调度器 - SubAgent并行处理
+
+#### 💰 成本与监控 (2个)
+- **Skill 1**: 成本控制协议 - Token消耗预估与控制
+- **Skill 8**: 危险信号检测 - 上下文满载与重复内容检测
+
+#### 📋 规划与文档 (4个)
+- **Skill 2**: 大文档分段处理 - 大文件分批处理
+- **Skill 3**: 任务拆解与规划 - 复杂任务拆解与阶段管理
+- **Skill 5**: 需求审问与项目启动 - 苏格拉底式需求澄清
+- **Skill 6**: 文档三轨与提交系统 - KIMI/progress/memory三轨管理
+
+#### 🔍 代码质量 (3个)
+- **Skill 4**: 代码审查协议 - 可读性/安全/类型检查
+- **Skill 9**: BugHunter V2.0 - 12维度深度代码诊断 (200+检查项)
+- **Skill 13**: 功能深度审查器 V2.0 - 8维度功能完整度检查 (100+检查项)
+
+#### 🐛 调试与诊断 (2个)
+- **Skill 7**: 调试诊断协议 - Bug根因分析与修复
+- **Skill 12**: 系统健康检查 - 健康度综合评估
+
+#### 🧹 项目维护 (1个)
+- **Skill 11**: 自动清理 V2.5 - 临时文件、空目录、重复文件夹清理
+
+#### ✅ 质量保证
+- **Skill 14**: 第三方验收专家 V3.5 - 11维度项目验收 + 自动修复循环
+
+### 备用 Skill 库
+- **位置**: `.clinerules.skill-library.md`
+- **数量**: 18个扩展 Skill
+- **加载方式**: 说"加载 Skill XX"或"从备用库加载 XX"
+
+---
+
+## 🚀 快速开始
+
+### 场景1: 项目验收
 
 ```bash
-# 从备用库加载特定 Skill
-"从备用库加载 Skill 11"  → 加载视觉还原协议
-"从备用库加载 TDD 开发"  → 加载 TDD 循环开发
-"显示所有可用 Skill"      → 列出所有 Skill 清单
+# 完整验收
+/acceptance
+
+# 快速验收（仅关键维度）
+/acceptance --quick
+
+# 验收指定维度
+/acceptance --dim=1,3,11
 ```
 
----
-
-## Skill 触发关键词速查
-
-### 方式一：Intent 自动触发（推荐）
-
-说出场景关键词，**Skill 编排器** 自动执行完整序列：
-
-| 你想做什么       | 说这些关键词                                             | 自动触发的 Skill 序列                                                           |
-| ---------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **开始新项目**   | "开始新项目"、"从零开始"                                 | cost-control → socratic-inquiry → task-planner → doc-system                     |
-| **功能开发**     | "开发新功能"、"添加功能"                                 | cost-control → task-planner → code-review → doc-system                          |
-| **TDD 开发**     | "TDD 模式"、"先写测试"                                   | cost-control → tdd-loop (红→绿→重构循环)                                        |
-| **重构代码**     | "重构代码"、"优化代码"                                   | cost-control → code-review → task-planner → code-refactor                       |
-| **Bug 修复**     | "修复 bug"、"报错了"                                     | cost-control → debug-diagnosis → danger-signals → code-review                   |
-| **还原设计**     | "还原设计"、"截图转代码"                                 | cost-control → visual-coding → task-planner → code-review                       |
-| **整理文档**     | "整理文档"、"文档太大"                                   | cost-control → doc-processor → 逐块处理 → 整合                                  |
-| **代码提交**     | "提交代码"、"commit"                                     | cost-control → code-review → doc-system → git-commit                            |
-| **健康检查**     | "/health"、"检查健康度"、"项目体检"                      | cost-control → context-management → danger-signals → code-review → cost-control |
-| **深度修复**     | "BugHunter"、"深度修复"                                  | cost-control → bughunter-loop (扫描→分析→修复→验证→迭代)                        |
-| **多任务调度**   | "使用 subagent"、"并行处理"                              | cost-control → multi-task-scheduler                                             |
-| **自动清理**     | "清理项目"/cleanup"                                      | cost-control → auto-cleanup                                                     |
-| **功能深度审查** | "/inspect"、"深度检查功能"、"扫描空代码"、"检查功能缺失" | cost-control → functionality-inspector                                          |
-
-### 方式二：单个 Skill 触发
-
-无需记忆命令，说出以下关键词即可自动触发单个 Skill：
-
-| 你想做什么   | 说这些关键词                     | 自动触发 Skill          |
-| ------------ | -------------------------------- | ----------------------- |
-| 查看消耗     | "/cost"、"查一下用了多少 token"  | cost-control            |
-| 处理大文档   | "整理这个文档"、"文件太大了"     | doc-processor           |
-| 重构代码     | "重构这个文件"、"优化代码"       | code-refactor           |
-| 规划任务     | "帮我做个计划"                   | task-planner            |
-| 审查代码     | "看看这代码有问题吗"、"review"   | code-review             |
-| 写提交信息   | "怎么提交"、"写 commit"          | git-commit              |
-| 了解项目规范 | "按项目规范"、"文档里说的"       | project-context         |
-| 澄清需求     | "我要做个新项目"、"需求不太清楚" | socratic-inquiry        |
-| 初始化文档   | "创建项目文档"、"初始化"         | doc-system              |
-| 开始开发     | "开始开发"                       | workflow                |
-| 还原设计稿   | "实现这个设计"、"截图转代码"     | visual-coding           |
-| 修复错误     | "报错了"、"修复这个错误"         | debug-diagnosis         |
-| 总结进度     | "/compact"、"总结下进度"         | context-management      |
-| 功能深度审查 | "/inspect"、"检查功能完整度"     | functionality-inspector |
-
----
-
-## 💡 高级使用技巧
-
-### 1. Plan Mode 工作流（复杂任务必备）
-
-**核心原则：先规划，后执行，方案留底**
-
-```
-Step 1: 进入 Plan Mode
-        ↓ 说"进入 Plan Mode" 或 "先规划再执行"
-        AI 只分析不修改，输出详细计划
-
-Step 2: 保存计划
-        ↓ 说"先把计划保存到 plan.md"
-        方案留底，后续可回溯
-
-Step 3: Review 计划（可选）
-        ↓ 说"扮演 Staff Engineer 审查这个计划"
-        第二视角检查方案可行性
-
-Step 4: 执行计划
-        ↓ 确认后说"开始执行"
-        按 plan.md 逐步实施
-```
-
-**何时用 Plan Mode**：
-
-- 接手新项目 → 出架构图 + 入口分析
-- 做大功能 → 模块拆分、接口设计
-- 重构优化 → 分析问题，给出方案
-- **进展跑偏时** → 立即切回 Plan Mode 重新规划
-
----
-
-### 2. 提升 Prompt 质量的话术
-
-| 目的           | Prompt 话术                                                |
-| -------------- | ---------------------------------------------------------- |
-| **角色反转**   | "针对这些改动向我提问，在我通过你的测试之前不要提交"       |
-| **要求自证**   | "证明这套方案行得通，对比修改前后的差异"                   |
-| **推倒重来**   | "基于你现在掌握的信息，推翻刚才的方案，换一个更优雅的实现" |
-| **先写 Spec**  | "先写详细的规格说明 Spec，确认后再动手实现"                |
-| **解释模式**   | "边改边解释为什么这么改，开启解释模式"                     |
-| **架构可视化** | "给我画个 ASCII 流程图，解释模块调用链"                    |
-| **费曼学习**   | "我解释给你听，你通过提问填补我的知识盲区"                 |
-
----
-
-### 3. 成本控制最佳实践
-
-| 策略               | 操作                                       |
-| ------------------ | ------------------------------------------ |
-| **长任务定期压缩** | 每 10-15 轮说 `/compact`，别等报错才后悔   |
-| **切模型省成本**   | 简单任务（格式化、注释）明确说"用轻量模式" |
-| **监控消耗**       | 长对话必说 `/cost`，避免超额               |
-| **大文件分段**     | 文档 > 30,000 字符自动触发分段处理         |
-
----
-
-### 4. 使用扩展 Skill
-
-当需要精简版之外的 Skill 时：
-
-```
-用户：从备用库加载 Skill 11
-
-AI: [读取 .clinerules.skill-library.md 中的 Skill 11]
-    🎯 已加载: 视觉还原协议 (Skill 11)
-
-    【触发方式】: 用户上传图片/截图后说"还原这个界面"...
-    【执行流程】: 结构分析 → 设计规范提取 → 像素级还原 → ...
-
-    现在可以使用视觉还原功能了！
-
-用户：[上传截图] 还原这个界面
-
-AI: [执行 Skill 11 视觉还原协议]
-    📐 结构分析: 这是一个登录页面...
-    🎨 设计规范提取: 主色 #3b82f6, 字体 Inter...
-    💻 代码实现: [生成的 React/Tailwind 代码]
-```
-
----
-
-## 使用示例
-
-### 示例 1：完整功能开发（含规划）
-
-```
-用户：开发用户登录功能
-
-AI: [自动执行 cost-control → task-planner]
-    📊 当前消耗: $0.012
-
-    [task-planner 启动]
-    📋 执行计划: 用户登录功能
-    预估总消耗: $0.08 | 预计 12 轮对话
-
-    阶段 1: API 设计
-    - 登录接口 → 产出: app/api/auth/login/route.ts
-
-    阶段 2: 页面实现
-    - 登录页 → 产出: app/login/page.tsx
-
-    确认执行计划? [Y/N/调整]
-
-用户：Y
-
-AI: [自动执行 workflow → code-review → doc-system → cost-control]
-    阶段 1 完成 ✓
-    阶段 2 完成 ✓
-    [code-review] 代码审查通过
-    📊 本轮总消耗: $0.076
-```
-
----
-
-### 示例 2：Bug 修复（自动诊断）
-
-```
-用户：报错了，帮我修复
-
-AI: [自动执行 cost-control → debug-diagnosis → danger-signals]
-    📊 当前消耗: $0.045
-
-    [debug-diagnosis] 分析中...
-    根因：projectId 无效导致外键约束失败
-    修复方案：从 URL 参数获取 projectId
-
-    [danger-signals] ⚠️ 第 1 次修复，继续
-
-用户：确认修复
-
-AI: [自动执行 code-review → doc-system → cost-control]
-    ✓ 修复完成
-    📊 Debug 成本: $0.023
-```
-
----
-
-### 示例 3：健康检查（防止失忆）
-
-```
-用户：检查健康度
-
-AI: [自动执行 cost-control → context-management → danger-signals → code-review → cost-control]
-    📊 当前消耗: $0.089
-
-    [context-management] 上下文已压缩
-    当前进度: 测试管理功能开发完成 80%
-
-    [danger-signals] 🚨 检测到信号:
-    - 上下文占用 > 60%
-    - 建议执行 /compact 或新开对话
-
-    [code-review] 健康度检查:
-    - 测试覆盖率: 87%
-    - 类型错误: 27 个（非阻塞）
-    - 构建状态: ✅
-
-    📊 会话总结: $0.089 / 15 轮
-```
-
----
-
-### 示例 4：功能深度审查
-
-```
-用户：深度检查功能完整度
-
-AI: [自动执行 cost-control → functionality-inspector]
-    📊 当前消耗: $0.045
-
-    [functionality-inspector] 功能深度审查中...
-
-    🔍 功能深度审查报告
-
-    📊 统计概览:
-    ├─ 功能项总数: 30
-    ├─ 功能点总数: 150
-    ├─ 完整实现: 90 (60%)
-    ├─ 部分实现: 30 (20%)
-    └─ 未实现: 20 (13%)
-
-    🔴 高优先级问题 (8项):
-    ├─ 1. 测试中心 - 列表删除
-    │   问题: 只有UI按钮，无onClick逻辑
-    └─ ...
-```
-
----
-
-### 示例 5：使用多任务调度（SubAgent）
-
-```
-用户：并行处理这 3 个任务：1) 重构 utils 2) 优化组件 3) 修复 bug
-
-AI: [自动执行 cost-control → multi-task-scheduler]
-    📊 当前消耗: $0.015
-
-    [multi-task-scheduler 启动]
-    🔄 分析任务依赖关系...
-
-    子任务 1: 重构 utils (优先级: 高)
-    子任务 2: 优化组件 (优先级: 中, 依赖: 子任务 1)
-    子任务 3: 修复 bug (优先级: 高)
-
-    并行调度: 子任务 1 + 子任务 3
-    然后执行: 子任务 2
-
-    [启动 2 个 subagent 并行执行...]
-
-    📊 批次 1/2 完成:
-    - 子任务 1: ✅ utils 重构完成
-    - 子任务 3: ✅ bug 修复完成
-
-    📊 批次 2/2 完成:
-    - 子任务 2: ✅ 组件优化完成
-
-    📝 文档已更新:
-    - kimi.batch-1.md
-    - progress.batch-1.md
-
-    📊 总消耗: $0.089
-```
-
----
-
-## 打断与跳过
-
-在序列执行过程中：
-
-- **说"跳过"** → 跳过当前 Skill，继续下一个
-- **说"停止"** → 终止整个序列
-- **说"/cost"** → 立即显示消耗（不中断序列）
-- **说"/plan"** → 立即进入 task-planner
-
----
-
-## 快速参考卡片
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  🔥 Intent 自动触发（说出关键词即可）                            │
-├─────────────────────────────────────────────────────────────────┤
-│  "开始新项目"     → 🆕 审问 → 规划 → 文档                       │
-│  "开发新功能"     → 🚀 规划 → 开发 → 审查 → 提交               │
-│  "报错了"         → 🔧 诊断 → 修复 → 审查                      │
-│  "重构代码"       → 🔧 审查 → 规划 → 重构 → 审查               │
-│  "使用 subagent"  → 🔄 并行调度多任务                          │
-│  "BugHunter"      → 🐛 深度扫描修复                            │
-│  "开发完成"       → 🧹 自动清理项目文件                        │
-│  "/health"        → 🏥 系统健康检查                            │
-│  "/inspect"       → 🔍 功能深度审查                            │
-├─────────────────────────────────────────────────────────────────┤
-│  快捷指令: /cost  /compact  /next  /plan  /parallel  /bughunter  │
-│            /cleanup  /health  /inspect                           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Skill 库说明
-
-### 核心 Skill（精简版 - 13个）
-
-位于 `.clinerules`，覆盖 95% 日常开发场景：
-
-- Skill 0: Skill 编排器
-- Skill 1: 成本控制
-- Skill 2: 大文档分段
-- Skill 3: 任务拆解规划
-- Skill 4: 代码审查
-- Skill 5: 需求审问
-- Skill 6: 文档与提交
-- Skill 7: 调试诊断
-- Skill 8: 危险信号
-- Skill 9: BugHunter
-- Skill 10: 多任务调度
-- Skill 11: 自动清理
-- Skill 12: 系统健康检查
-- **Skill 13: 功能深度审查器** ⭐ 新增
-
-### 备用 Skill 库（按需加载 - 18个）
-
-位于 `.clinerules.skill-library.md`：
-
-- Skill 14+: 视觉还原、TDD 循环、代码重构、持久化规划、上下文管理等
-
----
-
-## 新增：功能深度审查器 (Functionality Deep Inspector)
-
-### 触发方式
+### 场景2: 代码质量检查
 
 ```bash
-# 完整检查
-/inspect
+# BugHunter 全面扫描
+/bughunter
 
-# 快速检查（仅高优先级问题）
+# 仅检查高优先级问题
+/bughunter --high
+
+# 功能深度审查
 /inspect --quick
-
-# 检查指定页面
-/inspect --page=/tests
-
-# 仅检查API对齐
-/inspect --api
-
-# 仅检查UI占位
-/inspect --ui
-
-# 关键词触发
-"深度检查功能完整度"
-"扫描空代码"
-"检查功能缺失"
-"功能深度审查"
 ```
 
-### 使用场景
+### 场景3: 项目清理
 
-1. **新项目接手** - 全面了解项目功能完整度
-2. **BugHunter前** - 作为前置检查发现功能缺失
-3. **代码审查时** - 检查新页面功能是否完整
-4. **定期体检** - 每月一次检查功能健康度
+```bash
+# 预览清理内容
+/cleanup dry-run
 
-### 检查内容
-
-| 检查维度     | 具体内容                       | 示例                  |
-| ------------ | ------------------------------ | --------------------- |
-| **空代码**   | 空文件、空函数、空页面、空组件 | `lib/api.ts` 完全为空 |
-| **空页面**   | 重定向页、占位页、骨架屏       | 只有加载动画无内容    |
-| **缺失功能** | UI占位、菜单无效、表单无提交   | 删除按钮只有UI        |
-| **无法实现** | 前后端不对齐、模拟数据、TODO   | 调用API但后端不存在   |
-
-### 输出示例
-
-```
-🔍 功能深度审查报告
-
-📊 统计概览:
-├─ 功能项总数: 30
-├─ 功能点总数: 150
-├─ 完整实现: 90 (60%)
-├─ 部分实现: 30 (20%)
-├─ 未实现: 20 (13%)
-└─ 模拟实现: 10 (7%)
-
-🔴 高优先级问题 (8项):
-├─ 1. 测试中心 - 列表删除
-│   位置: tests/page.tsx
-│   问题: 只有UI按钮，无onClick逻辑
-│   建议: 补充删除API调用
-├─ 2. AI生成 - 保存用例
-│   位置: ai-generate/testcases/page.tsx
-│   问题: 调用/api/testcases/batch但后端路由不存在
-│   建议: 创建后端API路由
-└─ ...
-
-💡 修复建议:
-1. 立即修复 (本周): 8项
-2. 短期修复 (本月): 18项
-3. 长期规划 (下月): 13项
-```
-
-### 与 BugHunter 配合使用
-
-```
-最佳实践:
-1. 先执行 /inspect 检查功能缺失
-2. 修复高优先级功能问题
-3. 再执行 /bughunter 深度修复代码质量
-4. 最后执行 /health 检查整体健康度
+# 执行清理
+/cleanup
 ```
 
 ---
 
-_配置版本: 2.0 | 最后更新: 2026-03-03 | 核心 Skill: 13个 | 备用 Skill: 18个_
+## 📁 验收报告使用指南
+
+### 报告位置
+
+```
+ai-test-platform/docs/07-验收报告/
+├── README.md                          # 验收报告索引
+└── acceptance-YYYYMMDD-XXX/           # 验收批次
+    ├── summary.md                     # Markdown报告 (带目录索引)
+    ├── summary.html                   # HTML可视化报告 (侧边导航)
+    ├── acceptance-config.json         # 验收配置
+    └── attachments/                   # 附件
+```
+
+### 报告特点
+
+1. **Markdown 报告** (`summary.md`)
+   - 带完整目录索引
+   - 支持锚点跳转
+   - 轻量级，适合代码仓库浏览
+
+2. **HTML 报告** (`summary.html`)
+   - 侧边栏导航
+   - 可折叠章节
+   - 仪表盘展示
+   - 适合展示和打印
+
+### 通过标准
+
+| 标准 | 要求 | 说明 |
+|------|------|------|
+| 高优先级漏洞 | = 0 | 无阻断性功能缺陷 |
+| 中优先级漏洞 | = 0 | 无影响体验的缺陷 |
+| 测试覆盖率 | ≥ 99% | 核心代码全覆盖 |
+| API平均响应 | < 3s | 后端性能达标 |
+| 页面加载时间 | < 3s | 前端性能达标 |
+| 工作流通过率 | = 100% | 业务流程完整 |
+
+---
+
+## 🔧 工作流完整性验收
+
+### 第11维度 - 工作流完整性
+
+验证系统内工作流是否完整，是否能按照角色执行各自工作步骤。
+
+#### 核心检查点
+
+1. **端到端业务流程验证**
+   - 测试用例设计工作流程
+   - 缺陷管理工作流程
+   - AI测试生成工作流程
+
+2. **角色权限正确性检查**
+   - 超级管理员、项目经理、测试负责人
+   - 测试工程师、开发工程师、只读用户
+   - 权限矩阵验证
+
+3. **数据完整性检查**
+   - 数据流转完整性
+   - 数据关联正确性
+   - 状态机流转验证
+
+4. **工作流步骤可执行性**
+   - UI可交互性
+   - 操作反馈及时性
+   - 并发与协作
+
+5. **边界与异常场景**
+   - 边界条件处理
+   - 异常恢复机制
+   - 特殊场景支持
+
+---
+
+## 📝 项目清理说明
+
+### 验收后自动清理内容
+
+1. **清理测试过程文档**
+   - 删除临时文件: temp*.txt, test-output.txt, *.log
+   - 移动测试执行文件到归档目录
+
+2. **文档分类整理**
+   - 生成的代码文档 → 移动到对应代码目录
+   - 过程性文档 → docs/99-历史归档/
+   - 更新文档索引
+
+3. **保持总结性文档纯净**
+   - 架构设计文档: 只保留最终结论，移除过程信息
+   - PRD文档: 只保留需求定义，移除讨论过程
+   - 技术方案: 只保留决策结果，移除备选方案分析
+
+---
+
+## 💡 最佳实践
+
+### 何时使用验收专家
+
+- ✅ 大版本发布前
+- ✅ 重要功能上线前
+- ✅ 每周/每月定期检查
+- ✅ CI/CD 流水线最后阶段
+
+### 验收不通过怎么办
+
+1. 根据报告中的高优先级问题清单进行修复
+2. 修复完成后重新执行验收
+3. 对比历史验收记录，追踪改进趋势
+
+### 如何对比多次验收结果
+
+```bash
+# 查看验收历史
+/acceptance --history
+```
+
+---
+
+## 📞 帮助与支持
+
+如有问题，请参考：
+- `.clinerules` - 完整 Skill 定义
+- `.kimi/skills/project-acceptance/` - 验收专家配置文件
+- `ai-test-platform/docs/07-验收报告/README.md` - 验收报告索引
+
+---
+
+*最后更新: 2026-03-12*  
+*版本: v1.1*

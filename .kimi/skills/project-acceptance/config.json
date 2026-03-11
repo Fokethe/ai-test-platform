@@ -1,0 +1,132 @@
+{
+  "name": "project-acceptance-expert",
+  "version": "1.0.0",
+  "description": "第三方项目验收专家 - 11维度全面验收",
+  "acceptanceCriteria": {
+    "mustMeet": {
+      "highPriorityIssues": 0,
+      "mediumPriorityIssues": 0,
+      "testCoverage": 99,
+      "apiResponseTime": 3,
+      "pageLoadTime": 3,
+      "workflowPassRate": 100
+    },
+    "shouldMeet": {
+      "lowPriorityIssues": 10,
+      "dbQueryTime": 0.1,
+      "codeDuplicationRate": 5
+    }
+  },
+  "dimensions": [
+    {
+      "id": 1,
+      "name": "功能验收",
+      "skills": ["bughunter", "functionality-inspector"],
+      "weight": 25,
+      "outputFile": "dimension-1-功能验收.md"
+    },
+    {
+      "id": 2,
+      "name": "性能效率验收",
+      "tools": ["performance-test-suite"],
+      "thresholds": {
+        "apiResponseTime": 3,
+        "pageLoadTime": 3,
+        "dbQueryTime": 0.1
+      },
+      "weight": 15,
+      "outputFile": "dimension-2-性能验收.md"
+    },
+    {
+      "id": 3,
+      "name": "安全性验收",
+      "skills": ["bughunter"],
+      "dimension": "security",
+      "checks": ["sql-injection", "xss", "csrf", "sensitive-data", "auth-bypass", "owasp-top10"],
+      "weight": 20,
+      "outputFile": "dimension-3-安全验收.md"
+    },
+    {
+      "id": 4,
+      "name": "可移植性验收",
+      "checks": ["docker-containerization", "env-externalization", "cross-platform"],
+      "weight": 5,
+      "outputFile": "dimension-4-可移植性.md"
+    },
+    {
+      "id": 5,
+      "name": "可维护性验收",
+      "skills": ["bughunter"],
+      "dimension": "maintainability",
+      "checks": ["code-duplication", "complexity", "naming", "comments"],
+      "weight": 10,
+      "outputFile": "dimension-5-可维护性.md"
+    },
+    {
+      "id": 6,
+      "name": "兼容性验收",
+      "checks": ["browser-compatibility", "mobile-compatibility", "api-version"],
+      "weight": 5,
+      "outputFile": "dimension-6-兼容性.md"
+    },
+    {
+      "id": 7,
+      "name": "可用性验收",
+      "skills": ["bughunter"],
+      "dimension": "ux",
+      "checks": ["user-experience", "accessibility", "responsive"],
+      "weight": 5,
+      "outputFile": "dimension-7-可用性.md"
+    },
+    {
+      "id": 8,
+      "name": "可靠性验收",
+      "skills": ["health-check"],
+      "checks": ["fault-tolerance", "backup", "recovery"],
+      "weight": 5,
+      "outputFile": "dimension-8-可靠性.md"
+    },
+    {
+      "id": 9,
+      "name": "用户文档集验收",
+      "checks": ["doc-completeness", "api-doc-accuracy", "guide-completeness"],
+      "weight": 3,
+      "outputFile": "dimension-9-用户文档.md"
+    },
+    {
+      "id": 10,
+      "name": "产品说明验收",
+      "checks": ["requirement-compliance", "feature-list", "version-notes"],
+      "weight": 2,
+      "outputFile": "dimension-10-产品说明.md"
+    },
+    {
+      "id": 11,
+      "name": "工作流完整性验收",
+      "checks": [
+        "end-to-end-workflow",
+        "role-permission-correctness",
+        "data-integrity",
+        "step-executability"
+      ],
+      "weight": 5,
+      "outputFile": "dimension-11-工作流完整性.md"
+    }
+  ],
+  "report": {
+    "formats": ["markdown", "html"],
+    "outputDir": "ai-test-platform/docs/07-验收-report",
+    "templates": {
+      "summary": ".kimi/skills/project-acceptance/templates/summary-template.md",
+      "dimension": ".kimi/skills/project-acceptance/templates/dimension-template.md",
+      "html": ".kimi/skills/project-acceptance/templates/summary-template.html"
+    }
+  },
+  "commands": {
+    "full": "/acceptance",
+    "quick": "/acceptance --quick",
+    "dimension": "/acceptance --dim",
+    "report": "/acceptance --report",
+    "history": "/acceptance --history"
+  }
+}

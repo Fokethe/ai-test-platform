@@ -1,0 +1,127 @@
+# encoding: utf-8
+# -*- coding: utf-8 -*-
+
+# Cline 智能助手规则配置（精简版）
+# 版本: 2.0 | 适用: ai-test-platform 项目
+# 详细Skill定义: .clinerules/skills/ 目录
+# 使用指南: .clinerules/USAGE.md
+
+================================================================================
+## Skill 0: Skill 编排器 (Skill Orchestrator) - 意图识别
+================================================================================
+
+【触发方式】: 每轮对话优先执行，自动识别用户意图并触发 Skill 序列
+
+【意图识别规则】:
+当用户输入以下关键词时，自动执行对应的 Skill 序列：
+
+| 用户意图 | 触发关键词 | 自动执行的 Skill 序列 |
+|---------|-----------|---------------------|
+| 新项目启动 | "开始新项目" "新项目" "从零开始" | cost-control → socratic-inquiry → task-planner → doc-system |
+| 功能开发 | "开发新功能" "添加功能" "实现功能" | cost-control → task-planner → workflow → code-review → doc-system |
+| TDD 循环 | "TDD 模式" "循环开发" "先写测试" | cost-control → tdd-loop (红→绿→重构) |
+| 代码重构 | "重构" "优化代码" "重构 {文件名}" | cost-control → code-review → task-planner → code-refactor |
+| Bug 修复 | "修复bug" "debug" "报错了" | cost-control → debug-diagnosis → danger-signals → code-review |
+| 设计还原 | "还原设计" "设计稿" "截图转代码" | cost-control → visual-coding → task-planner → code-review |
+| 文档整理 | "整理文档" "处理文档" "文档太大" | cost-control → doc-processor → 整合 |
+| 代码提交 | "提交代码" "commit" "写commit" | cost-control → code-review → doc-system → git-commit |
+| 健康检查 | "检查健康" "检查健康度" "状态检查" | cost-control → context-management → danger-signals → code-review → cost-control |
+| 深度修复 | "BugHunter" "深度修复" "自动修复" | cost-control → bughunter-loop |
+| 多任务调度 | "使用 subagent" "并行处理" | cost-control → multi-task-scheduler |
+| 自动清理 | "清理项目" | cost-control → auto-cleanup |
+| 项目验收 | "验收项目" "版本验收" "项目验收" | cost-control → project-acceptance (11×4矩阵验收+自动修复循环) |
+
+【特殊指令】:
+- "加载 Skill XX" → 从 .clinerules/skills/ 加载指定 Skill
+- "显示所有 Skill" → 列出核心 Skill 清单（见 USAGE.md）
+
+================================================================================
+## 快捷指令总表
+================================================================================
+
+### 🎯 编排与调度
+| 指令 | 功能 | Skill文件 |
+|------|------|----------|
+| `/plan` | 重新生成计划 | skill-03-task-planner.md |
+| `/parallel` | 启动多任务调度 | skill-10-multi-task-scheduler.md |
+| `/next` | 继续下一阶段 | - |
+
+### 💰 成本与监控
+| 指令 | 功能 | Skill文件 |
+|------|------|----------|
+| `/cost` | 显示当前累计消耗 | skill-01-cost-control.md |
+| `/health` | 系统健康检查 | skill-12-health-check.md |
+
+### 🔍 代码质量
+| 指令 | 功能 | Skill文件 |
+|------|------|----------|
+| `/bughunter` | 启动 BugHunter | skill-09-bughunter.md |
+| `/inspect` | 功能深度审查 | skill-13-deep-inspector.md |
+
+### 🎯 项目验收 ⭐ 核心
+| 指令 | 功能 | Skill文件 |
+|------|------|----------|
+| `/acceptance` | 启动11×4矩阵验收 (含自动修复循环) | skill-14-project-acceptance.md |
+| `/acceptance --quick` | 快速验收 (阶段1+2，不触发修复) | skill-14-project-acceptance.md |
+| `/acceptance --dim=1,3,5` | 指定维度验收 (所有阶段) | skill-14-project-acceptance.md |
+| `/acceptance --phase=1` | 指定阶段验收 (所有维度) | skill-14-project-acceptance.md |
+| `/acceptance --cell=1-1,3-2` | 指定矩阵单元格验收 | skill-14-project-acceptance.md |
+| `/acceptance --no-fix` | 验收但不自动修复 | skill-14-project-acceptance.md |
+| `/acceptance --fix-only` | 仅执行修复循环 | skill-14-project-acceptance.md |
+
+### 🧹 项目维护 ⭐ 核心
+| 指令 | 功能 | Skill文件 |
+|------|------|----------|
+| `/cleanup` | 自动清理（含根目录外溢检测） | skill-11-autocleanup.md |
+| `/cleanup dry-run` | 预览清理 | skill-11-autocleanup.md |
+| `/cleanup --deep` | 深度清理（含文件夹清理） | skill-11-autocleanup.md |
+| `/cleanup --dirs-only` | 仅清理目录 | skill-11-autocleanup.md |
+
+================================================================================
+## 强制规则
+================================================================================
+
+【Skill更新同步强制规则】:
+**每当修改任何 Skill 时，必须同步更新以下文件：**
+- [ ] 1. `.clinerules` (本文件 - 触发关键词/快捷指令)
+- [ ] 2. `.clinerules/skills/skill-XX-xxx.md` (详细定义)
+- [ ] 3. `.kimi/skills/xxx/skill-XX-xxx.md` (如存在Kimi版本)
+- [ ] 4. `.clinerules/USAGE.md` (快捷指令表)
+- [ ] 5. 最后更新时间
+
+【memory.md 自动更新】:
+**⚠️ 每次 attempt_completion 前必须更新 memory.md**
+- 判断是否为重要任务（耗时>30分钟、修改>5个文件、解决复杂问题）
+- 按模板生成新记录条目
+- 插入到"📋 任务历史"章节最前面（倒序）
+- 更新最后更新时间
+
+【上下文满载自动记录】:
+**触发条件**: 上下文占用 > 80% | 对话轮数 > 20 | 消耗 > $0.10
+**执行动作**: 立即记录 Checkpoint 到 memory.md
+
+================================================================================
+## Skill 文件索引（14个核心Skill）
+================================================================================
+
+| # | Skill 名称 | 文件位置 |
+|---|-----------|---------|
+| 01 | 成本控制协议 | `.clinerules/skills/skill-01-cost-control.md` |
+| 02 | 大文档分段处理 | `.clinerules/skills/skill-02-doc-processor.md` |
+| 03 | 任务拆解与规划 | `.clinerules/skills/skill-03-task-planner.md` |
+| 04 | 代码审查协议 | `.clinerules/skills/skill-04-code-review.md` |
+| 05 | 需求审问与项目启动 | `.clinerules/skills/skill-05-socratic-inquiry.md` |
+| 06 | 文档三轨与提交系统 | `.clinerules/skills/skill-06-doc-system.md` |
+| 07 | 调试诊断协议 | `.clinerules/skills/skill-07-debug-diagnosis.md` |
+| 08 | 危险信号检测 | `.clinerules/skills/skill-08-danger-signals.md` |
+| 09 | BugHunter V2.0 | `.clinerules/skills/skill-09-bughunter.md` |
+| 10 | 多任务调度器 | `.clinerules/skills/skill-10-multi-task-scheduler.md` |
+| 11 | 自动清理 V2.5 ⭐ | `.clinerules/skills/skill-11-autocleanup.md` |
+| 12 | 系统健康检查 | `.clinerules/skills/skill-12-health-check.md` |
+| 13 | 功能深度审查器 | `.clinerules/skills/skill-13-deep-inspector.md` |
+| 14 | 第三方验收专家 V3.5 ⭐ | `.clinerules/skills/skill-14-project-acceptance.md` |
+
+**完整使用指南**: 请查阅 `.clinerules/USAGE.md`
+
+================================================================================
+*配置版本: 2.2 | 最后更新: 2026-03-12 | 核心 Skill: 14个*

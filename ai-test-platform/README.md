@@ -73,13 +73,15 @@ ai-test-platform/
 │   ├── prisma/               # 数据库模型
 │   └── package.json
 │
+├── 📋 PRD.md                 # 核心产品需求文档
 ├── docs/                     # 项目文档
-│   ├── README.md
-│   ├── DOCUMENT_NAMING_CONVENTION.md
-│   ├── 01-PRD/              # 产品需求
-│   ├── 06-TEST/             # 测试文档
-│   ├── 10-AUX/              # 辅助文档
-│   └── 99-GIT/              # Git管理
+│   ├── INDEX.md             # 文档索引
+│   ├── 01-架构文档/          # 架构设计
+│   ├── 02-API文档/           # API接口
+│   ├── 03-部署配置/          # 部署配置
+│   ├── 04-使用指南/          # 使用指南
+│   ├── 05-参考资料/          # 参考资料
+│   └── 06-项目管理/          # 项目进度
 │
 ├── scripts/                  # 工具脚本
 │   ├── git-init.ps1         # Git初始化
@@ -92,12 +94,21 @@ ai-test-platform/
 
 ## 📝 文档导航
 
+### 📋 核心文档
+
+| 文档 | 说明 |
+|------|------|
+| **[📋 PRD.md](./PRD.md)** | **产品需求文档** - 功能需求、架构设计、路线图 |
+| [docs/INDEX.md](docs/INDEX.md) | 文档索引与导航 |
+| [docs/04-使用指南/KIMI.md](docs/04-使用指南/KIMI.md) | 开发规范与技术约定 |
+| [docs/06-项目管理/progress.md](docs/06-项目管理/progress.md) | 项目进度追踪 |
+
+### 📖 详细文档
+
 | 文档 | 说明 |
 |------|------|
 | [docs/README.md](docs/README.md) | 文档中心首页 |
-| [docs/10-AUX/ATP-AUX-006-项目备忘录-v1.0.md](docs/10-AUX/ATP-AUX-006-项目备忘录-v1.0.md) | 项目进度跟踪 |
-| [docs/06-TEST/ATP-TEST-003-问题修复追踪报告-v1.0.md](docs/06-TEST/ATP-TEST-003-问题修复追踪报告-v1.0.md) | 问题修复状态 |
-| [docs/10-AUX/ATP-AUX-008-性能优化总结-v1.0.md](docs/10-AUX/ATP-AUX-008-性能优化总结-v1.0.md) | 性能优化说明 |
+| [docs/99-历史归档/](docs/99-历史归档/) | 历史报告归档 |
 
 ---
 
@@ -121,13 +132,6 @@ ai-test-platform/
 所有推送记录保存在 [docs/99-GIT/PUSH_LOG.md](docs/99-GIT/PUSH_LOG.md)
 
 ---
-
-## 📋 测试
-
-### 手工测试
-1. 查看 [docs/06-TEST/ATP-TEST-001-功能验证清单-v1.0.md](docs/06-TEST/ATP-TEST-001-功能验证清单-v1.0.md)
-2. 执行测试用例
-3. 记录问题到 [docs/06-TEST/ATP-TEST-002-功能测试问题报告-v1.0.md](docs/06-TEST/ATP-TEST-002-功能测试问题报告-v1.0.md)
 
 ### 自动化测试
 ```bash

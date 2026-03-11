@@ -1,6 +1,20 @@
+# encoding: utf-8
 # Project: AI Test Platform
+# ⚠️ 每次会话自动读取 ai-test-platform/memory.md 前200行获取最新上下文
 
 # Stack: Next.js 16 + TypeScript + Tailwind + Prisma + NextAuth + shadcn/ui
+
+## 📚 项目文档
+
+| 文档 | 位置 | 用途 |
+|------|------|------|
+| **KIMI.md** | 本文档 | 技术规范、当前目标、快速参考 |
+| **progress.md** | docs/06-项目管理/ | 进度追踪、完成事项 |
+| **memory.md** | ai-test-platform/memory.md | 会话历史、调试经验、架构决策 |
+
+> 💡 **新开会话时，我会自动读取 memory.md 前200行**，快速了解最近完成的任务和当前上下文
+
+-------
 
 ## 技术铁律
 
