@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -69,7 +69,8 @@ const swrOptions = {
   dedupingInterval: 5000,
 };
 
-export default function RunCenterPage() {
+// 内部组件使用 useSearchParams
+function RunsContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'history';
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -463,5 +464,14 @@ function ScheduledTaskCard({ run }: { run: Run }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// 默认导出 - 用 Suspense 包裹
+export default function RunCenterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>}>
+      <RunsContent />
+    </Suspense>
   );
 }

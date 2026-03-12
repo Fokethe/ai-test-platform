@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { safeParseDbField } from '@/lib/utils/safe-json-parser';
 
 export async function GET(
   request: NextRequest,
@@ -25,11 +26,11 @@ export async function GET(
       );
     }
 
-    // 解析 JSON 字段
+    // 解析 JSON 字段（安全解析，防止服务器崩溃）
     const result = {
       ...requirement,
-      features: JSON.parse(requirement.features || '[]'),
-      businessRules: JSON.parse(requirement.businessRules || '[]'),
+      features: safeParseDbField(requirement.features, []),
+      businessRules: safeParseDbField(requirement.businessRules, []),
     };
 
     return NextResponse.json({

@@ -11,15 +11,19 @@ describe('AiRequirement Storage', () => {
   let documentParser: DocumentParser;
   let requirementParser: RequirementParser;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     documentParser = new DocumentParser();
     requirementParser = new RequirementParser();
+    
+    // 清理测试数据
+    await prisma.testPoint.deleteMany().catch(() => {});
+    await prisma.aiRequirement.deleteMany().catch(() => {});
   });
 
   afterEach(async () => {
     // 清理测试数据
-    await prisma.testPoint.deleteMany({});
-    await prisma.aiRequirement.deleteMany({});
+    await prisma.testPoint.deleteMany().catch(() => {});
+    await prisma.aiRequirement.deleteMany().catch(() => {});
   });
 
   describe('保存需求到数据库', () => {

@@ -10,7 +10,7 @@
 
 | 指令 | 功能 | 使用场景 |
 |------|------|----------|
-| `/acceptance` | 启动完整11维度验收（含自动修复） | 大版本发布前、项目里程碑 |
+| `/acceptance` | 启动56检查点全自动验收（YOLO模式+自动修复循环）严格模式(100%+99+99%) | 大版本发布前、项目里程碑 |
 | `/acceptance --quick` | 快速验收（仅关键维度，不修复） | 日常检查、快速验证 |
 | `/acceptance --dim=1,3,11` | 验收指定维度 | 针对性检查 |
 | `/acceptance --no-fix` | 验收但不自动修复 | 人工控制修复 |
@@ -93,7 +93,7 @@
 | **深度修复** | cost-control → bughunter-loop |
 | **多任务调度** | cost-control → multi-task-scheduler |
 | **自动清理** | cost-control → auto-cleanup |
-| **项目验收** | cost-control → acceptance-expert → auto-cleanup |
+| **项目验收** | cost-control → acceptance-expert (56检查点全自动+严格模式+YOLO/Compact实际执行+SubAgent修复循环) → auto-cleanup |
 
 ---
 
@@ -128,7 +128,7 @@
 - **Skill 11**: 自动清理 V2.5 - 临时文件、空目录、重复文件夹清理
 
 #### ✅ 质量保证
-- **Skill 14**: 第三方验收专家 V3.5 - 11维度项目验收 + 自动修复循环
+- **Skill 14**: 第三方验收专家 V5.1 ⭐⭐ - 56检查点(44+12)全自动验收 + 严格模式(100%+99+99%) + YOLO/Compact实际执行 + 运行时验证全覆盖
 
 ### 备用 Skill 库
 - **位置**: `.clinerules.skill-library.md`
@@ -306,4 +306,4 @@ ai-test-platform/docs/07-验收报告/
 ---
 
 *最后更新: 2026-03-12*  
-*版本: v1.1*
+*版本: v1.2*

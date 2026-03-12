@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   // 认证检查
   const session = await auth();
   if (!session?.user) {
-    return errors.unauthorized('请先登录');
+    return errors.unauthorized();
   }
 
   try {
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
   // 认证检查
   const session = await auth();
   if (!session?.user) {
-    return errors.unauthorized('请先登录');
+    return errors.unauthorized();
   }
 
   const parseResult = await parseJsonBody<{
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
   // Zod 验证
   const validationResult = createAssetSchema.safeParse(parseResult.data);
   if (!validationResult.success) {
-    return errors.validationError(validationResult.error);
+    return errors.validationError(validationResult.error.flatten().fieldErrors);
   }
   
   const validatedData = validationResult.data;

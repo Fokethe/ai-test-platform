@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "name": "BugHunter - 自主代码诊断与修复系统",
-  "description": "能自主发现问题并自我修复，且持续迭代优化的深度修复工具",
-  "lastUpdated": "2026-02-27",
+  "version": "2.0.0",
+  "name": "BugHunter V2.0 - 自主代码诊断与修复系统",
+  "description": "能自主发现问题并自我修复，且持续迭代优化的深度修复工具。V2.0 新增8个检测维度，总计12维度，200+检查项。",
+  "lastUpdated": "2026-03-11",
   
   "enhancements": {
     "learningHistory": {
@@ -116,11 +116,164 @@
     }
   },
   
+  "detectionDimensions": {
+    "version": "2.0",
+    "totalDimensions": 12,
+    "totalCheckItems": 200,
+    "categories": {
+      "original": {
+        "count": 4,
+        "dimensions": [
+          {
+            "id": 1,
+            "name": "功能缺陷",
+            "items": 5,
+            "priority": "high",
+            "checks": ["逻辑错误", "算法错误", "业务规则违反", "状态管理错误", "异步处理错误"]
+          },
+          {
+            "id": 2,
+            "name": "代码质量",
+            "items": 7,
+            "priority": "mixed",
+            "checks": ["空指针/undefined", "资源泄漏", "异常处理缺失", "并发问题", "性能瓶颈", "循环依赖", "魔法数字"]
+          },
+          {
+            "id": 3,
+            "name": "安全漏洞",
+            "items": 8,
+            "priority": "high",
+            "checks": ["SQL注入", "XSS攻击", "CSRF漏洞", "敏感信息硬编码", "权限绕过", "不安全的反序列化", "目录遍历", "正则表达式DoS"]
+          },
+          {
+            "id": 4,
+            "name": "可维护性",
+            "items": 5,
+            "priority": "mixed",
+            "checks": ["代码重复", "过度复杂函数", "命名不规范", "缺少注释", "类型滥用"]
+          }
+        ]
+      },
+      "new": {
+        "count": 8,
+        "dimensions": [
+          {
+            "id": 5,
+            "name": "测试完整性",
+            "items": 10,
+            "priority": "high",
+            "checks": ["单元测试覆盖率", "API测试覆盖", "边界值测试", "错误路径测试", "集成测试缺失", "测试数据准备", "Mock完整性", "测试隔离性", "快照测试", "性能测试"]
+          },
+          {
+            "id": 6,
+            "name": "数据一致性",
+            "items": 12,
+            "priority": "high",
+            "checks": ["数据库事务完整性", "并发数据竞争", "数据验证缺失", "级联删除配置", "数据类型匹配", "时区处理", "空值处理", "数据精度丢失", "大数据分页", "缓存一致性", "软删除实现", "数据归档策略"]
+          },
+          {
+            "id": 7,
+            "name": "用户体验",
+            "items": 12,
+            "priority": "high",
+            "checks": ["加载状态缺失", "错误提示友好性", "表单验证反馈", "操作确认机制", "空状态处理", "响应式适配", "输入防抖动", "面包屑导航", "键盘快捷键", "暗黑模式支持", "动画过度", "焦点管理"]
+          },
+          {
+            "id": 8,
+            "name": "集成兼容性",
+            "items": 12,
+            "priority": "mixed",
+            "checks": ["API版本兼容性", "第三方服务降级", "依赖版本锁定", "浏览器兼容性", "数据库迁移脚本", "环境变量完整性", "外部API超时", "Webhook重试机制", "跨域配置", "SSL/HTTPS", "CDN配置", "服务发现"]
+          },
+          {
+            "id": 9,
+            "name": "边界与异常场景",
+            "items": 13,
+            "priority": "high",
+            "checks": ["超大输入处理", "特殊字符处理", "网络中断恢复", "零值除法", "数组越界", "长时间运行", "内存泄漏", "频率限制", "死锁检测", "资源耗尽", "时钟回拨", "时区切换", "闰年/闰秒"]
+          },
+          {
+            "id": 10,
+            "name": "可观测性",
+            "items": 12,
+            "priority": "high",
+            "checks": ["日志级别规范", "错误日志完整", "性能指标采集", "链路追踪", "健康检查端点", "业务指标监控", "告警规则配置", "日志脱敏", "分布式ID", "埋点完整性", "慢查询监控", "错误聚合"]
+          },
+          {
+            "id": 11,
+            "name": "国际化与本地化",
+            "items": 8,
+            "priority": "medium",
+            "checks": ["硬编码文本", "日期格式", "货币符号", "RTL适配", "文本长度溢出", "多语言SEO", "翻译键缺失", "复数规则"]
+          },
+          {
+            "id": 12,
+            "name": "合规与审计",
+            "items": 8,
+            "priority": "high",
+            "checks": ["GDPR合规", "操作审计日志", "数据保留策略", "隐私政策更新", "Cookie合规", "数据跨境传输", "敏感操作审批", "数据导出功能"]
+          }
+        ]
+      }
+    }
+  },
+
+  "executionModes": {
+    "modeA": {
+      "name": "深度修复模式",
+      "description": "单轮彻底修复所有问题",
+      "default": true,
+      "command": "/bughunter"
+    },
+    "modeB": {
+      "name": "渐进迭代模式",
+      "description": "多轮小步快跑，每轮结束询问是否继续",
+      "command": "渐进模式启动 BugHunter"
+    },
+    "modeC": {
+      "name": "定向狙击模式",
+      "description": "修复特定类型问题",
+      "command": "/bughunter --dim={dimension}"
+    },
+    "modeD": {
+      "name": "优先级修复模式",
+      "description": "只修复高优先级问题",
+      "command": "/bughunter --high"
+    },
+    "modeE": {
+      "name": "全面扫描模式",
+      "description": "生成完整问题报告，不自动修复",
+      "command": "/bughunter --scan-only"
+    }
+  },
+
+  "priorityLevels": {
+    "high": {
+      "symbol": "🔴",
+      "description": "影响核心功能，可能导致系统故障",
+      "fixDeadline": "上线前必须修复",
+      "count": 60
+    },
+    "medium": {
+      "symbol": "🟡",
+      "description": "影响使用体验，但不会导致系统故障",
+      "fixDeadline": "建议本周修复",
+      "count": 100
+    },
+    "low": {
+      "symbol": "🟢",
+      "description": "锦上添花，不影响核心功能",
+      "fixDeadline": "可规划修复",
+      "count": 40
+    }
+  },
+
   "integration": {
     "clinerules": {
-      "skillId": 27,
+      "skillId": 9,
       "skillName": "BugHunter",
-      "location": ".clinerules"
+      "location": ".clinerules",
+      "version": "2.0"
     },
     "mcp": {
       "description": "可作为 MCP 工具集成",

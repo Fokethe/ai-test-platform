@@ -6,9 +6,10 @@ const API_BASE = '/api';
 
 export class ApiError extends Error {
   constructor(
+    public code: string,
     message: string,
     public status: number,
-    public data?: any
+    public details?: Record<string, string[]>
   ) {
     super(message);
     this.name = 'ApiError';
@@ -31,9 +32,10 @@ async function request<T>(
 
   if (!response.ok) {
     throw new ApiError(
+      'API_ERROR',
       data?.message || `Request failed with status ${response.status}`,
       response.status,
-      data
+      data?.details
     );
   }
 

@@ -16,16 +16,7 @@ export async function GET(request: NextRequest) {
       return errors.unauthorized();
     }
 
-    const { searchParams } = new URL(request.url);
-    const entityType = searchParams.get('entityType');
-
-    const where: any = {};
-    if (entityType) {
-      where.entityType = entityType;
-    }
-
     const customFields = await prisma.customField.findMany({
-      where,
       orderBy: { order: 'asc' },
     });
 
@@ -45,9 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, key, type, entityType, options, required, order } = body;
+    const { name, key, type, options, required, order } = body;
 
-    if (!name || !key || !type || !entityType) {
+    if (!name || !key || !type) {
       return errors.badRequest('缺少必填字段');
     }
 
@@ -56,10 +47,11 @@ export async function POST(request: NextRequest) {
         name,
         key,
         type,
-        entityType,
         options: options ? JSON.stringify(options) : null,
         required: required || false,
         order: order || 0,
+        createdBy: session.user.id,
+        project: { connect: { id: '' } }, // 临时处理，实际需要传入 projectId
       },
     });
 

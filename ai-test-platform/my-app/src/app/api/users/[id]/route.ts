@@ -9,6 +9,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse, errors } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
+import { generateTempPassword } from '@/lib/security/password';
 
 /**
  * 发送密码重置邮件
@@ -100,7 +101,7 @@ export async function PUT(
     
     // 重置密码
     if (resetPassword) {
-      updateData.password = Math.random().toString(36).slice(-16);
+      updateData.password = generateTempPassword();
       // 发送密码重置邮件
       await sendPasswordResetEmail(existingUser.email, id);
     }

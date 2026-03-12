@@ -1095,3 +1095,4 @@ model Activity {
   @@index([actorId, createdAt], map: "activities_actor_id_created_at_idx")
   @@map("activities")
 }
+ 

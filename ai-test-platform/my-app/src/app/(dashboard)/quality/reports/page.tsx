@@ -170,8 +170,9 @@ export default function QualityReportsPage() {
     swrOptions
   );
 
-  const issues = issuesData?.data || [];
-  const runs = runsData?.data || [];
+  // 确保数据是数组类型，防止 .filter 报错
+  const issues = Array.isArray(issuesData?.data) ? issuesData.data : [];
+  const runs = Array.isArray(runsData?.data) ? runsData.data : [];
   const isLoading = issuesLoading || runsLoading;
 
   // 计算趋势数据

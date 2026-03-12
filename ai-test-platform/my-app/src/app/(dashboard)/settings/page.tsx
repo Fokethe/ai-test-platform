@@ -5,7 +5,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   User,
@@ -26,11 +25,7 @@ const settingsNav = [
   { id: 'system', label: '系统配置', icon: Settings, href: '/settings/system' },
 ];
 
-export default function SettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function SettingsPage() {
   const pathname = usePathname();
 
   return (

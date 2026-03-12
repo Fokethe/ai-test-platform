@@ -59,6 +59,12 @@
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
+  "browserslist": [
+    ">= 0.5%",
+    "last 2 major versions",
+    "not dead",
+    "not IE 11"
+  ],
   "devDependencies": {
     "@babel/preset-env": "^7.29.0",
     "@babel/preset-react": "^7.28.5",

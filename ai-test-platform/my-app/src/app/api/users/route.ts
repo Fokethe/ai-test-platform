@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse, errors } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
+import { generateTempPassword } from '@/lib/security/password';
 
 /**
  * 发送邀请邮件
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         role,
         status: 'PENDING',
         // 生成随机密码，用户首次登录时需要重置
-        password: Math.random().toString(36).slice(-16),
+        password: generateTempPassword(),
       },
       select: {
         id: true,
