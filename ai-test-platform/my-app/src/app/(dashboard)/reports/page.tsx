@@ -13,9 +13,11 @@ import {
   FileSpreadsheet,
   Code,
   Table,
+  PieChart as PieIcon,
+  Activity,
+  Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -35,6 +37,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { BentoCard, BentoGrid, BentoHeader } from '@/components/bento';
 import {
   BarChart,
   Bar,
@@ -61,7 +64,7 @@ interface ReportStats {
   executionsByProject: { name: string; count: number }[];
 }
 
-const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#6366f1'];
+const COLORS = ['#0066ff', '#ef4444', '#f59e0b', '#6366f1'];
 
 export default function ReportsPage() {
   const [stats, setStats] = useState<ReportStats | null>(null);
@@ -87,6 +90,7 @@ export default function ReportsPage() {
       setStats(data);
     } catch (error) {
       toast.error('获取统计数据失败');
+      // 使用模拟数据
       setStats({
         totalExecutions: 156,
         passedCount: 142,
@@ -149,21 +153,22 @@ export default function ReportsPage() {
 
   const pieData = stats
     ? [
-        { name: '通过', value: stats.passedCount, color: '#10b981' },
+        { name: '通过', value: stats.passedCount, color: '#0066ff' },
         { name: '失败', value: stats.failedCount, color: '#ef4444' },
       ]
     : [];
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="max-w-7xl mx-auto">
-          <Skeleton className="h-8 w-48 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-32" />
-            ))}
-          </div>
+      <div className="p-8 space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-96" />
           <Skeleton className="h-96" />
         </div>
       </div>
@@ -171,231 +176,247 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">报告中心</h1>
-            <p className="text-slate-600 mt-1">查看测试执行统计和趋势分析</p>
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <BentoHeader
+          title="报告中心"
+          description="查看测试执行统计和趋势分析"
+        />
+        <div className="flex gap-2">
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as '7d' | '30d' | '90d')}>
+            <SelectTrigger className="w-32">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">最近7天</SelectItem>
+              <SelectItem value="30d">最近30天</SelectItem>
+              <SelectItem value="90d">最近90天</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setExportDialogOpen(true)} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+            <Download className="mr-2 h-4 w-4" />
+            导出报告
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards - Bento风格 */}
+      <BentoGrid cols={4}>
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-[var(--electric)]/10 rounded-xl">
+              <BarChart3 className="h-6 w-6 text-[var(--electric)]" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">总执行次数</p>
+              <p className="text-2xl font-bold text-slate-900">{stats?.totalExecutions || 0}</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
-              导出报告
-            </Button>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-500/10 rounded-xl">
+              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">通过次数</p>
+              <p className="text-2xl font-bold text-emerald-500">
+                {stats?.passedCount || 0}
+              </p>
+            </div>
           </div>
-        </div>
+        </BentoCard>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">总执行次数</p>
-                  <p className="text-2xl font-bold">{stats?.totalExecutions || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">通过次数</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {stats?.passedCount || 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <XCircle className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">失败次数</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {stats?.failedCount || 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600">通过率</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {stats?.passRate || 0}%
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-red-500/10 rounded-xl">
+              <XCircle className="h-6 w-6 text-red-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">失败次数</p>
+              <p className="text-2xl font-bold text-red-500">
+                {stats?.failedCount || 0}
+              </p>
+            </div>
+          </div>
+        </BentoCard>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Trend Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>执行趋势（最近7天）</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats?.executionsByDay || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="passed" name="通过" fill="#10b981" />
-                  <Bar dataKey="failed" name="失败" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-500/10 rounded-xl">
+              <TrendingUp className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">通过率</p>
+              <p className="text-2xl font-bold text-amber-500">
+                {stats?.passRate || 0}%
+              </p>
+            </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
 
-          {/* Pie Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>执行结果分布</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Charts - Bento风格 */}
+      <BentoGrid cols={2}>
+        {/* Trend Chart */}
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Activity className="h-5 w-5 text-[var(--electric)]" />
+            <h3 className="font-semibold text-slate-900">执行趋势（最近7天）</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={stats?.executionsByDay || []}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e6e8" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e4e6e8',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                }} 
+              />
+              <Legend />
+              <Bar dataKey="passed" name="通过" fill="#0066ff" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="failed" name="失败" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </BentoCard>
 
-        {/* 导出对话框 */}
-        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>导出报告</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>报告类型</Label>
-                <Select
-                  value={exportConfig.type}
-                  onValueChange={(value) => setExportConfig({ ...exportConfig, type: value })}
+        {/* Pie Chart */}
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <PieIcon className="h-5 w-5 text-[var(--electric)]" />
+            <h3 className="font-semibold text-slate-900">执行结果分布</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={5}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e4e6e8',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                }} 
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </BentoCard>
+      </BentoGrid>
+
+      {/* 导出对话框 */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>导出报告</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>报告类型</Label>
+              <Select
+                value={exportConfig.type}
+                onValueChange={(value) => setExportConfig({ ...exportConfig, type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="testcases">测试用例报告</SelectItem>
+                  <SelectItem value="executions">执行记录报告</SelectItem>
+                  <SelectItem value="bugs">Bug 报告</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>导出格式</Label>
+              <div className="grid grid-cols-4 gap-2">
+                <Button
+                  type="button"
+                  variant={exportConfig.format === 'xlsx' ? 'default' : 'outline'}
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'xlsx' })}
+                  className={`flex flex-col items-center gap-1 h-auto py-3 ${exportConfig.format === 'xlsx' ? 'bg-[var(--electric)] hover:bg-[var(--electric)]/90' : ''}`}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="testcases">测试用例报告</SelectItem>
-                    <SelectItem value="executions">执行记录报告</SelectItem>
-                    <SelectItem value="bugs">Bug 报告</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>导出格式</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  <Button
-                    type="button"
-                    variant={exportConfig.format === 'xlsx' ? 'default' : 'outline'}
-                    onClick={() => setExportConfig({ ...exportConfig, format: 'xlsx' })}
-                    className="flex flex-col items-center gap-1 h-auto py-3"
-                  >
-                    <FileSpreadsheet className="h-5 w-5" />
-                    <span className="text-xs">Excel</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={exportConfig.format === 'csv' ? 'default' : 'outline'}
-                    onClick={() => setExportConfig({ ...exportConfig, format: 'csv' })}
-                    className="flex flex-col items-center gap-1 h-auto py-3"
-                  >
-                    <Table className="h-5 w-5" />
-                    <span className="text-xs">CSV</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={exportConfig.format === 'html' ? 'default' : 'outline'}
-                    onClick={() => setExportConfig({ ...exportConfig, format: 'html' })}
-                    className="flex flex-col items-center gap-1 h-auto py-3"
-                  >
-                    <Code className="h-5 w-5" />
-                    <span className="text-xs">HTML</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={exportConfig.format === 'json' ? 'default' : 'outline'}
-                    onClick={() => setExportConfig({ ...exportConfig, format: 'json' })}
-                    className="flex flex-col items-center gap-1 h-auto py-3"
-                  >
-                    <FileText className="h-5 w-5" />
-                    <span className="text-xs">JSON</span>
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>开始日期</Label>
-                  <Input
-                    type="date"
-                    value={exportConfig.startDate}
-                    onChange={(e) => setExportConfig({ ...exportConfig, startDate: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>结束日期</Label>
-                  <Input
-                    type="date"
-                    value={exportConfig.endDate}
-                    onChange={(e) => setExportConfig({ ...exportConfig, endDate: e.target.value })}
-                  />
-                </div>
+                  <FileSpreadsheet className="h-5 w-5" />
+                  <span className="text-xs">Excel</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={exportConfig.format === 'csv' ? 'default' : 'outline'}
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'csv' })}
+                  className={`flex flex-col items-center gap-1 h-auto py-3 ${exportConfig.format === 'csv' ? 'bg-[var(--electric)] hover:bg-[var(--electric)]/90' : ''}`}
+                >
+                  <Table className="h-5 w-5" />
+                  <span className="text-xs">CSV</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={exportConfig.format === 'html' ? 'default' : 'outline'}
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'html' })}
+                  className={`flex flex-col items-center gap-1 h-auto py-3 ${exportConfig.format === 'html' ? 'bg-[var(--electric)] hover:bg-[var(--electric)]/90' : ''}`}
+                >
+                  <Code className="h-5 w-5" />
+                  <span className="text-xs">HTML</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={exportConfig.format === 'json' ? 'default' : 'outline'}
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'json' })}
+                  className={`flex flex-col items-center gap-1 h-auto py-3 ${exportConfig.format === 'json' ? 'bg-[var(--electric)] hover:bg-[var(--electric)]/90' : ''}`}
+                >
+                  <FileText className="h-5 w-5" />
+                  <span className="text-xs">JSON</span>
+                </Button>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-                取消
-              </Button>
-              <Button onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                导出
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>开始日期</Label>
+                <Input
+                  type="date"
+                  value={exportConfig.startDate}
+                  onChange={(e) => setExportConfig({ ...exportConfig, startDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>结束日期</Label>
+                <Input
+                  type="date"
+                  value={exportConfig.endDate}
+                  onChange={(e) => setExportConfig({ ...exportConfig, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleExport} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+              <Download className="mr-2 h-4 w-4" />
+              导出
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
