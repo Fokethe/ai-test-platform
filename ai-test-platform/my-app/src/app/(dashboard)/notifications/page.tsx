@@ -1,13 +1,12 @@
 /**
- * @file 通知中心页面
- * @description 统一的通知管理页面，合并了原有的 inbox 和 notifications 功能
+ * @file 通知中心页面 - Bento风格
+ * @description 统一的通知管理页面
  */
 
 'use client'
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/empty-state'
+import { BentoCard, BentoGrid, BentoHeader } from '@/components/bento'
 import {
   Check,
   CheckCheck,
@@ -59,10 +58,10 @@ const typeIcons = {
 
 // 类型样式映射
 const typeStyles = {
-  success: 'text-green-600 bg-green-50 border-green-200',
-  warning: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+  success: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  warning: 'text-amber-600 bg-amber-50 border-amber-200',
   error: 'text-red-600 bg-red-50 border-red-200',
-  info: 'text-blue-600 bg-blue-50 border-blue-200',
+  info: 'text-[var(--electric)] bg-[var(--electric)]/10 border-[var(--electric)]/20',
 }
 
 export default function NotificationsPage() {
@@ -119,10 +118,9 @@ export default function NotificationsPage() {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="space-y-6" data-testid="loading-skeleton">
+      <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96" />
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
@@ -135,142 +133,136 @@ export default function NotificationsPage() {
   // 错误状态
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">
-          加载通知失败
-        </h2>
-        <p className="text-slate-600">请稍后重试</p>
-        <Button onClick={() => mutate()} className="mt-4">
-          重试
-        </Button>
+      <div className="p-6">
+        <BentoCard className="p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">加载通知失败</h2>
+          <p className="text-slate-600">请稍后重试</p>
+          <Button onClick={() => mutate()} className="mt-4 bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+            重试
+          </Button>
+        </BentoCard>
       </div>
     )
   }
 
-  // 获取图标组件
-  const SuccessIcon = typeIcons.success
-  const WarningIcon = typeIcons.warning
-  const ErrorIcon = typeIcons.error
-  const InfoIcon = typeIcons.info
-
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">通知中心</h1>
-        <p className="text-slate-600 mt-1">查看和管理所有系统通知</p>
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <BentoHeader
+          title="通知中心"
+          description="查看和管理所有系统通知"
+        />
+        {unreadCount > 0 && (
+          <Button variant="outline" onClick={markAllAsRead}>
+            <CheckCheck className="h-4 w-4 mr-2" />
+            全部已读
+          </Button>
+        )}
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-slate-600">未读消息</p>
-            <p className="text-2xl font-bold">{unreadCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-slate-600">系统通知</p>
-            <p className="text-2xl font-bold">
-              {notifications.filter((n) => n.type === 'info').length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-slate-600">执行完成</p>
-            <p className="text-2xl font-bold">
-              {notifications.filter((n) => n.type === 'success').length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* 统计卡片 - Bento风格 */}
+      <BentoGrid cols={3}>
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[var(--electric)]/10 rounded-xl">
+              <Bell className="h-5 w-5 text-[var(--electric)]" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">未读消息</p>
+              <p className="text-2xl font-bold text-slate-900">{unreadCount}</p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/10 rounded-xl">
+              <Info className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">系统通知</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {notifications.filter((n) => n.type === 'info').length}
+              </p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 rounded-xl">
+              <CheckCircle className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">执行完成</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {notifications.filter((n) => n.type === 'success').length}
+              </p>
+            </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
 
       {/* 筛选和操作栏 */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex items-center gap-2">
-              <Funnel className="h-4 w-4 text-slate-500" />
-              <span className="text-sm text-slate-600">筛选:</span>
-            </div>
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'unread')}>
-              <TabsList>
-                <TabsTrigger value="all">全部</TabsTrigger>
-                <TabsTrigger value="unread">未读</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Tabs value={typeFilter} onValueChange={setTypeFilter}>
-              <TabsList>
-                <TabsTrigger value="all">所有类型</TabsTrigger>
-                <TabsTrigger value="success">成功</TabsTrigger>
-                <TabsTrigger value="warning">警告</TabsTrigger>
-                <TabsTrigger value="error">错误</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="flex-1" />
-            {unreadCount > 0 && (
-              <Button variant="outline" onClick={markAllAsRead}>
-                <CheckCheck className="h-4 w-4 mr-2" />
-                全部已读
-              </Button>
-            )}
+      <BentoCard variant="bordered" className="p-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Funnel className="h-4 w-4 text-slate-500" />
+            <span className="text-sm text-slate-600">筛选:</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* 类型图标测试元素 */}
-      <div className="hidden">
-        <span data-testid="icon-success"><SuccessIcon /></span>
-        <span data-testid="icon-warning"><WarningIcon /></span>
-        <span data-testid="icon-error"><ErrorIcon /></span>
-        <span data-testid="icon-info"><InfoIcon /></span>
-      </div>
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'unread')}>
+            <TabsList className="bg-white border">
+              <TabsTrigger value="all">全部</TabsTrigger>
+              <TabsTrigger value="unread">未读</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Tabs value={typeFilter} onValueChange={setTypeFilter}>
+            <TabsList className="bg-white border">
+              <TabsTrigger value="all">所有类型</TabsTrigger>
+              <TabsTrigger value="success">成功</TabsTrigger>
+              <TabsTrigger value="warning">警告</TabsTrigger>
+              <TabsTrigger value="error">错误</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </BentoCard>
 
       {/* 通知列表 */}
       {filteredNotifications.length === 0 ? (
-        <EmptyState
-          icon={Bell}
-          title="暂无通知"
-          description={
-            filter === 'unread'
-              ? '目前没有未读通知'
-              : '暂时没有新的系统通知'
-          }
-        />
+        <BentoCard className="p-12 text-center border-dashed">
+          <Bell className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">暂无通知</h3>
+          <p className="text-slate-500">
+            {filter === 'unread' ? '目前没有未读通知' : '暂时没有新的系统通知'}
+          </p>
+        </BentoCard>
       ) : (
         <div className="space-y-3">
           {filteredNotifications.map((notification) => {
             const Icon = typeIcons[notification.type]
             return (
-              <div
+              <BentoCard
                 key={notification.id}
-                data-testid="notification-item"
-                className={`p-4 rounded-lg border transition-all ${
+                variant="bordered"
+                className={`p-4 transition-all ${
                   notification.read
                     ? 'bg-white border-slate-200'
-                    : 'bg-slate-50 border-slate-300 unread'
+                    : 'bg-slate-50/50 border-[var(--electric)]/30'
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <div
-                    className={`p-2 rounded-full ${
-                      typeStyles[notification.type]
-                    }`}
-                  >
+                  <div className={`p-2 rounded-xl ${typeStyles[notification.type]}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold text-slate-900">
+                        <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                           {notification.title}
                           {!notification.read && (
-                            <Badge variant="destructive" className="ml-2">
-                              未读
-                            </Badge>
+                            <Badge className="bg-[var(--electric)] hover:bg-[var(--electric)]">未读</Badge>
                           )}
                         </h3>
                         <p className="text-slate-600 text-sm mt-1">
@@ -280,30 +272,32 @@ export default function NotificationsPage() {
                           {new Date(notification.createdAt).toLocaleString('zh-CN')}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {!notification.read && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => markAsRead(notification.id)}
+                            className="text-[var(--electric)] hover:text-[var(--electric)] hover:bg-[var(--electric)]/10"
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            标记已读
+                            已读
                           </Button>
                         )}
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => setDeleteId(notification.id)}
                           data-testid="delete-notification"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </BentoCard>
             )
           })}
         </div>
