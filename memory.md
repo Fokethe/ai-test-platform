@@ -28,7 +28,9 @@
 
 ## 重构成果汇总
 
-### 完成的页面 (14个)
+### 完成的页面 (20个)
+
+**核心工作流 (9个)**
 | 页面 | 路径 | 风格 | 状态 |
 |------|------|------|------|
 | 工作台 | /dashboard | 飞书+Bento | ✅ |
@@ -40,10 +42,21 @@
 | 测试详情 | /tests/[id] | Bento风格 | ✅ |
 | 测试执行 | /executions | 飞书+Bento | ✅ |
 | 执行详情 | /runs/[id] | Bento风格 | ✅ |
+
+**支撑模块 (5个)**
 | 知识库 | /knowledge | 飞书+Bento | ✅ |
 | 缺陷管理 | /issues | Bento Grid | ✅ |
 | 报告中心 | /reports | Bento风格 | ✅ |
 | 设置中心 | /settings | Bento Grid | ✅ |
+| 系统管理 | /systems | Bento风格 | ✅ |
+
+**其他页面 (6个)**
+| AI生成 | /ai-generate | Bento风格 | ✅ |
+| 资产库 | /assets | Bento风格 | ✅ |
+| 通知中心 | /notifications | Bento风格 | ✅ |
+| 工作空间 | /workspaces | Bento风格 | ✅ |
+| 质量管理 | /quality | Bento风格 | ✅ |
+| 集成管理 | /integrations | Bento风格 | ✅ |
 
 ### 清理工作
 - [x] 删除 tests/page.tsx.backup 重复文件
