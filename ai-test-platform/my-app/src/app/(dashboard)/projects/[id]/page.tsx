@@ -3,9 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Server, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Plus, 
+  Server, 
+  MoreVertical, 
+  Edit, 
+  Trash2,
+  FolderKanban,
+  Clock,
+  Activity,
+  ChevronRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +35,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { BentoCard, BentoGrid, BentoHeader } from '@/components/bento';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface System {
   id: string;
@@ -40,6 +52,11 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  createdAt: string;
+  _count?: {
+    requirements: number;
+    testCases: number;
+  };
 }
 
 export default function ProjectDetailPage() {
@@ -56,21 +73,16 @@ export default function ProjectDetailPage() {
 
   const fetchData = async () => {
     try {
-      // 获取项目详情
-      const projRes = await fetch(`/api/projects/${projectId}`);
+      const [projRes, sysRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}`),
+        fetch(`/api/systems?projectId=${projectId}`)
+      ]);
+      
       const projData = await projRes.json();
-      if (projData.code === 0) {
-        setProject(projData.data);
-      } else {
-        toast.error(projData.message || '获取项目失败');
-      }
-
-      // 获取系统列表
-      const sysRes = await fetch(`/api/systems?projectId=${projectId}`);
       const sysData = await sysRes.json();
-      if (sysData.code === 0) {
-        setSystems(sysData.data?.list || []);
-      }
+      
+      if (projData.code === 0) setProject(projData.data);
+      if (sysData.code === 0) setSystems(sysData.data?.list || []);
     } catch (error) {
       toast.error('获取数据失败');
     } finally {
@@ -112,109 +124,141 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-slate-200 rounded"></div>
-            ))}
-          </div>
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <button onClick={() => router.back()} className="text-slate-600 hover:text-slate-900 flex items-center gap-2 mb-4">
-            <ArrowLeft className="h-4 w-4" />
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => router.back()} className="mb-2 -ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" />
             返回
-          </button>
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold truncate" title={project?.name}>
-                {project?.name || '加载中...'}
-              </h1>
-              {project?.description && (
-                <p className="text-slate-600 mt-1 line-clamp-2">{project.description}</p>
-              )}
-            </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  创建系统
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>创建系统</DialogTitle>
-                  <DialogDescription>
-                    在 <span className="truncate max-w-[200px] inline-block align-bottom">{project?.name}</span> 中创建一个新系统
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreate}>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">系统名称</Label>
-                      <Input
-                        id="name"
-                        placeholder="如：订单管理系统"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="baseUrl">基础 URL</Label>
-                      <Input
-                        id="baseUrl"
-                        placeholder="https://example.com"
-                        value={formData.baseUrl}
-                        onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                      取消
-                    </Button>
-                    <Button type="submit" disabled={creating}>
-                      {creating ? '创建中...' : '创建'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          </Button>
+          <BentoHeader
+            title={project?.name || '项目详情'}
+            description={project?.description || '管理系统和测试资源'}
+          />
         </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+              <Plus className="mr-2 h-4 w-4" />
+              创建系统
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>创建系统</DialogTitle>
+              <DialogDescription>
+                在 <span className="truncate max-w-[200px] inline-block align-bottom font-medium">{project?.name}</span> 中创建一个新系统
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreate}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">系统名称</Label>
+                  <Input
+                    id="name"
+                    placeholder="如：订单管理系统"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="baseUrl">基础 URL</Label>
+                  <Input
+                    id="baseUrl"
+                    placeholder="https://example.com"
+                    value={formData.baseUrl}
+                    onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  取消
+                </Button>
+                <Button type="submit" disabled={creating} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+                  {creating ? '创建中...' : '创建'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        {systems.length === 0 ? (
-          <Card className="text-center py-16">
-            <CardContent>
-              <div className="text-6xl mb-4">🖥️</div>
-              <h3 className="text-lg font-semibold mb-2">还没有系统</h3>
-              <p className="text-slate-600 mb-6">创建您的第一个系统来组织测试页面</p>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                创建系统
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {systems.map((system) => (
-              <SystemCard 
-                key={system.id} 
-                system={system} 
-                onUpdate={fetchData}
-              />
-            ))}
+      {/* Stats Cards */}
+      <BentoGrid cols={3}>
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-[var(--electric)]/10 rounded-xl">
+              <FolderKanban className="h-6 w-6 text-[var(--electric)]" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">需求数量</p>
+              <p className="text-2xl font-bold text-slate-900">{project?._count?.requirements || 0}</p>
+            </div>
           </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-500/10 rounded-xl">
+              <Activity className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">测试用例</p>
+              <p className="text-2xl font-bold text-slate-900">{project?._count?.testCases || 0}</p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-500/10 rounded-xl">
+              <Server className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">系统数量</p>
+              <p className="text-2xl font-bold text-slate-900">{systems.length}</p>
+            </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
+
+      {/* Systems List */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">系统列表</h2>
+        {systems.length === 0 ? (
+          <BentoCard className="p-12 text-center border-dashed">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Server className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">还没有系统</h3>
+            <p className="text-sm text-slate-500 mb-6">创建您的第一个系统来组织测试页面</p>
+            <Button onClick={() => setDialogOpen(true)} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
+              <Plus className="mr-2 h-4 w-4" />
+              创建系统
+            </Button>
+          </BentoCard>
+        ) : (
+          <BentoGrid cols={3}>
+            {systems.map((system) => (
+              <SystemCard key={system.id} system={system} onUpdate={fetchData} />
+            ))}
+          </BentoGrid>
         )}
       </div>
     </div>
@@ -286,70 +330,67 @@ function SystemCard({ system, onUpdate }: { system: System; onUpdate: () => void
 
   return (
     <>
-      <Card
-        className="cursor-pointer hover:shadow-md transition-shadow"
+      <BentoCard
+        variant="bordered"
+        className="p-5 cursor-pointer group hover:border-[var(--electric)] transition-all duration-300"
         onClick={() => router.push(`/systems/${system.id}`)}
       >
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate" title={system.name}>
-                {system.name}
-              </CardTitle>
-              <CardDescription className="mt-1 truncate" title={system.baseUrl}>
-                {system.baseUrl}
-              </CardDescription>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => {
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-slate-900 truncate group-hover:text-[var(--electric)] transition-colors" title={system.name}>
+              {system.name}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1 truncate" title={system.baseUrl}>
+              {system.baseUrl}
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                setEditDialogOpen(true);
+              }}>
+                <Edit className="mr-2 h-4 w-4" />
+                编辑
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={(e) => {
                   e.stopPropagation();
-                  setEditDialogOpen(true);
-                }}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  编辑
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteDialogOpen(true);
-                  }}
-                  className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  删除
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Server className="h-4 w-4" />
-            <span>{system._count?.pages || 0} 个页面</span>
-          </div>
-        </CardContent>
-      </Card>
+                  setDeleteDialogOpen(true);
+                }}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                删除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <div className="flex items-center gap-2 mt-4 text-sm text-slate-500">
+          <Server className="h-4 w-4" />
+          <span>{system._count?.pages || 0} 个页面</span>
+          <ChevronRight className="h-4 w-4 ml-auto text-slate-300 group-hover:text-[var(--electric)] group-hover:translate-x-1 transition-all" />
+        </div>
+      </BentoCard>
 
       {/* 编辑对话框 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>编辑系统</DialogTitle>
-            <DialogDescription>
-              修改系统的名称和基础URL
-            </DialogDescription>
+            <DialogDescription>修改系统的名称和基础URL</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEdit}>
             <div className="space-y-4 py-4">
@@ -378,7 +419,7 @@ function SystemCard({ system, onUpdate }: { system: System; onUpdate: () => void
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
                 取消
               </Button>
-              <Button type="submit" disabled={editing}>
+              <Button type="submit" disabled={editing} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
                 {editing ? '保存中...' : '保存'}
               </Button>
             </DialogFooter>
