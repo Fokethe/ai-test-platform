@@ -22,6 +22,7 @@ const eslintConfig = [
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_" 
       }],
+      "@typescript-eslint/explicit-function-return-type": "off",
       
       // React 规则
       "react/prop-types": "off",
@@ -30,6 +31,14 @@ const eslintConfig = [
       // 通用规则
       "prefer-const": "error",
       "no-var": "error",
+      "no-unused-vars": "off", // 使用TypeScript版本
+      
+      // 复杂度规则 - P1修复
+      "complexity": ["warn", { "max": 10 }],
+      "max-lines-per-function": ["warn", { "max": 50 }],
+      "max-params": ["warn", { "max": 4 }],
+      "max-depth": ["warn", { "max": 4 }],
+      "max-nested-callbacks": ["warn", { "max": 3 }],
     },
   },
   {

@@ -19,6 +19,11 @@ import {
   Code,
   ExternalLink,
   RefreshCw,
+  File,
+  Upload,
+  Download,
+  Trash2,
+  FileIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,7 +108,15 @@ export default function AssetLibraryContent() {
     { id: 'doc', label: '文档', icon: FileText },
     { id: 'page', label: '页面', icon: Globe },
     { id: 'snippet', label: '片段', icon: Code },
+    { id: 'file', label: '文件', icon: File },
   ];
+
+  // 文件列表单独使用 /api/files/list
+  const { data: fileData, error: fileError, isLoading: fileLoading, mutate: mutateFiles } = useSWR(
+    activeTab === 'file' ? '/api/files/list' : null,
+    fetcher,
+    swrOptions
+  );
 
   const getCreateHref = () => {
     switch (activeTab) {
@@ -175,7 +188,7 @@ export default function AssetLibraryContent() {
         setActiveTab(v);
         setPage(1);
       }}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-md grid-cols-4">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>
               <tab.icon className="w-4 h-4 mr-2" />
@@ -238,6 +251,15 @@ export default function AssetLibraryContent() {
             pageSize={pageSize}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+          />
+        </TabsContent>
+
+        <TabsContent value="file" className="mt-6">
+          <FileList
+            files={fileData?.data?.files || []}
+            isLoading={fileLoading}
+            error={fileError}
+            onRefresh={() => mutateFiles()}
           />
         </TabsContent>
       </Tabs>
@@ -441,6 +463,249 @@ function AssetCard({ asset, onDelete, isDeleting }: { asset: Asset; onDelete: ()
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  );
+}
+
+// 文件接口
+interface FileItem {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  createdAt: string;
+  status: 'uploaded' | 'parsed' | 'pending';
+  url?: string;
+}
+
+// 格式化文件大小
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 获取文件图标
+function getFileIcon(type: string) {
+  if (type.includes('pdf')) return <FileText className="w-5 h-5 text-red-500" />;
+  if (type.includes('word') || type.includes('doc')) return <FileText className="w-5 h-5 text-blue-500" />;
+  if (type.includes('excel') || type.includes('sheet') || type.includes('csv')) return <FileText className="w-5 h-5 text-green-500" />;
+  if (type.includes('image')) return <FileIcon className="w-5 h-5 text-purple-500" />;
+  return <File className="w-5 h-5 text-slate-500" />;
+}
+
+// 文件列表组件
+function FileList({
+  files,
+  isLoading,
+  error,
+  onRefresh,
+}: {
+  files: FileItem[];
+  isLoading: boolean;
+  error: any;
+  onRefresh: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // 文件上传
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/files/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        onRefresh();
+      } else {
+        alert('上传失败');
+      }
+    } catch {
+      alert('上传失败');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 文件下载
+  const handleDownload = async (file: FileItem) => {
+    try {
+      const res = await fetch(`/api/files/${file.id}/download`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert('下载失败');
+      }
+    } catch {
+      alert('下载失败');
+    }
+  };
+
+  // 文件删除
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定要删除此文件吗？')) return;
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/files/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onRefresh();
+      } else {
+        alert('删除失败');
+      }
+    } catch {
+      alert('删除失败');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">加载失败</p>
+        <Button variant="outline" className="mt-4" onClick={onRefresh}>
+          重试
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 上传区域 */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          共 {files.length} 个文件
+        </p>
+        <div>
+          <input
+            type="file"
+            id="file-upload"
+            className="hidden"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+          <label htmlFor="file-upload">
+            <Button variant="outline" disabled={uploading} asChild>
+              <span>
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                上传文件
+              </span>
+            </Button>
+          </label>
+        </div>
+      </div>
+
+      {/* 文件列表 */}
+      {files.length === 0 ? (
+        <div className="border rounded-lg p-12 text-center">
+          <File className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <p className="text-slate-500">暂无文件</p>
+          <label htmlFor="file-upload">
+            <Button variant="outline" className="mt-4">
+              <Upload className="w-4 h-4 mr-2" />
+              上传第一个文件
+            </Button>
+          </label>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b">
+              <tr>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">文件名</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">大小</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">状态</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-700">上传时间</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-slate-700">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.map((file) => (
+                <tr key={file.id} className="border-b last:border-b-0 hover:bg-slate-50">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-3">
+                      {getFileIcon(file.type)}
+                      <span className="font-medium">{file.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-slate-600">
+                    {formatFileSize(file.size)}
+                  </td>
+                  <td className="py-3 px-4">
+                    <Badge
+                      variant={file.status === 'parsed' ? 'default' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {file.status === 'parsed' ? '已解析' : file.status === 'pending' ? '处理中' : '已上传'}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-slate-600">
+                    {new Date(file.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownload(file)}
+                        title="下载"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(file.id)}
+                        disabled={deletingId === file.id}
+                        title="删除"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        {deletingId === file.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

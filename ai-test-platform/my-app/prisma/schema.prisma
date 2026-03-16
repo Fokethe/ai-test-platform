@@ -262,6 +262,7 @@ enum RequirementSource {
 
 // ==================== 测试用例模块 ====================
 
+/// @deprecated 请使用新的 Test 模型替代
 model TestCase {
   id            String     @id @default(cuid())
   title         String
@@ -322,6 +323,7 @@ model TestExecution {
   @@map("test_executions")
 }
 
+/// @deprecated 请使用新的 Run 模型替代
 model TestRun {
   id           String          @id @default(cuid())
   name         String?
@@ -371,6 +373,7 @@ model ScheduledTask {
 
 // ==================== 测试套件模块 ====================
 
+/// @deprecated 请使用新的 Test 模型替代 (type=SUITE)
 model TestSuite {
   id          String   @id @default(cuid())
   name        String
@@ -484,6 +487,7 @@ model WebhookDelivery {
 
 // ==================== Bug 模块 ====================
 
+/// @deprecated 请使用新的 Issue 模型替代
 model Bug {
   id             String    @id @default(cuid())
   title          String
@@ -537,6 +541,16 @@ model KnowledgeEntry {
   content   String
   category  String   @default("other")
   tags      String   @default("[]") // JSON array
+  
+  // RAG向量检索相关字段
+  vectorId  String?  @map("vector_id") // ChromaDB中的向量ID
+  chunkIndex Int?    @map("chunk_index") // 分块索引
+  totalChunks Int?   @map("total_chunks") // 总分块数
+  
+  // 关联
+  departmentId String? @map("department_id") // 部门ID (Collection隔离)
+  projectId   String? @map("project_id") // 项目ID
+  
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   authorId  String   @map("author_id")
@@ -545,6 +559,9 @@ model KnowledgeEntry {
 
   @@index([category])
   @@index([authorId])
+  @@index([departmentId])
+  @@index([projectId])
+  @@index([vectorId])
   @@map("knowledge_entries")
 }
 

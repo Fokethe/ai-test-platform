@@ -1,0 +1,1 @@
+export enum DocumentType { PDF = "pdf", DOCX = "docx", TXT = "txt", MD = "markdown", HTML = "html" }

@@ -52,7 +52,7 @@ function autoCorrectPath(path: string): string {
 
 | 操作类型 | 错误路径 | 正确路径 |
 |---------|---------|---------|
-| 文件写入 | `docs/07-验收报告/` | `ai-test-platform/docs/07-验收报告/` |
+| 文件写入 | `docs/` | `ai-test-platform/docs/` |
 | 命令执行 | `cd my-app && npm test` | `cd ai-test-platform/my-app && npm test` |
 | 读取文件 | `src/lib/api.ts` | `ai-test-platform/my-app/src/lib/api.ts` |
 | 创建目录 | `mkdir docs/report` | `mkdir ai-test-platform/docs/report` |

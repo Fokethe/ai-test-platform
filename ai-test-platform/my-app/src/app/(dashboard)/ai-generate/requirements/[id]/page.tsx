@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -58,7 +59,36 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  Wand2,
+  Split,
+  GitBranch,
+  LayoutList,
 } from 'lucide-react';
+import { WorkflowIntegration } from './workflow-integration';
+
+// LangGraph工作流状态类型
+interface WorkflowState {
+  workflowId: string;
+  status: 'idle' | 'parsing' | 'analyzing' | 'decomposing' | 'retrieving' | 'generating' | 'reviewing' | 'completed' | 'error';
+  progress: number;
+  features?: string[];
+  businessRules?: string[];
+  testPoints?: TestPoint[];
+  generatedCases?: GeneratedTestCase[];
+  reviewRequired?: boolean;
+  error?: string;
+}
+
+interface GeneratedTestCase {
+  id: string;
+  title: string;
+  precondition: string;
+  steps: string[];
+  expectedResult: string;
+  priority: string;
+  testPointId: string;
+  relatedFeature: string;
+}
 
 interface TestPoint {
   id: string;
@@ -104,6 +134,23 @@ export default function RequirementDetailPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'testpoints'>('overview');
+  const [selectedTools, setSelectedTools] = useState<string[]>(['default']);
+  
+  // LangGraph工作流状态
+  const [workflowState, setWorkflowState] = useState<WorkflowState | null>(null);
+  const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [reviewComments, setReviewComments] = useState('');
+  const [editedTestCases, setEditedTestCases] = useState<GeneratedTestCase[]>([]);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // MCP 工具配置
+  const mcpTools = [
+    { id: 'default', name: '默认生成', description: '使用AI智能生成', icon: Wand2 },
+    { id: 'equivalence', name: '等价类生成', description: '生成功能等价类', icon: Split },
+    { id: 'boundary', name: '边界值分析', description: '边界值测试分析', icon: LayoutList },
+    { id: 'scenario', name: '场景法生成', description: '基本流/备选流/异常流', icon: GitBranch },
+  ];
 
   // 获取需求详情
   const { data, error, isLoading, mutate } = useSWR(
@@ -422,6 +469,16 @@ export default function RequirementDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* LangGraph AI工作流 */}
+          <WorkflowIntegration
+            requirementId={requirement.id}
+            requirementText={requirement.content}
+            onWorkflowComplete={(testCases) => {
+              toast.success(`工作流完成，生成了 ${testCases.length} 个测试用例`);
+              mutate();
+            }}
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -447,6 +504,28 @@ export default function RequirementDetailPage() {
                 <Plus className="h-4 w-4 mr-1" />
                 添加测试点
               </Button>
+              {/* MCP 工具选择器 */}
+              <Select
+                value={selectedTools[0]}
+                onValueChange={(value) => setSelectedTools([value])}
+              >
+                <SelectTrigger className="w-[140px] h-8 text-sm">
+                  <span className="flex items-center gap-2">
+                    <Wand2 className="h-3.5 w-3.5" />
+                    AI 工具
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {mcpTools.map((tool) => (
+                    <SelectItem key={tool.id} value={tool.id}>
+                      <span className="flex items-center gap-2">
+                        <tool.icon className="h-4 w-4" />
+                        <span>{tool.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
                 onClick={handleGenerateTestCases}

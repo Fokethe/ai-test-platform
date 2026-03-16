@@ -18,6 +18,12 @@ import { auth } from '@/lib/auth';
 
 // GET /api/tests - 列表
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errorResponse('未授权访问', 401);
+  }
+  
   try {
     const { searchParams } = new URL(request.url);
     

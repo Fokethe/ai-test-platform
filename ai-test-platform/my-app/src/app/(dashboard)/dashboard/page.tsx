@@ -12,7 +12,10 @@ import {
   Plus,
   Sparkles,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Cpu,
+  Database,
+  BarChart3
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +45,19 @@ interface DashboardData {
     status: string;
     startedAt: string | null;
     duration: number | null;
+  }>;
+}
+
+interface AIPerformanceData {
+  avgGenerationSpeed: number;
+  totalTokens: number;
+  cacheHitRate: number;
+  totalCalls: number;
+  avgLatency: number;
+  costByModel: Array<{
+    model: string;
+    tokens: number;
+    cost: number;
   }>;
 }
 
@@ -232,9 +248,14 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(7);
+  
+  // AI 性能数据状态
+  const [aiPerformance, setAiPerformance] = useState<AIPerformanceData | null>(null);
+  const [aiLoading, setAiLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchAIPerformance();
   }, [days]);
 
   const fetchDashboardData = async () => {
@@ -251,6 +272,21 @@ export default function DashboardPage() {
       toast.error('获取仪表盘数据失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAIPerformance = async () => {
+    try {
+      const response = await fetch(`/api/observability/cost?days=${days}`);
+      const result = await response.json();
+      
+      if (result.data) {
+        setAiPerformance(result.data);
+      }
+    } catch (error) {
+      console.error('获取AI性能数据失败', error);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -315,6 +351,51 @@ export default function DashboardPage() {
           icon={XCircle}
           color="bg-red-500"
         />
+      </div>
+
+      {/* AI 性能指标卡片 */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold mb-4">AI 性能指标</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {aiLoading ? (
+            <>
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </>
+          ) : aiPerformance ? (
+            <>
+              <StatCard
+                title="AI生成速度"
+                value={aiPerformance.avgGenerationSpeed.toFixed(1)}
+                suffix="s"
+                icon={Cpu}
+                color="bg-indigo-500"
+              />
+              <StatCard
+                title="Token消耗"
+                value={aiPerformance.totalTokens > 1000 
+                  ? `${(aiPerformance.totalTokens / 1000).toFixed(0)}K` 
+                  : aiPerformance.totalTokens}
+                icon={Database}
+                color="bg-cyan-500"
+              />
+              <StatCard
+                title="缓存命中率"
+                value={aiPerformance.cacheHitRate.toFixed(1)}
+                suffix="%"
+                icon={BarChart3}
+                color="bg-emerald-500"
+              />
+            </>
+          ) : (
+            <Card className="col-span-3">
+              <CardContent className="p-6 text-center text-slate-500">
+                AI 性能数据暂未就绪
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* 图表和列表 */}

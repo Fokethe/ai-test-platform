@@ -1,0 +1,124 @@
+{
+  "dependencies": {
+    "@langchain/core": "^1.1.32",
+    "@langchain/langgraph": "^1.2.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@prisma/client": "^7.4.2",
+    "@sparticuz/chromium": "^143.0.4",
+    "@types/uuid": "^10.0.0",
+    "bullmq": "^5.70.1",
+    "dataloader": "^2.2.3",
+    "jspdf-autotable": "^5.0.7",
+    "langchain": "^1.2.32",
+    "langfuse": "^3.38.6",
+    "mammoth": "^1.11.0",
+    "minio": "^8.0.7",
+    "openai": "^6.22.0",
+    "pdf-parse": "^2.4.5",
+    "puppeteer-core": "^24.37.5",
+    "react-dropzone": "^15.0.0",
+    "resend": "^6.9.3",
+    "tesseract.js": "^7.0.0",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-typescript": "^7.28.5",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@types/ioredis": "^4.28.10",
+    "@types/jest": "^30.0.0",
+    "@types/react": "19.2.14",
+    "@types/sharp": "^0.31.1",
+    "@types/tesseract.js": "^0.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^10.0.2",
+    "ioredis": "^5.10.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "next": "^16.1.6",
+    "playwright": "^1.58.2",
+    "redis": "^5.11.0",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:browser": "jest src/lib/ai/mcp/tools/__tests__/browser.test.ts --no-coverage"
+  },
+  "type": "module",
+  "name": "ai-test-platform",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fokethe/ai-test-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Fokethe/ai-test-platform/issues"
+  },
+  "homepage": "https://github.com/Fokethe/ai-test-platform#readme",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/ai-test-platform/my-app/src/$1"
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/ai-test-platform/my-app/jest.setup.js"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/ai-test-platform/my-app/tsconfig.json",
+          "jsx": "react-jsx"
+        }
+      ]
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(next|@next|react|react-dom)/)"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.next/",
+      "breadcrumb.test.tsx",
+      "/__tests__/route.test.ts",
+      "bug-patterns.test.ts",
+      "local-embedding.test.ts",
+      "storage.test.ts",
+      "langfuse-client.test.ts",
+      "api-enhanced.test.ts",
+      "refactor-ui-navigation.test.tsx",
+      "notifications/page.test.tsx",
+      "login-page.test.tsx",
+      ".kimi/"
+    ],
+    "extensionsToTreatAsEsm": [
+      ".ts",
+      ".tsx"
+    ]
+  }
+}
