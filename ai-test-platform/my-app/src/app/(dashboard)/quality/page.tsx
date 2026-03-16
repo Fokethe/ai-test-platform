@@ -1,6 +1,6 @@
 /**
- * Quality Dashboard - 合并 Bug + 报告
- * 连接真实 API
+ * Quality Dashboard - Bento Grid风格重构版
+ * 合并 Bug + 报告
  */
 
 'use client';
@@ -24,8 +24,20 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import { BentoCard, BentoGrid, BentoItem } from '@/components/bento';
+import { BentoHeader } from '@/components/bento';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`API错误: ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('API返回非JSON数据');
+  }
+  return res.json();
+};
 
 interface Issue {
   id: string;
@@ -43,7 +55,6 @@ interface Issue {
 export default function QualityDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
-  // 获取问题列表
   const { data: issuesData, isLoading: issuesLoading } = useSWR(
     '/api/issues?pageSize=10',
     fetcher,
@@ -52,57 +63,58 @@ export default function QualityDashboardPage() {
 
   const issues: Issue[] = issuesData?.data || [];
 
-  // 统计数据
   const stats = {
     open: issues.filter((i) => i.status === 'OPEN').length,
     resolved: issues.filter((i) => i.status === 'RESOLVED').length,
     critical: issues.filter((i) => i.severity === 'CRITICAL').length,
-    avgFixTime: '2.3天', // 模拟数据
+    avgFixTime: '2.3天',
   };
 
-  // 计算质量分数
   const qualityScore = Math.round(
     ((stats.resolved + 1) / (issues.length + 1)) * 100
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">质量看板</h1>
-          <p className="text-slate-500">跟踪问题、查看质量报告</p>
-        </div>
-        <Button asChild>
-          <Link href="/quality/issues/new">
-            <Plus className="w-4 h-4 mr-2" />
-            上报问题
-          </Link>
-        </Button>
-      </div>
+      <BentoHeader
+        title="质量看板"
+        description="跟踪问题、查看质量报告"
+        count={issues.length}
+        countLabel="个问题"
+        actionLabel="上报问题"
+        actionHref="/quality/issues/new"
+      />
 
       {/* Quality Score Card */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-blue-100">质量评分</p>
-            <p className="text-4xl font-bold">{qualityScore}</p>
-            <p className="text-sm text-blue-100 mt-1">
-              基于 {issues.length} 个问题计算
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              <span>+5%</span>
+      <BentoCard 
+        variant="featured" 
+        className="relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--electric)] to-purple-600" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-30" />
+        <div className="relative p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100">质量评分</p>
+              <p className="text-5xl font-bold mt-1">{qualityScore}</p>
+              <p className="text-sm text-blue-100 mt-2">
+                基于 {issues.length} 个问题计算
+              </p>
             </div>
-            <p className="text-sm text-blue-100">较上周</p>
+            <div className="text-right">
+              <div className="flex items-center gap-2 text-2xl font-semibold">
+                <TrendingUp className="w-6 h-6" />
+                <span>+5%</span>
+              </div>
+              <p className="text-sm text-blue-100">较上周</p>
+            </div>
           </div>
         </div>
-      </div>
+      </BentoCard>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <BentoGrid cols={4}>
         <QualityMetricCard
           title="开放问题"
           value={stats.open.toString()}
@@ -131,51 +143,67 @@ export default function QualityDashboardPage() {
           trend="-0.5天"
           color="blue"
         />
-      </div>
+      </BentoGrid>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="overview">概览</TabsTrigger>
-          <TabsTrigger value="reports">报告</TabsTrigger>
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-slate-800">
+          <TabsTrigger 
+            value="overview"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900"
+          >
+            概览
+          </TabsTrigger>
+          <TabsTrigger 
+            value="reports"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900"
+          >
+            报告
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <BentoGrid cols={12}>
             {/* Issues List */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">最近问题</h2>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/quality/issues">查看全部</Link>
-                </Button>
-              </div>
+            <BentoItem colSpan={8}>
+              <BentoCard variant="bordered" className="h-full">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">最近问题</h2>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/quality/issues">查看全部</Link>
+                    </Button>
+                  </div>
+                </div>
 
-              {issuesLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-                </div>
-              ) : issues.length === 0 ? (
-                <div className="border rounded-lg p-8 text-center">
-                  <Shield className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                  <p className="text-slate-500">暂无问题</p>
-                  <p className="text-sm text-slate-400 mt-1">系统运行良好！</p>
-                </div>
-              ) : (
-                <div className="border rounded-lg divide-y">
-                  {issues.slice(0, 5).map((issue) => (
-                    <IssueItem key={issue.id} issue={issue} />
-                  ))}
-                </div>
-              )}
-            </div>
+                {issuesLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin h-10 w-10 border-3 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" />
+                  </div>
+                ) : issues.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Shield className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                    <p className="text-slate-500">暂无问题</p>
+                    <p className="text-sm text-slate-400 mt-1">系统运行良好！</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {issues.slice(0, 5).map((issue) => (
+                      <IssueItem key={issue.id} issue={issue} />
+                    ))}
+                  </div>
+                )}
+              </BentoCard>
+            </BentoItem>
 
-            {/* Quick Stats */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">问题分布</h2>
-              <IssueDistribution issues={issues} />
-            </div>
-          </div>
+            {/* Issue Distribution */}
+            <BentoItem colSpan={4}>
+              <BentoCard variant="bordered" className="h-full p-4">
+                <h2 className="text-lg font-semibold mb-4">问题分布</h2>
+                <IssueDistribution issues={issues} />
+              </BentoCard>
+            </BentoItem>
+          </BentoGrid>
         </TabsContent>
 
         <TabsContent value="reports" className="mt-6">
@@ -200,15 +228,15 @@ function QualityMetricCard({
   color: 'red' | 'green' | 'blue';
 }) {
   const colorClasses = {
-    red: 'text-red-600 bg-red-50',
-    green: 'text-green-600 bg-green-50',
-    blue: 'text-blue-600 bg-blue-50',
+    red: 'text-red-600 bg-red-50 border-red-200',
+    green: 'text-green-600 bg-green-50 border-green-200',
+    blue: 'text-[var(--electric)] bg-[var(--electric)]/10 border-[var(--electric)]/20',
   };
 
   return (
-    <div className="border rounded-lg p-4">
+    <BentoCard variant="bordered" className="p-4">
       <div className="flex items-center justify-between">
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+        <div className={`p-2 rounded-lg border ${colorClasses[color]}`}>
           <Icon className="w-5 h-5" />
         </div>
         <Badge variant="outline">{trend}</Badge>
@@ -217,23 +245,23 @@ function QualityMetricCard({
         <p className="text-2xl font-bold">{value}</p>
         <p className="text-sm text-slate-500">{title}</p>
       </div>
-    </div>
+    </BentoCard>
   );
 }
 
 function IssueItem({ issue }: { issue: Issue }) {
   const severityColors: Record<string, string> = {
-    CRITICAL: 'bg-red-100 text-red-700',
-    HIGH: 'bg-orange-100 text-orange-700',
-    MEDIUM: 'bg-yellow-100 text-yellow-700',
-    LOW: 'bg-slate-100 text-slate-700',
+    CRITICAL: 'bg-red-100 text-red-700 border-red-200',
+    HIGH: 'bg-orange-100 text-orange-700 border-orange-200',
+    MEDIUM: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    LOW: 'bg-slate-100 text-slate-700 border-slate-200',
   };
 
   const statusColors: Record<string, string> = {
-    OPEN: 'bg-blue-100 text-blue-700',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
-    RESOLVED: 'bg-green-100 text-green-700',
-    CLOSED: 'bg-slate-100 text-slate-700',
+    OPEN: 'bg-blue-100 text-blue-700 border-blue-200',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    RESOLVED: 'bg-green-100 text-green-700 border-green-200',
+    CLOSED: 'bg-slate-100 text-slate-700 border-slate-200',
   };
 
   const statusLabels: Record<string, string> = {
@@ -244,26 +272,20 @@ function IssueItem({ issue }: { issue: Issue }) {
   };
 
   return (
-    <div className="p-4 hover:bg-slate-50 transition-colors">
+    <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge className={severityColors[issue.severity] || ''} variant="secondary">
-              {issue.severity === 'CRITICAL'
-                ? '紧急'
-                : issue.severity === 'HIGH'
-                ? '高'
-                : issue.severity === 'MEDIUM'
-                ? '中'
-                : '低'}
+            <Badge className={`${severityColors[issue.severity] || ''} border`} variant="outline">
+              {issue.severity === 'CRITICAL' ? '紧急' : issue.severity === 'HIGH' ? '高' : issue.severity === 'MEDIUM' ? '中' : '低'}
             </Badge>
-            <Badge className={statusColors[issue.status] || ''} variant="secondary">
+            <Badge className={`${statusColors[issue.status] || ''} border`} variant="outline">
               {statusLabels[issue.status]}
             </Badge>
           </div>
           <Link
             href={`/quality/issues/${issue.id}`}
-            className="font-medium hover:text-blue-600 block truncate"
+            className="font-medium hover:text-[var(--electric)] block truncate"
           >
             {issue.title}
           </Link>
@@ -278,7 +300,6 @@ function IssueItem({ issue }: { issue: Issue }) {
   );
 }
 
-// 问题分布
 function IssueDistribution({ issues }: { issues: Issue[] }) {
   const bySeverity = {
     CRITICAL: issues.filter((i) => i.severity === 'CRITICAL').length,
@@ -294,8 +315,8 @@ function IssueDistribution({ issues }: { issues: Issue[] }) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded-lg p-4">
+    <div className="space-y-6">
+      <div>
         <h3 className="text-sm font-medium mb-3">按严重程度</h3>
         <div className="space-y-2">
           <DistributionBar label="紧急" count={bySeverity.CRITICAL} total={issues.length} color="bg-red-500" />
@@ -305,10 +326,10 @@ function IssueDistribution({ issues }: { issues: Issue[] }) {
         </div>
       </div>
 
-      <div className="border rounded-lg p-4">
+      <div>
         <h3 className="text-sm font-medium mb-3">按状态</h3>
         <div className="space-y-2">
-          <DistributionBar label="开放" count={byStatus.OPEN} total={issues.length} color="bg-blue-500" />
+          <DistributionBar label="开放" count={byStatus.OPEN} total={issues.length} color="bg-[var(--electric)]" />
           <DistributionBar label="处理中" count={byStatus.IN_PROGRESS} total={issues.length} color="bg-yellow-500" />
           <DistributionBar label="已解决" count={byStatus.RESOLVED} total={issues.length} color="bg-green-500" />
         </div>
@@ -333,15 +354,14 @@ function DistributionBar({
   return (
     <div className="flex items-center gap-3">
       <span className="text-sm w-12">{label}</span>
-      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color}`} style={{ width: `${percentage}%` }} />
+      <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${percentage}%` }} />
       </div>
       <span className="text-sm text-slate-500 w-8 text-right">{count}</span>
     </div>
   );
 }
 
-// 报告面板
 function ReportsPanel() {
   const reports = [
     { id: 1, title: '本周测试报告', date: '2026-02-25', passRate: 94, total: 156 },
@@ -353,17 +373,18 @@ function ReportsPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">质量报告</h2>
-        <Button variant="outline" size="sm">
+        <Button className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
           <FileText className="w-4 h-4 mr-2" />
           生成报告
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <BentoGrid cols={3}>
         {reports.map((report) => (
-          <div
-            key={report.id}
-            className="border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
+          <BentoCard 
+            key={report.id} 
+            variant="bordered" 
+            className="p-4 hover:border-[var(--electric)] transition-colors cursor-pointer"
           >
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -381,9 +402,9 @@ function ReportsPanel() {
               <Progress value={report.passRate} className="h-2" />
               <p className="text-xs text-slate-500">共 {report.total} 个用例</p>
             </div>
-          </div>
+          </BentoCard>
         ))}
-      </div>
+      </BentoGrid>
     </div>
   );
 }

@@ -1,34 +1,30 @@
 /**
- * RunCenter Page - 合并执行历史 + 定时任务
- * 连接真实 API，支持分页和性能优化
+ * RunCenter Page - Bento Grid风格重构版
+ * 合并执行历史 + 定时任务
  */
 
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
   Play,
   Clock,
   Calendar,
-  Search,
-  Filter,
-  Loader2,
   CheckCircle,
   XCircle,
   AlertCircle,
-  ChevronRight,
   MoreHorizontal,
   RotateCcw,
   Trash2,
+  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Pagination } from '@/components/ui/pagination';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +33,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { BentoCard, BentoGrid, BentoItem } from '@/components/bento';
+import { BentoHeader } from '@/components/bento';
+import { BentoSearch } from '@/components/bento';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -53,7 +52,6 @@ interface Run {
   cron?: string;
   nextRunAt?: string;
   createdAt: string;
-  executions?: { id: string; status: string; testId: string }[];
 }
 
 interface PaginationMeta {
@@ -69,27 +67,28 @@ const swrOptions = {
   dedupingInterval: 5000,
 };
 
-// 内部组件使用 useSearchParams
+export default function RunCenterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="animate-spin h-10 w-10 border-3 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" /></div>}>
+      <RunsContent />
+    </Suspense>
+  );
+}
+
 function RunsContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'history';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
-  
-  // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // 获取执行历史
   const { data: runsData, isLoading: runsLoading } = useSWR(
     activeTab === 'history' ? `/api/runs?page=${page}&pageSize=${pageSize}${searchQuery ? `&search=${searchQuery}` : ''}` : null,
     fetcher,
     { ...swrOptions, refreshInterval: 10000 }
   );
 
-  // 获取定时任务 (带 cron 的 runs)
   const { data: scheduledData, isLoading: scheduledLoading } = useSWR(
     activeTab === 'scheduled' ? `/api/runs?type=SCHEDULED&page=${page}&pageSize=${pageSize}` : null,
     fetcher,
@@ -101,7 +100,6 @@ function RunsContent() {
   const runsMeta: PaginationMeta = runsData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
   const scheduledMeta: PaginationMeta = scheduledData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
-  // 统计
   const stats = {
     today: runs.filter(r => new Date(r.createdAt).toDateString() === new Date().toDateString()).length,
     successRate: runs.length > 0 
@@ -119,86 +117,73 @@ function RunsContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">执行中心</h1>
-          <p className="text-slate-500">管理测试执行和定时任务</p>
-        </div>
-        <Button asChild>
-          <Link href="/runs/new">
-            <Play className="w-4 h-4 mr-2" />
-            立即执行
-          </Link>
-        </Button>
-      </div>
+      <BentoHeader
+        title="执行中心"
+        description="管理测试执行和定时任务"
+        count={activeTab === 'history' ? runsMeta.total : scheduledMeta.total}
+        countLabel="个"
+        actionLabel="立即执行"
+        actionHref="/runs/new"
+      />
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Grid */}
+      <BentoGrid cols={4}>
         <StatCard label="今日执行" value={stats.today.toString()} trend={`+${Math.max(1, Math.floor(stats.today/2))}`} />
         <StatCard label="成功率" value={`${stats.successRate}%`} trend={stats.successRate > 80 ? '+2%' : '-3%'} />
         <StatCard label="平均耗时" value={`${stats.avgDuration}s`} trend="-5s" />
         <StatCard label="定时任务" value={stats.scheduled.toString()} />
-      </div>
+      </BentoGrid>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v);
         setPage(1);
       }}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="history">
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-slate-800">
+          <TabsTrigger value="history" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
             <Play className="w-4 h-4 mr-2" />
             执行历史
           </TabsTrigger>
-          <TabsTrigger value="scheduled">
+          <TabsTrigger value="scheduled" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
             <Calendar className="w-4 h-4 mr-2" />
             定时任务
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="history" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
-                  placeholder="搜索执行记录..." 
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div>
-              <Button variant="outline" size="icon" onClick={handleSearch}>
-                <Filter className="w-4 h-4" />
-              </Button>
-            </div>
+        <TabsContent value="history" className="mt-6 space-y-4">
+          <BentoSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSearch={handleSearch}
+            placeholder="搜索执行记录..."
+          />
 
-            <RunHistoryPanel runs={runs} isLoading={runsLoading} />
-            
+          <RunHistoryPanel runs={runs} isLoading={runsLoading} />
+          
+          <Pagination
+            currentPage={page}
+            totalPages={runsMeta.totalPages}
+            totalItems={runsMeta.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </TabsContent>
+
+        <TabsContent value="scheduled" className="mt-6">
+          <ScheduledTasksPanel runs={scheduled} isLoading={scheduledLoading} />
+          <div className="mt-4">
             <Pagination
               currentPage={page}
-              totalPages={runsMeta.totalPages}
-              totalItems={runsMeta.total}
+              totalPages={scheduledMeta.totalPages}
+              totalItems={scheduledMeta.total}
               pageSize={pageSize}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
             />
           </div>
-        </TabsContent>
-
-        <TabsContent value="scheduled" className="mt-6">
-          <ScheduledTasksPanel runs={scheduled} isLoading={scheduledLoading} />
-          <Pagination
-            currentPage={page}
-            totalPages={scheduledMeta.totalPages}
-            totalItems={scheduledMeta.total}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
         </TabsContent>
       </Tabs>
     </div>
@@ -209,7 +194,7 @@ function StatCard({ label, value, trend }: { label: string; value: string; trend
   const isPositive = trend?.startsWith('+');
   
   return (
-    <div className="border rounded-lg p-4">
+    <BentoCard variant="bordered" className="p-4">
       <p className="text-sm text-slate-500">{label}</p>
       <div className="flex items-center gap-2 mt-1">
         <span className="text-2xl font-bold">{value}</span>
@@ -219,77 +204,68 @@ function StatCard({ label, value, trend }: { label: string; value: string; trend
           </Badge>
         )}
       </div>
-    </div>
+    </BentoCard>
   );
 }
 
-// 执行历史面板
 function RunHistoryPanel({ runs, isLoading }: { runs: Run[]; isLoading: boolean }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <div className="animate-spin h-10 w-10 border-3 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" />
       </div>
     );
   }
 
   if (runs.length === 0) {
     return (
-      <div className="border rounded-lg p-12 text-center">
+      <BentoCard className="p-12 text-center">
         <Play className="w-12 h-12 mx-auto mb-4 text-slate-300" />
         <p className="text-slate-500">暂无执行记录</p>
-        <Button className="mt-4" asChild>
+        <Button className="mt-4 bg-[var(--electric)] hover:bg-[var(--electric)]/90" asChild>
           <Link href="/runs/new">开始第一次执行</Link>
         </Button>
-      </div>
+      </BentoCard>
     );
   }
 
   return (
-    <div className="border rounded-lg divide-y">
+    <BentoGrid cols={1} className="gap-3">
       {runs.map((run) => (
         <RunItem key={run.id} run={run} />
       ))}
-    </div>
+    </BentoGrid>
   );
 }
 
-// 执行项
-function RunItem({ run, onRefresh }: { run: Run; onRefresh?: () => void }) {
+function RunItem({ run }: { run: Run }) {
   const passRate = run.totalCount > 0 ? Math.round((run.passedCount / run.totalCount) * 100) : 0;
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   
-  const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
-    COMPLETED: { icon: CheckCircle, color: 'text-green-600', label: '完成' },
-    FAILED: { icon: XCircle, color: 'text-red-600', label: '失败' },
-    RUNNING: { icon: Play, color: 'text-blue-600', label: '运行中' },
-    PENDING: { icon: Clock, color: 'text-yellow-600', label: '等待中' },
-    CANCELLED: { icon: AlertCircle, color: 'text-slate-600', label: '已取消' },
+  const statusConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
+    COMPLETED: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', label: '完成' },
+    FAILED: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', label: '失败' },
+    RUNNING: { icon: Play, color: 'text-[var(--electric)]', bg: 'bg-[var(--electric)]/10', label: '运行中' },
+    PENDING: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: '等待中' },
+    CANCELLED: { icon: AlertCircle, color: 'text-slate-600', bg: 'bg-slate-50', label: '已取消' },
   };
 
   const config = statusConfig[run.status] || statusConfig.PENDING;
   const Icon = config.icon;
 
-  // 重新执行
   const handleRerun = async () => {
-    setActionLoading('rerun');
     try {
       const res = await fetch(`/api/runs/${run.id}/rerun`, { method: 'POST' });
       if (res.ok) {
         toast.success('重新执行已启动');
-        onRefresh?.();
       } else {
         toast.error('启动失败');
       }
-    } catch (e) {
+    } catch {
       toast.error('启动失败');
     }
-    setActionLoading(null);
   };
 
-  // 取消执行
   const handleCancel = async () => {
-    setActionLoading('cancel');
     try {
       const res = await fetch(`/api/runs/${run.id}`, { 
         method: 'PUT',
@@ -298,44 +274,40 @@ function RunItem({ run, onRefresh }: { run: Run; onRefresh?: () => void }) {
       });
       if (res.ok) {
         toast.success('执行已取消');
-        onRefresh?.();
       } else {
         toast.error('取消失败');
       }
-    } catch (e) {
+    } catch {
       toast.error('取消失败');
     }
-    setActionLoading(null);
   };
 
-  // 删除执行
   const handleDelete = async () => {
     if (!confirm('确定要删除此执行记录吗？')) return;
-    setActionLoading('delete');
     try {
       const res = await fetch(`/api/runs/${run.id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('执行记录已删除');
-        onRefresh?.();
       } else {
         toast.error('删除失败');
       }
-    } catch (e) {
+    } catch {
       toast.error('删除失败');
     }
-    setActionLoading(null);
   };
 
   return (
-    <div className="p-4 hover:bg-slate-50 transition-colors">
+    <BentoCard variant="bordered" className="p-4 hover:border-[var(--electric)] transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Icon className={`w-5 h-5 ${config.color}`} />
-            <Link href={`/runs/${run.id}`} className="font-medium hover:text-blue-600">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`p-1.5 rounded-lg ${config.bg}`}>
+              <Icon className={`w-4 h-4 ${config.color}`} />
+            </div>
+            <Link href={`/runs/${run.id}`} className="font-medium hover:text-[var(--electric)]">
               {run.name}
             </Link>
-            <Badge variant="outline">{config.label}</Badge>
+            <Badge variant="outline" className="text-xs">{config.label}</Badge>
             <Badge variant="secondary" className="text-xs">{run.type}</Badge>
           </div>
           
@@ -364,52 +336,51 @@ function RunItem({ run, onRefresh }: { run: Run; onRefresh?: () => void }) {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!!actionLoading}>
+              <Button variant="ghost" size="icon">
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleRerun} disabled={actionLoading === 'rerun'}>
+              <DropdownMenuItem onClick={handleRerun}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                {actionLoading === 'rerun' ? '启动中...' : '重新执行'}
+                重新执行
               </DropdownMenuItem>
               {(run.status === 'PENDING' || run.status === 'RUNNING') && (
-                <DropdownMenuItem onClick={handleCancel} disabled={actionLoading === 'cancel'}>
+                <DropdownMenuItem onClick={handleCancel}>
                   <XCircle className="w-4 h-4 mr-2" />
-                  {actionLoading === 'cancel' ? '取消中...' : '取消执行'}
+                  取消执行
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={handleDelete} disabled={actionLoading === 'delete'} className="text-red-600">
+              <DropdownMenuItem onClick={handleDelete} className="text-red-600">
                 <Trash2 className="w-4 h-4 mr-2" />
-                {actionLoading === 'delete' ? '删除中...' : '删除记录'}
+                删除记录
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-    </div>
+    </BentoCard>
   );
 }
 
-// 定时任务面板
 function ScheduledTasksPanel({ runs, isLoading }: { runs: Run[]; isLoading: boolean }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <div className="animate-spin h-10 w-10 border-3 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" />
       </div>
     );
   }
 
   if (runs.length === 0) {
     return (
-      <div className="border rounded-lg p-12 text-center">
+      <BentoCard className="p-12 text-center">
         <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-300" />
         <p className="text-slate-500">暂无定时任务</p>
-        <Button className="mt-4" asChild>
+        <Button className="mt-4 bg-[var(--electric)] hover:bg-[var(--electric)]/90" asChild>
           <Link href="/runs/scheduled/new">创建定时任务</Link>
         </Button>
-      </div>
+      </BentoCard>
     );
   }
 
@@ -425,20 +396,20 @@ function ScheduledTasksPanel({ runs, isLoading }: { runs: Run[]; isLoading: bool
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <BentoGrid cols={3}>
         {runs.map((run) => (
           <ScheduledTaskCard key={run.id} run={run} />
         ))}
-      </div>
+      </BentoGrid>
     </div>
   );
 }
 
 function ScheduledTaskCard({ run }: { run: Run }) {
   return (
-    <div className="border rounded-lg p-4 hover:border-blue-300 transition-colors">
+    <BentoCard variant="bordered" className="p-4 hover:border-[var(--electric)] transition-colors">
       <div className="flex items-start justify-between mb-3">
-        <h3 className="font-medium">{run.name}</h3>
+        <h3 className="font-medium line-clamp-1">{run.name}</h3>
         <Badge variant={run.status === 'COMPLETED' ? 'default' : 'secondary'}>
           {run.status === 'COMPLETED' ? '活跃' : '暂停'}
         </Badge>
@@ -447,7 +418,7 @@ function ScheduledTaskCard({ run }: { run: Run }) {
       <div className="space-y-2 text-sm">
         <div className="flex items-center text-slate-500">
           <Clock className="w-4 h-4 mr-2" />
-          <code className="bg-slate-100 px-2 py-0.5 rounded text-xs">{run.cron || '0 9 * * *'}</code>
+          <code className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-xs">{run.cron || '0 9 * * *'}</code>
         </div>
         
         {run.nextRunAt && (
@@ -463,15 +434,6 @@ function ScheduledTaskCard({ run }: { run: Run }) {
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// 默认导出 - 用 Suspense 包裹
-export default function RunCenterPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>}>
-      <RunsContent />
-    </Suspense>
+    </BentoCard>
   );
 }

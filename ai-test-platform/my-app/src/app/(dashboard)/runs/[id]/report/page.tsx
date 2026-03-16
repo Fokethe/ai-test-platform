@@ -36,7 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
 interface Execution {
   id: string;

@@ -1,1 +1,154 @@
-`n/**`n * ChromaDB 向量存储实现`n * HNSW 索引配置 (M=16, efConstruction=200)`n * 目标检索速度 < 50ms`n */`n`nimport type {`n  Document,`n  SearchResult,`n  VectorStore,`n  VectorStoreConfig,`n  HNSWIndexConfig,`n} from './vector-store'`n`ninterface ChromaClient {`n  getOrCreateCollection(options: {`n    name: string`n    metadata?: Record<string, unknown>`n  }): Promise<ChromaCollection>`n}`n`ninterface ChromaCollection {`n  add(options: {`n    ids: string[]`n    documents: string[]`n    embeddings: number[][]`n    metadatas?: Record<string, unknown>[]`n  }): Promise<void>`n  query(options: {`n    queryEmbeddings: number[][]`n    nResults: number`n  }): Promise<ChromaQueryResult>`n  delete(options: { ids: string[] }): Promise<void>`n  count(): Promise<number>`n}`n`ninterface ChromaQueryResult {`n  ids: string[][]`n  documents: (string | null)[][]`n  distances: number[][]`n  metadatas: (Record<string, unknown> | null)[][]`n}`n`nconst DEFAULT_HNSW_CONFIG: HNSWIndexConfig = {`n  M: 16,`n  efConstruction: 200,`n  efSearch: 100,`n}`n`nexport class ChromaVectorStore implements VectorStore {`n  private client: ChromaClient | null = null`n  private collection: ChromaCollection | null = null`n  private config: VectorStoreConfig | null = null`n  private hnswConfig: HNSWIndexConfig = DEFAULT_HNSW_CONFIG`n`n  async initialize(config: VectorStoreConfig, hnswConfig?: HNSWIndexConfig): Promise<void> {`n    this.config = config`n    this.hnswConfig = { ...DEFAULT_HNSW_CONFIG, ...hnswConfig }`n`n    try {`n      const { ChromaClient } = await import('chromadb')`n      const baseUrl = process.env.CHROMA_URL || 'http://localhost:8000'`n      this.client = new ChromaClient({ path: baseUrl })`n`n      this.collection = await this.client.getOrCreateCollection({`n        name: config.collectionName,`n        metadata: {`n          'hnsw:space': config.distance || 'cosine',`n          'hnsw:M': this.hnswConfig.M,`n          'hnsw:ef_construction': this.hnswConfig.efConstruction,`n          'hnsw:ef_search': this.hnswConfig.efSearch,`n          dimension: config.dimension,`n        },`n      })`n    } catch (error) {`n      throw new Error('Failed to initialize ChromaDB: ' + String(error))`n    }`n  }`n`n  async add(documents: Document[]): Promise<void> {`n    if (!this.collection) {`n      throw new Error('ChromaDB not initialized')`n    }`n`n    if (documents.length === 0) return`n`n    const BATCH_SIZE = 100`n    for (let i = 0; i < documents.length; i += BATCH_SIZE) {`n      const batch = documents.slice(i, i + BATCH_SIZE)`n      await this.collection.add({`n        ids: batch.map((doc) => doc.id),`n        documents: batch.map((doc) => doc.content),`n        embeddings: batch.map((doc) => doc.embedding),`n        metadatas: batch.map((doc) => doc.metadata || {}),`n      })`n    }`n  }`n`n  async search(query: number[], k: number): Promise<SearchResult[]> {`n    if (!this.collection) {`n      throw new Error('ChromaDB not initialized')`n    }`n`n    const startTime = performance.now()`n    const results = await this.collection.query({`n      queryEmbeddings: [query],`n      nResults: k,`n    })`n    const duration = performance.now() - startTime`n`n    console.log('ChromaDB search completed in ' + duration.toFixed(2) + 'ms')`n    if (duration > 50) {`n      console.warn('Search exceeded 50ms threshold: ' + duration.toFixed(2) + 'ms')`n    }`n`n    const searchResults: SearchResult[] = []`n    if (results.ids.length > 0) {`n      for (let i = 0; i < results.ids[0].length; i++) {`n        const score = 1 - results.distances[0][i]`n        searchResults.push({`n          id: results.ids[0][i],`n          content: results.documents[0][i] || '',`n          score,`n          metadata: results.metadatas[0][i] || undefined,`n        })`n      }`n    }`n    return searchResults`n  }`n`n  async delete(ids: string[]): Promise<void> {`n    if (!this.collection) {`n      throw new Error('ChromaDB not initialized')`n    }`n    if (ids.length === 0) return`n    await this.collection.delete({ ids })`n  }`n`n  async clear(): Promise<void> {`n    if (!this.collection) {`n      throw new Error('ChromaDB not initialized')`n    }`n    await this.collection.delete({ ids: [] })`n  }`n`n  async close(): Promise<void> {`n    this.collection = null`n    this.client = null`n  }`n}`n`nexport function createChromaStore(): ChromaVectorStore {`n  return new ChromaVectorStore()`n}`n
+/**
+ * ChromaDB 向量存储实现
+ * HNSW 索引配置 (M=16, efConstruction=200)
+ * 目标检索速度 < 50ms
+ */
+
+import type {
+  Document,
+  SearchResult,
+  VectorStore,
+  VectorStoreConfig,
+  HNSWIndexConfig,
+} from './vector-store';
+
+interface ChromaClient {
+  getOrCreateCollection(options: {
+    name: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ChromaCollection>;
+}
+
+interface ChromaCollection {
+  add(options: {
+    ids: string[];
+    documents: string[];
+    embeddings: number[][];
+    metadatas?: Record<string, unknown>[];
+  }): Promise<void>;
+  query(options: {
+    queryEmbeddings: number[][];
+    nResults: number;
+  }): Promise<ChromaQueryResult>;
+  delete(options: { ids: string[] }): Promise<void>;
+  count(): Promise<number>;
+}
+
+interface ChromaQueryResult {
+  ids: string[][];
+  documents: (string | null)[][];
+  distances: number[][];
+  metadatas: (Record<string, unknown> | null)[][];
+}
+
+const DEFAULT_HNSW_CONFIG: HNSWIndexConfig = {
+  M: 16,
+  efConstruction: 200,
+  efSearch: 100,
+};
+
+export class ChromaVectorStore implements VectorStore {
+  private client: ChromaClient | null = null;
+  private collection: ChromaCollection | null = null;
+  private config: VectorStoreConfig | null = null;
+  private hnswConfig: HNSWIndexConfig = DEFAULT_HNSW_CONFIG;
+
+  async initialize(config: VectorStoreConfig, hnswConfig?: HNSWIndexConfig): Promise<void> {
+    this.config = config;
+    this.hnswConfig = { ...DEFAULT_HNSW_CONFIG, ...hnswConfig };
+
+    try {
+      const { ChromaClient } = await import('chromadb');
+      const baseUrl = process.env.CHROMA_URL || 'http://localhost:8000';
+      this.client = new ChromaClient({ path: baseUrl });
+
+      this.collection = await this.client.getOrCreateCollection({
+        name: config.collectionName,
+        metadata: {
+          'hnsw:space': config.distance || 'cosine',
+          'hnsw:M': this.hnswConfig.M,
+          'hnsw:ef_construction': this.hnswConfig.efConstruction,
+          'hnsw:ef_search': this.hnswConfig.efSearch,
+          dimension: config.dimension,
+        },
+      });
+    } catch (error) {
+      throw new Error('Failed to initialize ChromaDB: ' + String(error));
+    }
+  }
+
+  async add(documents: Document[]): Promise<void> {
+    if (!this.collection) {
+      throw new Error('ChromaDB not initialized');
+    }
+
+    if (documents.length === 0) return;
+
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+      const batch = documents.slice(i, i + BATCH_SIZE);
+      await this.collection.add({
+        ids: batch.map((doc) => doc.id),
+        documents: batch.map((doc) => doc.content),
+        embeddings: batch.map((doc) => doc.embedding),
+        metadatas: batch.map((doc) => doc.metadata || {}),
+      });
+    }
+  }
+
+  async search(query: number[], k: number): Promise<SearchResult[]> {
+    if (!this.collection) {
+      throw new Error('ChromaDB not initialized');
+    }
+
+    const startTime = performance.now();
+    const results = await this.collection.query({
+      queryEmbeddings: [query],
+      nResults: k,
+    });
+    const duration = performance.now() - startTime;
+
+    console.log('ChromaDB search completed in ' + duration.toFixed(2) + 'ms');
+    if (duration > 50) {
+      console.warn('Search exceeded 50ms threshold: ' + duration.toFixed(2) + 'ms');
+    }
+
+    const searchResults: SearchResult[] = [];
+    if (results.ids.length > 0) {
+      for (let i = 0; i < results.ids[0].length; i++) {
+        const score = 1 - results.distances[0][i];
+        searchResults.push({
+          id: results.ids[0][i],
+          content: results.documents[0][i] || '',
+          score,
+          metadata: results.metadatas[0][i] || undefined,
+        });
+      }
+    }
+    return searchResults;
+  }
+
+  async delete(ids: string[]): Promise<void> {
+    if (!this.collection) {
+      throw new Error('ChromaDB not initialized');
+    }
+    if (ids.length === 0) return;
+    await this.collection.delete({ ids });
+  }
+
+  async clear(): Promise<void> {
+    if (!this.collection) {
+      throw new Error('ChromaDB not initialized');
+    }
+    await this.collection.delete({ ids: [] });
+  }
+
+  async close(): Promise<void> {
+    this.collection = null;
+    this.client = null;
+  }
+}
+
+export function createChromaStore(): ChromaVectorStore {
+  return new ChromaVectorStore();
+}

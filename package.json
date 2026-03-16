@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@langchain/langgraph": "^1.2.2",
+    "chromadb": "^3.3.3",
     "zustand": "^5.0.11"
   }
 }

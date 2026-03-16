@@ -248,6 +248,7 @@ model Requirement {
 
   page      Page       @relation(fields: [pageId], references: [id], onDelete: Cascade)
   testCases TestCase[]
+  tests     Test[]     // 与重构后的 Test 模型关联
 
   @@map("requirements")
 }
@@ -750,6 +751,9 @@ model Test {
   aiPrompt    String?   @map("ai_prompt")
   aiModel     String?   @map("ai_model")
   
+  // 关联需求（重构新增）
+  requirementId String? @map("requirement_id")
+  
   // 关联
   createdBy   String    @map("created_by")
   assignedTo  String?   @map("assigned_to")
@@ -759,9 +763,10 @@ model Test {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
   // 关系
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent      Test?     @relation("TestHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children    Test[]    @relation("TestHierarchy")
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirement Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  parent      Test?       @relation("TestHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Test[]      @relation("TestHierarchy")
   executions  Execution[]
   issues      Issue[]
   customFieldValues CustomFieldValue[]
@@ -769,6 +774,7 @@ model Test {
   @@index([projectId, type])
   @@index([parentId])
   @@index([tags])
+  @@index([requirementId])
   @@map("tests")
 }
 

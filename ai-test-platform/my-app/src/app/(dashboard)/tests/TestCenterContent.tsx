@@ -1,11 +1,10 @@
 /**
- * TestCenter Content - 测试中心内容组件
- * 被 Suspense 边界包裹
+ * TestCenter Content - Bento Grid风格重构版
  */
 
 'use client';
 
-import React, { useState, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
@@ -16,20 +15,17 @@ import {
   Search,
   Loader2,
   MoreHorizontal,
-  FolderOpen,
   Upload,
   Download,
   FileSpreadsheet,
   FileJson,
   FileText,
   X,
-  Filter,
   ArrowUpDown,
   Trash2,
   FolderInput,
   CheckSquare,
-  Square,
-  Settings,
+  Filter,
   RefreshCw,
 } from 'lucide-react';
 import {
@@ -60,19 +56,20 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Pagination } from '@/components/ui/pagination';
-import { InfiniteScroll } from '@/components/ui/virtual-list';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { safeJsonParse } from '@/lib/utils/json';
+import { BentoCard, BentoGrid, BentoItem } from '@/components/bento';
+import { BentoHeader } from '@/components/bento';
+import { BentoSearch } from '@/components/bento';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
-// SWR 配置 - 30分钟定时刷新
 const swrOptions = {
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
   dedupingInterval: 2000,
-  refreshInterval: 30 * 60 * 1000, // 30分钟定时刷新
+  refreshInterval: 30 * 60 * 1000,
 };
 
 interface Test {
@@ -117,47 +114,31 @@ interface SuiteItem {
 
 type TestStatus = 'ACTIVE' | 'DRAFT' | 'DEPRECATED' | 'ARCHIVED';
 
-// 支持的导入格式
 const IMPORT_FORMATS = [
   { ext: '.xlsx', name: 'Excel', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
   { ext: '.json', name: 'JSON', mime: 'application/json' },
   { ext: '.csv', name: 'CSV', mime: 'text/csv' },
 ];
 
-export default function TestCenterContent() {
+export function TestCenterContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'cases';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // 筛选状态
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
-  const [tagsFilter, setTagsFilter] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
-  
-  // 排序状态
   const [sortField, setSortField] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // 分页状态
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  
-  // 无限滚动状态（用于大数据场景）
-  const [infiniteItems, setInfiniteItems] = useState<Test[]>([]);
-  const [infinitePage, setInfinitePage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [useInfiniteScroll, setUseInfiniteScroll] = useState(false);
 
-  // 导入状态
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // ===== 批量操作状态 =====
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
   const [batchMoveDialogOpen, setBatchMoveDialogOpen] = useState(false);
@@ -169,7 +150,6 @@ export default function TestCenterContent() {
   const [targetSuiteId, setTargetSuiteId] = useState<string>('');
   const [targetStatus, setTargetStatus] = useState<TestStatus>('ACTIVE');
 
-  // 根据当前 tab 确定 type 参数
   const getTypeParam = () => {
     switch (activeTab) {
       case 'cases':
@@ -181,7 +161,6 @@ export default function TestCenterContent() {
     }
   };
 
-  // 构建 API URL
   const buildApiUrl = useCallback(() => {
     const params = new URLSearchParams();
     const type = getTypeParam();
@@ -189,10 +168,6 @@ export default function TestCenterContent() {
     if (searchQuery) params.set('search', searchQuery);
     if (priorityFilter) params.set('priority', priorityFilter);
     if (statusFilter) params.set('status', statusFilter);
-    if (typeFilter) params.set('type', typeFilter);
-    if (tagsFilter.length > 0) params.set('tags', tagsFilter.join(','));
-    if (dateRange.start) params.set('startDate', dateRange.start);
-    if (dateRange.end) params.set('endDate', dateRange.end);
     if (sortField) {
       params.set('sort', sortField);
       params.set('order', sortOrder);
@@ -200,16 +175,14 @@ export default function TestCenterContent() {
     params.set('page', page.toString());
     params.set('pageSize', pageSize.toString());
     return `/api/tests?${params.toString()}`;
-  }, [activeTab, searchQuery, priorityFilter, statusFilter, typeFilter, tagsFilter, dateRange, sortField, sortOrder, page, pageSize]);
+  }, [activeTab, searchQuery, priorityFilter, statusFilter, sortField, sortOrder, page, pageSize]);
 
-  // 获取数据
   const { data, error, isLoading, mutate } = useSWR(
     activeTab !== 'ai' ? buildApiUrl() : null,
     fetcher,
     swrOptions
   );
 
-  // 获取文件夹和套件列表（用于批量移动）
   const { data: foldersData } = useSWR<FolderItem[]>(
     activeTab !== 'ai' ? '/api/folders' : null,
     fetcher,
@@ -224,7 +197,6 @@ export default function TestCenterContent() {
   const tests: Test[] = data?.data?.list || [];
   const meta: PaginationMeta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
-  // ===== 批量选择操作 =====
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
       const newSet = new Set(prev);
@@ -249,7 +221,6 @@ export default function TestCenterContent() {
     setSelectedIds(new Set());
   }, []);
 
-  // ===== 批量删除 =====
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) return;
     
@@ -280,7 +251,6 @@ export default function TestCenterContent() {
     }
   };
 
-  // ===== 批量更新状态 =====
   const handleBatchUpdateStatus = async () => {
     if (selectedIds.size === 0) return;
     
@@ -314,7 +284,6 @@ export default function TestCenterContent() {
     }
   };
 
-  // ===== 批量移动 =====
   const handleBatchMove = async () => {
     if (selectedIds.size === 0) return;
     
@@ -351,55 +320,38 @@ export default function TestCenterContent() {
     }
   };
 
-  // 处理优先级筛选
   const handlePriorityFilter = (value: string) => {
     setPriorityFilter(value === 'ALL' ? '' : value);
     setPage(1);
-    setInfinitePage(1);
-    setInfiniteItems([]);
     clearSelection();
   };
 
-  // 处理状态筛选
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value === 'ALL' ? '' : value);
     setPage(1);
-    setInfinitePage(1);
-    setInfiniteItems([]);
     clearSelection();
   };
 
-  // 处理排序
   const handleSort = (value: string) => {
     const [field, order] = value.split(':');
     setSortField(field);
     setSortOrder(order as 'asc' | 'desc');
     setPage(1);
-    setInfinitePage(1);
-    setInfiniteItems([]);
     clearSelection();
   };
 
-  // 清除所有筛选
   const handleClearFilters = () => {
     setPriorityFilter('');
     setStatusFilter('');
-    setTypeFilter('');
-    setTagsFilter([]);
-    setDateRange({});
     setSortField('createdAt');
     setSortOrder('desc');
     setSearchQuery('');
     setPage(1);
-    setInfinitePage(1);
-    setInfiniteItems([]);
     clearSelection();
   };
 
-  // 是否有激活的筛选
-  const hasActiveFilters = priorityFilter || statusFilter || typeFilter || tagsFilter.length > 0 || dateRange.start || dateRange.end || searchQuery;
+  const hasActiveFilters = priorityFilter || statusFilter || searchQuery;
 
-  // 删除测试
   const handleDeleteTest = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/tests/${id}`, {
@@ -416,54 +368,12 @@ export default function TestCenterContent() {
     }
   }, [mutate]);
 
-  // 处理搜索
   const handleSearch = () => {
     setPage(1);
-    setInfinitePage(1);
-    setInfiniteItems([]);
     clearSelection();
     mutate();
   };
 
-  // 加载更多（无限滚动）
-  const loadMore = useCallback(async () => {
-    if (!hasMore || isLoading) return;
-    
-    const nextPage = infinitePage + 1;
-    const params = new URLSearchParams();
-    const type = getTypeParam();
-    if (type) params.set('type', type);
-    if (searchQuery) params.set('search', searchQuery);
-    if (priorityFilter) params.set('priority', priorityFilter);
-    if (statusFilter) params.set('status', statusFilter);
-    params.set('page', nextPage.toString());
-    params.set('pageSize', '20');
-    
-    try {
-      const res = await fetch(`/api/tests?${params.toString()}`);
-      const result = await res.json();
-      
-      if (result.data?.list?.length > 0) {
-        setInfiniteItems(prev => [...prev, ...result.data.list]);
-        setInfinitePage(nextPage);
-        setHasMore(result.data.length === 20);
-      } else {
-        setHasMore(false);
-      }
-    } catch (e) {
-      console.error('Load more failed:', e);
-    }
-  }, [hasMore, isLoading, infinitePage, searchQuery, priorityFilter, statusFilter, activeTab]);
-
-  // 切换分页模式
-  const togglePaginationMode = () => {
-    setUseInfiniteScroll(!useInfiniteScroll);
-    setInfiniteItems(tests);
-    setInfinitePage(page);
-    setHasMore(meta.page < meta.totalPages);
-  };
-
-  // 处理导入文件选择
   const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -471,7 +381,6 @@ export default function TestCenterContent() {
     }
   };
 
-  // 执行导入
   const handleImport = async () => {
     if (!importFile) return;
     
@@ -505,7 +414,6 @@ export default function TestCenterContent() {
     }
   };
 
-  // 执行导出
   const handleExport = async (format: 'xlsx' | 'json' | 'csv') => {
     try {
       const params = new URLSearchParams();
@@ -544,45 +452,50 @@ export default function TestCenterContent() {
     { id: 'ai', label: 'AI生成', icon: Sparkles },
   ];
 
+  const getCreateLabel = () => {
+    switch (activeTab) {
+      case 'cases':
+        return '新建用例';
+      case 'suites':
+        return '新建套件';
+      default:
+        return '新建';
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">测试中心</h1>
-          <p className="text-slate-500">
-            共 {meta?.total || 0} 个{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeTab !== 'ai' && (
+      <BentoHeader
+        title="测试中心"
+        description="管理测试用例、套件和AI生成"
+        count={meta?.total || 0}
+        countLabel="个"
+        actionLabel={getCreateLabel()}
+        actionHref={`/tests/new?type=${getTypeParam()}`}
+        onRefresh={() => mutate(undefined, { revalidate: true })}
+        isRefreshing={isLoading}
+        secondaryActions={
+          activeTab !== 'ai' && (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={togglePaginationMode}
-                className="text-slate-500"
-              >
-                {useInfiniteScroll ? '分页模式' : '无限滚动'}
-              </Button>
-              {/* 导入按钮 */}
-              <Button
-                data-testid="import-button"
-                variant="outline"
-                size="sm"
-                onClick={() => setImportDialogOpen(true)}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                导入
-              </Button>
-              {/* 导出按钮 */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    data-testid="export-button"
-                    variant="outline"
-                    size="sm"
-                  >
+                  <Button variant="outline" size="sm">
+                    <Upload className="w-4 h-4 mr-2" />
+                    导入
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    从文件导入
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
                     <Download className="w-4 h-4 mr-2" />
                     导出
                   </Button>
@@ -603,142 +516,106 @@ export default function TestCenterContent() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
-          )}
-          <Button asChild>
-            <Link href={`/tests/new?type=${getTypeParam()}`}>
-              <Plus className="w-4 h-4 mr-2" />
-              新建{activeTab === 'cases' ? '用例' : activeTab === 'suites' ? '套件' : ''}
-            </Link>
-          </Button>
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* ===== 批量操作工具栏 ===== */}
       {selectedIds.size > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CheckSquare className="w-5 h-5 text-blue-600" />
-            <span className="font-medium text-blue-900">
-              已选择 {selectedIds.size} 项
-            </span>
+        <BentoCard variant="bordered" className="p-4 border-[var(--electric)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--electric)]/10 flex items-center justify-center">
+                <CheckSquare className="w-5 h-5 text-[var(--electric)]" />
+              </div>
+              <span className="font-medium">
+                已选择 <span className="text-[var(--electric)]">{selectedIds.size}</span> 项
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    更新状态
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { setTargetStatus('ACTIVE'); setBatchStatusDialogOpen(true); }}>
+                    设为激活
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTargetStatus('DRAFT'); setBatchStatusDialogOpen(true); }}>
+                    设为草稿
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTargetStatus('DEPRECATED'); setBatchStatusDialogOpen(true); }}>
+                    设为弃用
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setBatchMoveDialogOpen(true)}
+              >
+                <FolderInput className="w-4 h-4 mr-2" />
+                移动
+              </Button>
+              
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => setBatchDeleteDialogOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                删除
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={clearSelection}
+              >
+                <X className="w-4 h-4 mr-2" />
+                取消
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  更新状态
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { setTargetStatus('ACTIVE'); setBatchStatusDialogOpen(true); }}>
-                  设为激活
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setTargetStatus('DRAFT'); setBatchStatusDialogOpen(true); }}>
-                  设为草稿
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setTargetStatus('DEPRECATED'); setBatchStatusDialogOpen(true); }}>
-                  设为弃用
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setBatchMoveDialogOpen(true)}
-            >
-              <FolderInput className="w-4 h-4 mr-2" />
-              移动
-            </Button>
-            
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={() => setBatchDeleteDialogOpen(true)}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              删除
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={clearSelection}
-            >
-              <X className="w-4 h-4 mr-2" />
-              取消选择
-            </Button>
-          </div>
-        </div>
+        </BentoCard>
       )}
 
       {/* Search and Filters */}
-      <div className="space-y-4">
-        {/* 搜索行 */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="搜索测试用例、套件..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          <Button variant="outline" onClick={handleSearch}>
-            搜索
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={async () => { console.log('手动刷新触发'); await mutate(undefined, { revalidate: true }); }}
-            disabled={isLoading}
-            title="刷新"
-          >
-            <RefreshCw className={"w-4 h-4 " + (isLoading ? 'animate-spin' : '')} />
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/settings/custom-fields">
-              <Settings className="w-4 h-4 mr-2" />
-              自定义字段
-            </Link>
-          </Button>
-        </div>
+      <BentoGrid cols={1} className="gap-4">
+        <BentoSearch
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onSearch={handleSearch}
+          placeholder="搜索测试用例、套件..."
+        />
 
-        {/* 筛选和排序行 */}
         {activeTab !== 'ai' && (
           <div className="flex flex-wrap items-center gap-3">
-            {/* 优先级筛选 */}
             <Select
               value={priorityFilter || 'ALL'}
               onValueChange={handlePriorityFilter}
             >
-              <SelectTrigger 
-                data-testid="priority-filter"
-                className="w-[140px]"
-              >
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="优先级" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">全部优先级</SelectItem>
                 <SelectItem value="CRITICAL">紧急</SelectItem>
-                <SelectItem value="HIGH">高优先级</SelectItem>
+                <SelectItem value="HIGH">高</SelectItem>
                 <SelectItem value="MEDIUM">中</SelectItem>
                 <SelectItem value="LOW">低</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* 状态筛选 */}
             <Select
               value={statusFilter || 'ALL'}
               onValueChange={handleStatusFilter}
             >
-              <SelectTrigger 
-                data-testid="status-filter"
-                className="w-[140px]"
-              >
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="状态" />
               </SelectTrigger>
               <SelectContent>
@@ -749,34 +626,11 @@ export default function TestCenterContent() {
               </SelectContent>
             </Select>
 
-            {/* 类型筛选 */}
-            <Select
-              value={typeFilter || 'ALL'}
-              onValueChange={(value) => {
-                setTypeFilter(value === 'ALL' ? '' : value);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="类型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">全部类型</SelectItem>
-                <SelectItem value="CASE">用例</SelectItem>
-                <SelectItem value="SUITE">套件</SelectItem>
-                <SelectItem value="FOLDER">文件夹</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* 排序 */}
             <Select
               value={`${sortField}:${sortOrder}`}
               onValueChange={handleSort}
             >
-              <SelectTrigger 
-                data-testid="sort-select"
-                className="w-[160px]"
-              >
+              <SelectTrigger className="w-[160px]">
                 <ArrowUpDown className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="排序" />
               </SelectTrigger>
@@ -790,10 +644,8 @@ export default function TestCenterContent() {
               </SelectContent>
             </Select>
 
-            {/* 清除筛选按钮 */}
             {hasActiveFilters && (
               <Button
-                data-testid="clear-filters-button"
                 variant="ghost"
                 size="sm"
                 onClick={handleClearFilters}
@@ -805,19 +657,21 @@ export default function TestCenterContent() {
             )}
           </div>
         )}
-      </div>
+      </BentoGrid>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v);
         setPage(1);
-        setInfinitePage(1);
-        setInfiniteItems([]);
         clearSelection();
       }}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-md grid-cols-3 bg-slate-100 dark:bg-slate-800">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id}>
+            <TabsTrigger 
+              key={tab.id} 
+              value={tab.id}
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900"
+            >
               <tab.icon className="w-4 h-4 mr-2" />
               {tab.label}
             </TabsTrigger>
@@ -825,77 +679,51 @@ export default function TestCenterContent() {
         </TabsList>
 
         <TabsContent value="cases" className="mt-6">
-          {useInfiniteScroll ? (
-            <InfiniteTestList
-              tests={infiniteItems.length > 0 ? infiniteItems : tests}
-              hasMore={hasMore}
-              isLoading={isLoading}
-              onLoadMore={loadMore}
-              onDelete={handleDeleteTest}
-              selectedIds={selectedIds}
-              onToggleSelection={toggleSelection}
-              onToggleAll={toggleAllSelection}
+          <TestList
+            tests={tests}
+            isLoading={isLoading}
+            error={error}
+            emptyText="暂无测试用例"
+            onRefresh={() => mutate()}
+            onDelete={handleDeleteTest}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            onToggleAll={toggleAllSelection}
+          />
+          <div className="mt-4">
+            <Pagination
+              currentPage={page}
+              totalPages={meta.totalPages}
+              totalItems={meta.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
             />
-          ) : (
-            <>
-              <TestList
-                tests={tests}
-                isLoading={isLoading}
-                error={error}
-                emptyText="暂无测试用例"
-                onRefresh={() => mutate()}
-                onDelete={handleDeleteTest}
-                selectedIds={selectedIds}
-                onToggleSelection={toggleSelection}
-                onToggleAll={toggleAllSelection}
-              />
-              <Pagination
-                currentPage={page}
-                totalPages={meta.totalPages}
-                totalItems={meta.total}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </>
-          )}
+          </div>
         </TabsContent>
 
         <TabsContent value="suites" className="mt-6">
-          {useInfiniteScroll ? (
-            <InfiniteTestList
-              tests={infiniteItems.length > 0 ? infiniteItems : tests}
-              hasMore={hasMore}
-              isLoading={isLoading}
-              onLoadMore={loadMore}
-              onDelete={handleDeleteTest}
-              selectedIds={selectedIds}
-              onToggleSelection={toggleSelection}
-              onToggleAll={toggleAllSelection}
+          <TestList
+            tests={tests}
+            isLoading={isLoading}
+            error={error}
+            emptyText="暂无测试套件"
+            onRefresh={() => mutate()}
+            onDelete={handleDeleteTest}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            onToggleAll={toggleAllSelection}
+          />
+          <div className="mt-4">
+            <Pagination
+              currentPage={page}
+              totalPages={meta.totalPages}
+              totalItems={meta.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
             />
-          ) : (
-            <>
-              <TestList
-                tests={tests}
-                isLoading={isLoading}
-                error={error}
-                emptyText="暂无测试套件"
-                onRefresh={() => mutate()}
-                onDelete={handleDeleteTest}
-                selectedIds={selectedIds}
-                onToggleSelection={toggleSelection}
-                onToggleAll={toggleAllSelection}
-              />
-              <Pagination
-                currentPage={page}
-                totalPages={meta.totalPages}
-                totalItems={meta.total}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </>
-          )}
+          </div>
         </TabsContent>
 
         <TabsContent value="ai" className="mt-6">
@@ -914,7 +742,6 @@ export default function TestCenterContent() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* 文件格式说明 */}
             <div className="flex gap-2">
               {IMPORT_FORMATS.map(format => (
                 <Badge key={format.ext} variant="secondary">
@@ -923,16 +750,14 @@ export default function TestCenterContent() {
               ))}
             </div>
             
-            {/* 文件选择 */}
             {!importFile ? (
               <div
-                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-[var(--electric)] hover:bg-[var(--electric)]/5 transition-colors"
                 onClick={() => importInputRef.current?.click()}
               >
                 <input
                   ref={importInputRef}
                   type="file"
-                  data-testid="import-file-input"
                   onChange={handleImportFileSelect}
                   accept=".xlsx,.json,.csv"
                   className="hidden"
@@ -974,9 +799,9 @@ export default function TestCenterContent() {
               取消
             </Button>
             <Button
-              data-testid="confirm-import-button"
               onClick={handleImport}
               disabled={!importFile || importing}
+              className="bg-[var(--electric)] hover:bg-[var(--electric)]/90"
             >
               {importing ? (
                 <>
@@ -1038,6 +863,7 @@ export default function TestCenterContent() {
             <Button 
               onClick={handleBatchUpdateStatus}
               disabled={batchUpdatingStatus}
+              className="bg-[var(--electric)] hover:bg-[var(--electric)]/90"
             >
               {batchUpdatingStatus ? (
                 <>
@@ -1105,6 +931,7 @@ export default function TestCenterContent() {
             <Button 
               onClick={handleBatchMove}
               disabled={batchMoving || (!targetFolderId && !targetSuiteId)}
+              className="bg-[var(--electric)] hover:bg-[var(--electric)]/90"
             >
               {batchMoving ? (
                 <>
@@ -1118,74 +945,7 @@ export default function TestCenterContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-// 无限滚动测试列表
-function InfiniteTestList({
-  tests,
-  hasMore,
-  isLoading,
-  onLoadMore,
-  onDelete,
-  selectedIds,
-  onToggleSelection,
-  onToggleAll,
-}: {
-  tests: Test[];
-  hasMore: boolean;
-  isLoading: boolean;
-  onLoadMore: () => void;
-  onDelete?: (id: string) => void;
-  selectedIds: Set<string>;
-  onToggleSelection: (id: string) => void;
-  onToggleAll: () => void;
-}) {
-  if (tests.length === 0 && !isLoading) {
-    return (
-      <div className="border rounded-lg p-12 text-center">
-        <Beaker className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-        <p className="text-slate-500">暂无测试用例</p>
-        <Button variant="outline" className="mt-4" asChild>
-          <Link href="/tests/new">创建第一个</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const allSelected = tests.length > 0 && tests.every(t => selectedIds.has(t.id));
-
-  return (
-    <div className="border rounded-lg divide-y">
-      {/* 表头 - 全选 */}
-      {tests.length > 0 && (
-        <div className="flex items-center p-3 bg-slate-50 border-b">
-          <Checkbox 
-            checked={allSelected}
-            onCheckedChange={onToggleAll}
-            className="mr-3"
-          />
-          <span className="text-sm text-slate-500">
-            {allSelected ? '取消全选' : '全选'}
-          </span>
-        </div>
-      )}
-      <InfiniteScroll
-        items={tests}
-        hasMore={hasMore}
-        isLoading={isLoading}
-        onLoadMore={onLoadMore}
-        renderItem={(test) => (
-          <TestItem 
-            test={test} 
-            onDelete={onDelete}
-            isSelected={selectedIds.has(test.id)}
-            onToggleSelection={() => onToggleSelection(test.id)}
-          />
-        )}
-      />
-    </div>
+    </>
   );
 }
 
@@ -1214,7 +974,7 @@ function TestList({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--electric)]" />
       </div>
     );
   }
@@ -1232,22 +992,22 @@ function TestList({
 
   if (tests.length === 0) {
     return (
-      <div className="border rounded-lg p-12 text-center">
+      <BentoCard className="p-12 text-center">
         <Beaker className="w-12 h-12 mx-auto mb-4 text-slate-300" />
         <p className="text-slate-500">{emptyText}</p>
         <Button variant="outline" className="mt-4" asChild>
           <Link href="/tests/new">创建第一个</Link>
         </Button>
-      </div>
+      </BentoCard>
     );
   }
 
   const allSelected = tests.length > 0 && tests.every(t => selectedIds.has(t.id));
 
   return (
-    <div className="border rounded-lg divide-y">
+    <BentoCard variant="bordered" className="divide-y divide-slate-100 dark:divide-slate-800">
       {/* 表头 - 全选 */}
-      <div className="flex items-center p-3 bg-slate-50 border-b">
+      <div className="flex items-center p-3 bg-slate-50/50 dark:bg-slate-800/50">
         <Checkbox 
           checked={allSelected}
           onCheckedChange={onToggleAll}
@@ -1266,11 +1026,11 @@ function TestList({
           onToggleSelection={() => onToggleSelection(test.id)}
         />
       ))}
-    </div>
+    </BentoCard>
   );
 }
 
-// 单个测试项 - 使用 React.memo 优化渲染
+// 单个测试项
 const TestItem = React.memo(function TestItem({ 
   test,
   onDelete,
@@ -1294,7 +1054,7 @@ const TestItem = React.memo(function TestItem({
   };
 
   return (
-    <div className={`flex items-center p-4 hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}>
+    <div className={`flex items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-[var(--electric)]/5' : ''}`}>
       <Checkbox 
         checked={isSelected}
         onCheckedChange={onToggleSelection}
@@ -1304,7 +1064,7 @@ const TestItem = React.memo(function TestItem({
         <div className="flex items-center gap-2">
           <Link
             href={`/tests/${test.id}`}
-            className="font-medium hover:text-blue-600 truncate"
+            className="font-medium hover:text-[var(--electric)] truncate"
           >
             {test.name}
           </Link>
@@ -1326,7 +1086,6 @@ const TestItem = React.memo(function TestItem({
           <span className="text-xs text-slate-400">
             执行 {test._count?.executions || 0} 次
           </span>
-          {/* 显示自定义字段值 */}
           {test.customFieldValues && test.customFieldValues.length > 0 && (
             <>
               <span className="text-slate-300">|</span>
@@ -1373,15 +1132,22 @@ const TestItem = React.memo(function TestItem({
 // 优先级标签
 function PriorityBadge({ priority }: { priority: string }) {
   const colors: Record<string, string> = {
-    CRITICAL: 'bg-red-100 text-red-700',
-    HIGH: 'bg-orange-100 text-orange-700',
-    MEDIUM: 'bg-yellow-100 text-yellow-700',
-    LOW: 'bg-slate-100 text-slate-700',
+    CRITICAL: 'bg-red-100 text-red-700 border-red-200',
+    HIGH: 'bg-orange-100 text-orange-700 border-orange-200',
+    MEDIUM: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    LOW: 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+
+  const labels: Record<string, string> = {
+    CRITICAL: '紧急',
+    HIGH: '高',
+    MEDIUM: '中',
+    LOW: '低',
   };
 
   return (
-    <Badge className={colors[priority] || colors.MEDIUM} variant="secondary">
-      {priority === 'CRITICAL' ? '紧急' : priority === 'HIGH' ? '高' : priority === 'MEDIUM' ? '中' : '低'}
+    <Badge className={`${colors[priority] || colors.MEDIUM} border`} variant="outline">
+      {labels[priority] || priority}
     </Badge>
   );
 }
@@ -1389,10 +1155,10 @@ function PriorityBadge({ priority }: { priority: string }) {
 // 状态标签
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-700',
-    DRAFT: 'bg-yellow-100 text-yellow-700',
-    DEPRECATED: 'bg-gray-100 text-gray-700',
-    ARCHIVED: 'bg-red-100 text-red-700',
+    ACTIVE: 'bg-green-100 text-green-700 border-green-200',
+    DRAFT: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    DEPRECATED: 'bg-slate-100 text-slate-700 border-slate-200',
+    ARCHIVED: 'bg-red-100 text-red-700 border-red-200',
   };
 
   const labels: Record<string, string> = {
@@ -1403,7 +1169,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <Badge className={colors[status] || colors.DRAFT} variant="secondary">
+    <Badge className={`${colors[status] || colors.DRAFT} border`} variant="outline">
       {labels[status] || status}
     </Badge>
   );
@@ -1412,30 +1178,38 @@ function StatusBadge({ status }: { status: string }) {
 // AI 生成面板
 function AIGeneratePanel() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="border rounded-lg p-6 hover:border-blue-300 transition-colors">
-          <Sparkles className="w-8 h-8 mb-4 text-blue-500" />
-          <h3 className="font-medium mb-2">从需求生成</h3>
-          <p className="text-sm text-slate-500 mb-4">
+    <BentoGrid cols={2}>
+      <BentoCard 
+        variant="featured" 
+        className="p-6 cursor-pointer"
+        onClick={() => {}}
+      >
+        <Link href="/ai-generate/requirements" className="block">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--electric)] to-[var(--neon)] flex items-center justify-center mb-4">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2">从需求生成</h3>
+          <p className="text-sm text-slate-500">
             输入功能需求，AI 自动生成测试用例
           </p>
-          <Button variant="outline" className="w-full" asChild>
-            <Link href="/ai-generate">开始生成</Link>
-          </Button>
-        </div>
-        
-        <div className="border rounded-lg p-6 hover:border-blue-300 transition-colors">
-          <FolderOpen className="w-8 h-8 mb-4 text-green-500" />
-          <h3 className="font-medium mb-2">从页面生成</h3>
-          <p className="text-sm text-slate-500 mb-4">
-            选择页面，AI 自动识别元素并生成用例
+        </Link>
+      </BentoCard>
+      
+      <BentoCard 
+        variant="bordered" 
+        className="p-6 cursor-pointer hover:border-[var(--electric)]"
+        onClick={() => {}}
+      >
+        <Link href="/ai-generate/testcases" className="block">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4">
+            <Beaker className="w-6 h-6 text-white" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2">用例生成</h3>
+          <p className="text-sm text-slate-500">
+            基于需求自动生成完整测试用例
           </p>
-          <Button variant="outline" className="w-full" asChild>
-            <Link href="/assets?type=page">选择页面</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+        </Link>
+      </BentoCard>
+    </BentoGrid>
   );
 }

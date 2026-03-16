@@ -40,7 +40,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
 interface TestDetail {
   id: string;

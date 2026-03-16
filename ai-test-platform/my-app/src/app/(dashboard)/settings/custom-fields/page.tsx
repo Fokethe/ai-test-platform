@@ -31,7 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
 const FIELD_TYPES = [
   { value: 'text', label: '文本' },

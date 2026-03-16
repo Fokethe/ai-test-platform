@@ -30,7 +30,7 @@ import {
 import { Pagination } from '@/components/ui/pagination';
 import Link from 'next/link';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
 interface Issue {
   id: string;

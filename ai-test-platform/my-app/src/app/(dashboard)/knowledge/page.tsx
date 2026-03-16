@@ -1,332 +1,259 @@
 /**
- * 知识库页面
- * 提供RAG检索增强的知识库查询功能
+ * Knowledge Base Page - Bento Grid风格
+ * RAG知识库管理
  */
 
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import useSWR from 'swr';
+import {
+  BookOpen,
+  Plus,
+  Search,
+  Loader2,
+  FileText,
+  Database,
+  Upload,
+  Trash2,
+  MoreHorizontal,
+  ExternalLink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, BookOpen, Sparkles, Quote, Clock, Database } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { BentoCard, BentoGrid } from '@/components/bento';
+import { BentoHeader } from '@/components/bento';
+import { BentoSearch } from '@/components/bento';
 
-interface SearchResult {
-  answer: string;
-  sources: Array<{
-    id: string;
-    content: string;
-    score: number;
-    metadata?: Record<string, unknown>;
-  }>;
-  citations: string[];
-  context: {
-    query: string;
-    rewrittenQuery?: string;
-    retrievalTime: number;
-    totalTime: number;
-    cacheHit: boolean;
-  };
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface KnowledgeBase {
+  id: string;
+  name: string;
+  description?: string;
+  documentCount: number;
+  vectorCount: number;
+  status: 'ACTIVE' | 'SYNCING' | 'ERROR';
+  lastSyncAt?: string;
+  createdAt: string;
 }
 
-export default function KnowledgePage() {
-  const { data: session } = useSession();
-  const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [options, setOptions] = useState({
-    enableHyDE: true,
-    enableQueryRewrite: true,
-    enableSelfRAG: false,
-    topK: 10,
-  });
+export default function KnowledgeBasePage() {
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const { data, error, isLoading, mutate } = useSWR(
+    '/api/knowledge/bases',
+    fetcher,
+    { refreshInterval: 30000 }
+  );
 
-    setIsLoading(true);
-    setError(null);
+  const bases: KnowledgeBase[] = data?.data || [];
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定要删除此知识库吗？')) return;
     try {
-      const response = await fetch('/api/knowledge/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          departmentId: 'default', // 实际应从用户上下文获取
-          options,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || '搜索失败');
+      const res = await fetch(`/api/knowledge/bases/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('删除成功');
+        mutate();
+      } else {
+        toast.error('删除失败');
       }
-
-      setResult(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '搜索失败');
-    } finally {
-      setIsLoading(false);
+    } catch {
+      toast.error('删除失败');
     }
   };
 
+  const stats = {
+    total: bases.length,
+    documents: bases.reduce((acc, b) => acc + b.documentCount, 0),
+    vectors: bases.reduce((acc, b) => acc + b.vectorCount, 0),
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* 页面标题 */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" />
-          知识库
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          基于RAG技术的智能知识检索系统，支持混合检索、查询重写、HyDE增强等高级功能
-        </p>
-      </div>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <BentoHeader
+        title="知识库"
+        description="管理RAG知识库和文档"
+        count={stats.total}
+        countLabel="个知识库"
+        actionLabel="新建知识库"
+        actionHref="/knowledge/new"
+        onRefresh={() => mutate()}
+        isRefreshing={isLoading}
+      />
 
-      {/* 搜索区域 */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            智能搜索
-          </CardTitle>
-          <CardDescription>
-            输入您的问题，系统将使用RAG技术从知识库中检索相关信息并生成回答
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="请输入您的问题..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-              disabled={isLoading}
-            />
-            <Button 
-              onClick={handleSearch} 
-              disabled={isLoading || !query.trim()}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  搜索中
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  搜索
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* 搜索选项 */}
-          <div className="mt-4 flex flex-wrap gap-4 text-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={options.enableHyDE}
-                onChange={(e) => setOptions({ ...options, enableHyDE: e.target.checked })}
-                className="rounded"
-              />
-              <span className="flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                HyDE增强
-              </span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={options.enableQueryRewrite}
-                onChange={(e) => setOptions({ ...options, enableQueryRewrite: e.target.checked })}
-                className="rounded"
-              />
-              <span>查询重写</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={options.enableSelfRAG}
-                onChange={(e) => setOptions({ ...options, enableSelfRAG: e.target.checked })}
-                className="rounded"
-              />
-              <span>Self-RAG验证</span>
-            </label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 错误提示 */}
-      {error && (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 搜索结果 */}
-      {result && (
-        <div className="space-y-6">
-          {/* 回答卡片 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-yellow-500" />
-                AI回答
-              </CardTitle>
-              {result.context.rewrittenQuery && (
-                <CardDescription>
-                  查询重写: "{result.context.rewrittenQuery}"
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="prose max-w-none">
-                <div className="whitespace-pre-wrap text-gray-800">
-                  {result.answer}
-                </div>
-              </div>
-
-              {/* 引用 */}
-              {result.citations.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-1">
-                    <Quote className="h-3 w-3" />
-                    引用
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {result.citations.map((citation, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {citation}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 统计信息 */}
-              <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  检索耗时: {result.context.retrievalTime}ms
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  总耗时: {result.context.totalTime}ms
-                </span>
-                {result.context.cacheHit && (
-                  <Badge variant="outline" className="text-xs">缓存命中</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 来源卡片 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-blue-500" />
-                参考来源
-              </CardTitle>
-              <CardDescription>
-                共找到 {result.sources.length} 个相关来源
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-4">
-                  {result.sources.map((source, index) => (
-                    <div key={source.id}>
-                      <div className="flex items-start gap-3">
-                        <Badge variant="outline" className="mt-1">
-                          #{index + 1}
-                        </Badge>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-gray-500">ID: {source.id}</span>
-                            <Badge 
-                              variant={source.score > 0.8 ? 'default' : 'secondary'}
-                              className="text-xs"
-                            >
-                              相关度: {(source.score * 100).toFixed(1)}%
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-700 line-clamp-4">
-                            {source.content}
-                          </p>
-                        </div>
-                      </div>
-                      {index < result.sources.length - 1 && (
-                        <Separator className="mt-4" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* 功能说明 */}
-      {!result && !isLoading && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>RAG功能特性</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-yellow-500" />
-                  混合检索 (Dense + BM25)
-                </h4>
-                <p className="text-sm text-gray-600">
-                  同时使用向量语义检索和关键词检索，通过RRF融合获得最佳结果
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-blue-500" />
-                  HyDE增强检索
-                </h4>
-                <p className="text-sm text-gray-600">
-                  生成假设性文档进行扩展检索，提升复杂查询的召回率
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-green-500" />
-                  Cross-Encoder重排序
-                </h4>
-                <p className="text-sm text-gray-600">
-                  使用bge-reranker模型对初步结果进行精确重排序
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  语义缓存
-                </h4>
-                <p className="text-sm text-gray-600">
-                  基于向量相似度的查询缓存，提升响应速度
-                </p>
-              </div>
+      {/* Stats */}
+      <BentoGrid cols={3}>
+        <BentoCard variant="bordered" className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[var(--electric)]/10">
+              <Database className="h-5 w-5 text-[var(--electric)]" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-sm text-slate-500">知识库</p>
+            </div>
+          </div>
+        </BentoCard>
+        <BentoCard variant="bordered" className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-50">
+              <FileText className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.documents}</p>
+              <p className="text-sm text-slate-500">文档</p>
+            </div>
+          </div>
+        </BentoCard>
+        <BentoCard variant="bordered" className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-50">
+              <BookOpen className="h-5 w-5 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.vectors.toLocaleString()}</p>
+              <p className="text-sm text-slate-500">向量</p>
+            </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
+
+      {/* Search */}
+      <BentoSearch
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onSearch={() => {}}
+        placeholder="搜索知识库..."
+      />
+
+      {/* Knowledge Base List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--electric)]" />
+        </div>
+      ) : bases.length === 0 ? (
+        <BentoCard className="p-12 text-center">
+          <Database className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+          <p className="text-slate-500">暂无知识库</p>
+          <Button className="mt-4 bg-[var(--electric)] hover:bg-[var(--electric)]/90" asChild>
+            <Link href="/knowledge/new">创建第一个</Link>
+          </Button>
+        </BentoCard>
+      ) : (
+        <BentoGrid cols={2}>
+          {bases.map((base) => (
+            <KnowledgeBaseCard
+              key={base.id}
+              base={base}
+              onDelete={() => handleDelete(base.id)}
+            />
+          ))}
+        </BentoGrid>
       )}
     </div>
+  );
+}
+
+function KnowledgeBaseCard({
+  base,
+  onDelete,
+}: {
+  base: KnowledgeBase;
+  onDelete: () => void;
+}) {
+  const statusColors: Record<string, string> = {
+    ACTIVE: 'bg-green-100 text-green-700 border-green-200',
+    SYNCING: 'bg-blue-100 text-blue-700 border-blue-200',
+    ERROR: 'bg-red-100 text-red-700 border-red-200',
+  };
+
+  const statusLabels: Record<string, string> = {
+    ACTIVE: '正常',
+    SYNCING: '同步中',
+    ERROR: '错误',
+  };
+
+  return (
+    <BentoCard
+      variant="bordered"
+      className="group p-5 hover:border-[var(--electric)] transition-all duration-300"
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-[var(--electric)]/10">
+            <Database className="h-6 w-6 text-[var(--electric)]" />
+          </div>
+          <div>
+            <Link
+              href={`/knowledge/${base.id}`}
+              className="font-semibold text-lg hover:text-[var(--electric)] transition-colors"
+            >
+              {base.name}
+            </Link>
+            <Badge className={`ml-2 ${statusColors[base.status]} border`} variant="outline">
+              {statusLabels[base.status]}
+            </Badge>
+          </div>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/knowledge/${base.id}`}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                查看
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/knowledge/${base.id}/upload`}>
+                <Upload className="mr-2 h-4 w-4" />
+                上传文档
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-red-600">
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {base.description && (
+        <p className="mt-3 text-sm text-slate-500 line-clamp-2">
+          {base.description}
+        </p>
+      )}
+
+      <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-500">文档</span>
+          <span className="font-medium">{base.documentCount}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm mt-2">
+          <span className="text-slate-500">向量</span>
+          <span className="font-medium">{base.vectorCount.toLocaleString()}</span>
+        </div>
+        {base.lastSyncAt && (
+          <p className="mt-3 text-xs text-slate-400">
+            上次同步: {new Date(base.lastSyncAt).toLocaleString()}
+          </p>
+        )}
+      </div>
+    </BentoCard>
   );
 }
