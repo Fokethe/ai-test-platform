@@ -1,5 +1,5 @@
 /**
- * Run Detail Page - 执行详情
+ * Run Detail Page - 执行详情 (Bento风格)
  */
 
 'use client';
@@ -24,12 +24,11 @@ import {
   Beaker,
   RotateCcw,
   FileText,
-  Download,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
@@ -42,6 +41,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { BentoCard, BentoGrid } from '@/components/bento';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
@@ -143,19 +144,27 @@ export default function RunDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      <div className="p-6 space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error || !run) {
     return (
-      <div className="text-center py-20">
-        <p className="text-red-500">加载失败</p>
-        <Button variant="outline" className="mt-4" onClick={() => mutate()}>
-          重试
-        </Button>
+      <div className="p-6">
+        <BentoCard className="p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-500 text-lg">加载失败</p>
+          <Button variant="outline" className="mt-4" onClick={() => mutate()}>
+            重试
+          </Button>
+        </BentoCard>
       </div>
     );
   }
@@ -163,7 +172,7 @@ export default function RunDetailPage() {
   const isRunning = run.status === 'RUNNING' || run.status === 'PENDING';
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -174,7 +183,7 @@ export default function RunDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{run.name}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">{run.name}</h1>
               <TypeBadge type={run.type} />
               <StatusBadge status={run.status} />
             </div>
@@ -184,13 +193,8 @@ export default function RunDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* 查看报告按钮 */}
           {!isRunning && (
-            <Button 
-              variant="outline" 
-              asChild
-              data-testid="view-report-button"
-            >
+            <Button variant="outline" asChild data-testid="view-report-button">
               <Link href={`/runs/${id}/report`}>
                 <FileText className="w-4 h-4 mr-2" />
                 查看报告
@@ -223,7 +227,7 @@ export default function RunDetailPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>取消</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
                   {isDeleting ? '删除中...' : '确认删除'}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -232,53 +236,80 @@ export default function RunDetailPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard 
-          label="总用例" 
-          value={run.stats.total.toString()} 
-          icon={BarChart3} 
-        />
-        <StatCard 
-          label="通过率" 
-          value={`${run.passRate}%`} 
-          icon={CheckCircle}
-          valueClass={run.passRate >= 80 ? 'text-green-600' : run.passRate >= 60 ? 'text-yellow-600' : 'text-red-600'}
-        />
-        <StatCard 
-          label="通过/失败" 
-          value={`${run.stats.passed}/${run.stats.failed}`} 
-          icon={run.stats.failed > 0 ? XCircle : CheckCircle}
-          valueClass={run.stats.failed > 0 ? 'text-red-600' : 'text-green-600'}
-        />
-        <StatCard 
-          label="耗时" 
-          value={run.duration ? `${Math.round(run.duration / 1000)}s` : '-'} 
-          icon={Clock} 
-        />
-      </div>
+      {/* Stats - Bento风格 */}
+      <BentoGrid cols={4}>
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[var(--electric)]/10 rounded-xl">
+              <BarChart3 className="h-5 w-5 text-[var(--electric)]" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">总用例</p>
+              <p className="text-xl font-bold text-slate-900">{run.stats.total}</p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 rounded-xl">
+              <CheckCircle className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">通过率</p>
+              <p className={`text-xl font-bold ${run.passRate >= 80 ? 'text-emerald-500' : run.passRate >= 60 ? 'text-amber-500' : 'text-red-500'}`}>
+                {run.passRate}%
+              </p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-red-500/10 rounded-xl">
+              <XCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">失败</p>
+              <p className="text-xl font-bold text-red-500">{run.stats.failed}</p>
+            </div>
+          </div>
+        </BentoCard>
+
+        <BentoCard variant="bordered" className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/10 rounded-xl">
+              <Clock className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">耗时</p>
+              <p className="text-xl font-bold text-slate-900">
+                {run.duration ? `${Math.round(run.duration / 1000)}s` : '-'}
+              </p>
+            </div>
+          </div>
+        </BentoCard>
+      </BentoGrid>
 
       {/* Progress bar for running */}
       {isRunning && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">执行进度</span>
-              <span className="text-sm text-slate-500">
-                {run.stats.running + run.stats.passed + run.stats.failed}/{run.stats.total}
-              </span>
-            </div>
-            <Progress 
-              value={run.stats.total > 0 ? ((run.stats.running + run.stats.passed + run.stats.failed) / run.stats.total) * 100 : 0} 
-              className="h-2" 
-            />
-          </CardContent>
-        </Card>
+        <BentoCard variant="bordered" className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-900">执行进度</span>
+            <span className="text-sm text-slate-500">
+              {run.stats.running + run.stats.passed + run.stats.failed}/{run.stats.total}
+            </span>
+          </div>
+          <Progress 
+            value={run.stats.total > 0 ? ((run.stats.running + run.stats.passed + run.stats.failed) / run.stats.total) * 100 : 0} 
+            className="h-2"
+          />
+        </BentoCard>
       )}
 
-      {/* Content */}
+      {/* Content Tabs */}
       <Tabs defaultValue="executions">
-        <TabsList>
+        <TabsList className="bg-white border">
           <TabsTrigger value="executions">
             执行详情 ({run.executions?.length || 0})
           </TabsTrigger>
@@ -288,102 +319,98 @@ export default function RunDetailPage() {
           <TabsTrigger value="info">基本信息</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="executions" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>执行详情</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {run.executions?.length > 0 ? (
-                <div className="space-y-3">
-                  {run.executions.map((exec, index) => (
-                    <div key={exec.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                      <span className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full text-sm font-medium">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link 
-                            href={`/tests/${exec.test.id}`}
-                            className="font-medium hover:text-blue-600"
-                          >
-                            {exec.test.name}
-                          </Link>
-                          <ExecutionStatusBadge status={exec.status} />
-                        </div>
-                        {exec.duration && (
-                          <p className="text-sm text-slate-500 mt-1">
-                            耗时: {Math.round(exec.duration / 1000)}s
-                          </p>
-                        )}
+        <TabsContent value="executions" className="mt-4">
+          <BentoCard variant="bordered" className="p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">执行详情</h3>
+            {run.executions?.length > 0 ? (
+              <div className="space-y-3">
+                {run.executions.map((exec, index) => (
+                  <div key={exec.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 group">
+                    <span className="w-8 h-8 flex items-center justify-center bg-[var(--electric)]/10 text-[var(--electric)] rounded-full text-sm font-medium shrink-0">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Link 
+                          href={`/tests/${exec.test.id}`}
+                          className="font-medium text-slate-900 hover:text-[var(--electric)] transition-colors"
+                        >
+                          {exec.test.name}
+                        </Link>
+                        <ExecutionStatusBadge status={exec.status} />
                       </div>
-                      {exec.status === 'FAILED' && (
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/quality/issues/new?executionId=${exec.id}`}>
-                            <Bug className="w-4 h-4 mr-1" />
-                            提问题
-                          </Link>
-                        </Button>
+                      {exec.duration && (
+                        <p className="text-sm text-slate-500 mt-1">
+                          耗时: {Math.round(exec.duration / 1000)}s
+                        </p>
                       )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-center py-8">暂无执行详情</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="issues" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>关联问题</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {run.issues?.length > 0 ? (
-                <div className="divide-y">
-                  {run.issues.map((issue) => (
-                    <div key={issue.id} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-2">
-                        <Bug className="w-4 h-4 text-red-500" />
-                        <Link 
-                          href={`/quality/issues/${issue.id}`}
-                          className="font-medium hover:text-blue-600"
-                        >
-                          {issue.title}
+                    {exec.status === 'FAILED' && (
+                      <Button variant="ghost" size="sm" asChild className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <Link href={`/quality/issues/new?executionId=${exec.id}`}>
+                          <Bug className="w-4 h-4 mr-1" />
+                          提问题
                         </Link>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={issue.severity === 'CRITICAL' ? 'destructive' : 'secondary'}>
-                          {issue.severity}
-                        </Badge>
-                        <StatusBadge status={issue.status} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-center py-8">暂无关联问题</p>
-              )}
-            </CardContent>
-          </Card>
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Beaker className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">暂无执行详情</p>
+              </div>
+            )}
+          </BentoCard>
         </TabsContent>
 
-        <TabsContent value="info" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>基本信息</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <TabsContent value="issues" className="mt-4">
+          <BentoCard variant="bordered" className="p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">关联问题</h3>
+            {run.issues?.length > 0 ? (
+              <div className="divide-y">
+                {run.issues.map((issue) => (
+                  <div key={issue.id} className="flex items-center justify-between py-3 group">
+                    <div className="flex items-center gap-3">
+                      <Bug className="w-4 h-4 text-red-500" />
+                      <Link 
+                        href={`/quality/issues/${issue.id}`}
+                        className="font-medium text-slate-900 hover:text-[var(--electric)] transition-colors"
+                      >
+                        {issue.title}
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={issue.severity === 'CRITICAL' ? 'destructive' : 'secondary'}>
+                        {issue.severity}
+                      </Badge>
+                      <StatusBadge status={issue.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Bug className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">暂无关联问题</p>
+              </div>
+            )}
+          </BentoCard>
+        </TabsContent>
+
+        <TabsContent value="info" className="mt-4">
+          <BentoCard variant="bordered" className="p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">基本信息</h3>
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-500">项目</label>
-                  <p className="mt-1">{run.project?.name}</p>
+                  <p className="mt-1 text-slate-900">{run.project?.name}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-500">类型</label>
-                  <p className="mt-1">
+                  <p className="mt-1 text-slate-900">
                     {run.type === 'MANUAL' ? '手动执行' : 
                      run.type === 'SCHEDULED' ? '定时任务' : 
                      run.type === 'WEBHOOK' ? 'Webhook' : 'API'}
@@ -394,57 +421,39 @@ export default function RunDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-slate-500">定时规则</label>
                   <p className="mt-1">
-                    <code className="bg-slate-100 px-2 py-1 rounded">{run.cron}</code>
+                    <code className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm">{run.cron}</code>
                   </p>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-500">创建时间</label>
-                  <p className="mt-1">{new Date(run.createdAt).toLocaleString()}</p>
+                  <p className="mt-1 text-slate-900">{new Date(run.createdAt).toLocaleString()}</p>
                 </div>
                 {run.completedAt && (
                   <div>
                     <label className="text-sm font-medium text-slate-500">完成时间</label>
-                    <p className="mt-1">{new Date(run.completedAt).toLocaleString()}</p>
+                    <p className="mt-1 text-slate-900">{new Date(run.completedAt).toLocaleString()}</p>
                   </div>
                 )}
               </div>
               {run.duration && (
                 <div>
                   <label className="text-sm font-medium text-slate-500">执行耗时</label>
-                  <p className="mt-1">{Math.round(run.duration / 1000)} 秒</p>
+                  <p className="mt-1 text-slate-900">{Math.round(run.duration / 1000)} 秒</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </BentoCard>
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, valueClass }: { label: string; value: string; icon: any; valueClass?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-100 rounded-lg">
-            <Icon className="w-5 h-5 text-slate-600" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500">{label}</p>
-            <p className={`text-2xl font-bold ${valueClass || ''}`}>{value}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function TypeBadge({ type }: { type: string }) {
   const config: Record<string, { icon: any; label: string; color: string }> = {
-    MANUAL: { icon: Play, label: '手动', color: 'bg-blue-100 text-blue-700' },
+    MANUAL: { icon: Play, label: '手动', color: 'bg-[var(--electric)]/10 text-[var(--electric)]' },
     SCHEDULED: { icon: Calendar, label: '定时', color: 'bg-purple-100 text-purple-700' },
     WEBHOOK: { icon: AlertCircle, label: 'Webhook', color: 'bg-orange-100 text-orange-700' },
     API: { icon: BarChart3, label: 'API', color: 'bg-slate-100 text-slate-700' },
@@ -455,12 +464,12 @@ function TypeBadge({ type }: { type: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    COMPLETED: 'bg-green-100 text-green-700',
+    COMPLETED: 'bg-emerald-100 text-emerald-700',
     FAILED: 'bg-red-100 text-red-700',
-    RUNNING: 'bg-blue-100 text-blue-700',
-    PENDING: 'bg-yellow-100 text-yellow-700',
+    RUNNING: 'bg-[var(--electric)]/10 text-[var(--electric)]',
+    PENDING: 'bg-amber-100 text-amber-700',
     CANCELLED: 'bg-slate-100 text-slate-700',
-    ACTIVE: 'bg-green-100 text-green-700',
+    ACTIVE: 'bg-emerald-100 text-emerald-700',
     CLOSED: 'bg-slate-100 text-slate-700',
   };
   const labels: Record<string, string> = {
@@ -481,10 +490,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function ExecutionStatusBadge({ status }: { status: string }) {
   const config: Record<string, { icon: any; color: string; label: string }> = {
-    PASSED: { icon: CheckCircle, color: 'text-green-600', label: '通过' },
+    PASSED: { icon: CheckCircle, color: 'text-emerald-600', label: '通过' },
     FAILED: { icon: XCircle, color: 'text-red-600', label: '失败' },
-    PENDING: { icon: Clock, color: 'text-yellow-600', label: '等待' },
-    RUNNING: { icon: Loader2, color: 'text-blue-600', label: '运行中' },
+    PENDING: { icon: Clock, color: 'text-amber-600', label: '等待' },
+    RUNNING: { icon: Loader2, color: 'text-[var(--electric)]', label: '运行中' },
     SKIPPED: { icon: AlertCircle, color: 'text-slate-600', label: '跳过' },
   };
   const c = config[status] || config.PENDING;
@@ -492,7 +501,7 @@ function ExecutionStatusBadge({ status }: { status: string }) {
   return (
     <div className={`flex items-center gap-1 ${c.color}`}>
       <Icon className={`w-4 h-4 ${status === 'RUNNING' ? 'animate-spin' : ''}`} />
-      <span className="text-sm">{c.label}</span>
+      <span className="text-sm font-medium">{c.label}</span>
     </div>
   );
 }
