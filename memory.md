@@ -28,19 +28,24 @@
 
 ## 重构成果汇总
 
-### 完成的页面 (10个)
+### 完成的页面 (13个)
 | 页面 | 路径 | 风格 | 状态 |
 |------|------|------|------|
 | 工作台 | /dashboard | 飞书+Bento | ✅ |
 | 项目管理 | /projects | Bento Grid | ✅ |
+| 项目详情 | /projects/[id] | Bento风格 | ✅ |
 | 需求管理 | /requirements | 飞书+Bento | ✅ |
 | 需求详情 | /requirements/[id] | 飞书+Bento | ✅ |
-| 测试设计 | /tests | Bento(保留) | ✅ |
+| 测试设计 | /tests | Bento Grid | ✅ |
+| 测试详情 | /tests/[id] | Bento风格 | ✅ |
 | 测试执行 | /executions | 飞书+Bento | ✅ |
 | 知识库 | /knowledge | 飞书+Bento | ✅ |
 | 缺陷管理 | /issues | Bento Grid | ✅ |
 | 报告中心 | /reports | Bento风格 | ✅ |
 | 设置中心 | /settings | Bento Grid | ✅ |
+
+### 清理工作
+- [x] 删除 tests/page.tsx.backup 重复文件
 
 ### 设计系统
 - 主色调: `#3370ff` (飞书蓝) + `#0066ff` (电光蓝)
