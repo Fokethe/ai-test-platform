@@ -1175,41 +1175,26 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// AI 生成面板
+// AI 生成面板 - 引导到AI生成中心
 function AIGeneratePanel() {
   return (
-    <BentoGrid cols={2}>
-      <BentoCard 
-        variant="featured" 
-        className="p-6 cursor-pointer"
-        onClick={() => {}}
+    <BentoCard className="p-12 text-center border-dashed">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--electric)] to-[var(--neon)] flex items-center justify-center mx-auto mb-6">
+        <Sparkles className="w-8 h-8 text-white" />
+      </div>
+      <h3 className="text-xl font-semibold text-slate-900 mb-2">AI 智能生成</h3>
+      <p className="text-slate-500 max-w-md mx-auto mb-6">
+        使用AI技术快速生成测试需求和测试用例，提升测试效率
+      </p>
+      <Button 
+        className="bg-[var(--electric)] hover:bg-[var(--electric)]/90"
+        asChild
       >
-        <Link href="/ai-generate/requirements" className="block">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--electric)] to-[var(--neon)] flex items-center justify-center mb-4">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2">从需求生成</h3>
-          <p className="text-sm text-slate-500">
-            输入功能需求，AI 自动生成测试用例
-          </p>
+        <Link href="/ai-generate">
+          前往 AI 生成中心
+          <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
-      </BentoCard>
-      
-      <BentoCard 
-        variant="bordered" 
-        className="p-6 cursor-pointer hover:border-[var(--electric)]"
-        onClick={() => {}}
-      >
-        <Link href="/ai-generate/testcases" className="block">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4">
-            <Beaker className="w-6 h-6 text-white" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2">用例生成</h3>
-          <p className="text-sm text-slate-500">
-            基于需求自动生成完整测试用例
-          </p>
-        </Link>
-      </BentoCard>
-    </BentoGrid>
+      </Button>
+    </BentoCard>
   );
 }
