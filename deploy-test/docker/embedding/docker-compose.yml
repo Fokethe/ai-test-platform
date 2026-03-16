@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  embedding-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-test-platform/embedding:latest
+    container_name: bge-m3-embedding
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./models:/root/.cache/torch/sentence_transformers
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # GPU支持（需要NVIDIA Docker运行时）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # 资源限制
+    mem_limit: 4g
+    cpus: '2'
+
+  # 可选：Redis缓存服务（用于语义缓存）
+  redis-cache:
+    image: redis:7-alpine
+    container_name: embedding-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    # 只在需要缓存时启用
+    profiles:
+      - with-cache
+
+volumes:
+  redis-data:

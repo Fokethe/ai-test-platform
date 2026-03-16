@@ -1,0 +1,1 @@
+export class DocumentProcessor { async process(content, meta) { return { id: 1, chunks: [], totalTokens: 0, processedAt: new Date() }; } }

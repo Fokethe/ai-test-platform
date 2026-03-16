@@ -1,0 +1,3 @@
+export interface MCPToolInput { [key: string]: unknown; }
+export interface MCPToolOutput { success: boolean; data?: unknown; error?: string; }
+export abstract class AbstractTool<TInput extends MCPToolInput = MCPToolInput, TOutput extends MCPToolOutput = MCPToolOutput> { abstract readonly name: string; abstract readonly description: string; abstract readonly inputSchema: object; abstract readonly outputSchema: object; abstract execute(input: TInput): Promise<TOutput>; protected createSuccessResponse(data: unknown): TOutput { return { success: true, data } as TOutput; } protected createErrorResponse(error: string): TOutput { return { success: false, error } as TOutput; } }

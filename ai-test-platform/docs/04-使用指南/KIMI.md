@@ -389,7 +389,7 @@ admin@example.com / admin123
 #查看端口占用
 netstat -ano | findstr :3000
 #杀死占用进程
-taskkill /PID 21472 /F
+taskkill /PID 21484 /F
 
 # 启动命令
 cd ai-test-platform/my-app
