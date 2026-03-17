@@ -8,12 +8,16 @@ export interface RerankResult {
   content: string;
   score: number;
   metadata?: Record<string, unknown>;
+  vectorScore: number;  // 兼容 HybridResult
+  keywordScore: number; // 兼容 HybridResult
 }
 
 export interface CrossEncoderConfig {
   model: string;
   maxLength: number;
   batchSize: number;
+  topN?: number;
+  scoreThreshold?: number;
 }
 
 export class CrossEncoderReranker {
@@ -28,7 +32,7 @@ export class CrossEncoderReranker {
     };
   }
 
-  async rerank(query: string, documents: Array<{ id: string; content: string; metadata?: Record<string, unknown> }>): Promise<RerankResult[]> {
+  async rerank(query: string, documents: Array<{ id: string; content: string; metadata?: Record<string, unknown>; vectorScore?: number; keywordScore?: number }>): Promise<RerankResult[]> {
     // 简化的重排序实现
     const results: RerankResult[] = [];
 
@@ -39,6 +43,8 @@ export class CrossEncoderReranker {
         content: doc.content,
         score,
         metadata: doc.metadata,
+        vectorScore: doc.vectorScore ?? score,
+        keywordScore: doc.keywordScore ?? score,
       });
     }
 
@@ -58,6 +64,10 @@ export class CrossEncoderReranker {
     }
     
     return matches / queryWords.length;
+  }
+
+  async close(): Promise<void> {
+    // 清理资源
   }
 }
 

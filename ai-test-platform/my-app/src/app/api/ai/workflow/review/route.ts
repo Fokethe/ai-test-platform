@@ -9,14 +9,12 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { workflowStore } from '../start/route';
-import { GeneratedTestCase } from '@/lib/ai/langgraph/types';
+import { GeneratedTestCase, WorkflowStatus } from '@/lib/ai/langgraph/types';
 
 // 请求体验证
 const ReviewDecisionSchema = z.object({
   workflowId: z.string().min(1, '工作流ID不能为空'),
-  decision: z.enum(['approve', 'edit', 'regenerate'], {
-    errorMap: () => ({ message: '决策必须是 approve、edit 或 regenerate' }),
-  }),
+  decision: z.enum(['approve', 'edit', 'regenerate']),
   comments: z.string().optional(),
   editedCases: z.array(z.object({
     id: z.string(),
@@ -51,7 +49,7 @@ export async function POST(req: NextRequest) {
     
     if (!validated.success) {
       return NextResponse.json(
-        { error: '请求参数错误', details: validated.error.errors },
+        { error: '请求参数错误', details: validated.error.issues },
         { status: 400 }
       );
     }
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 检查工作流是否处于审核状态
-    if (storeEntry.state.status !== 'reviewing') {
+    if (storeEntry.state.status !== WorkflowStatus.REVIEWING) {
       return NextResponse.json(
         { error: '工作流不处于审核状态', currentStatus: storeEntry.state.status },
         { status: 400 }
@@ -94,7 +92,7 @@ export async function POST(req: NextRequest) {
       case 'approve':
         // 批准：使用原始生成的用例
         storeEntry.state.reviewedCases = storeEntry.state.generatedCases;
-        storeEntry.state.status = 'completed';
+        storeEntry.state.status = WorkflowStatus.COMPLETED;
         break;
 
       case 'edit':
@@ -104,7 +102,7 @@ export async function POST(req: NextRequest) {
         } else {
           storeEntry.state.reviewedCases = storeEntry.state.generatedCases;
         }
-        storeEntry.state.status = 'completed';
+        storeEntry.state.status = WorkflowStatus.COMPLETED;
         break;
 
       case 'regenerate':
@@ -112,11 +110,11 @@ export async function POST(req: NextRequest) {
         if (storeEntry.state.retryCount >= 3) {
           // 超过最大重试次数，强制完成
           storeEntry.state.reviewedCases = storeEntry.state.generatedCases;
-          storeEntry.state.status = 'completed';
+          storeEntry.state.status = WorkflowStatus.COMPLETED;
           storeEntry.state.error = '已达到最大重试次数，使用最后一次生成的用例';
         } else {
           storeEntry.state.retryCount += 1;
-          storeEntry.state.status = 'generating';
+          storeEntry.state.status = WorkflowStatus.GENERATING;
           // 清除审核决策，等待重新生成后再次进入审核
           storeEntry.state.reviewDecision = undefined;
           
@@ -127,7 +125,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 如果已完成，可以保存到数据库
-    if (storeEntry.state.status === 'completed') {
+    if (storeEntry.state.status === WorkflowStatus.COMPLETED) {
       // TODO: 保存测试用例到数据库
       console.log(`工作流 ${workflowId} 审核完成，生成 ${storeEntry.state.reviewedCases?.length || 0} 个测试用例`);
     }
@@ -137,7 +135,7 @@ export async function POST(req: NextRequest) {
       workflowId,
       decision,
       status: storeEntry.state.status,
-      message: getDecisionMessage(decision, storeEntry.state.status === 'completed'),
+      message: getDecisionMessage(decision, storeEntry.state.status === WorkflowStatus.COMPLETED),
       reviewedCases: storeEntry.state.reviewedCases,
       retryCount: storeEntry.state.retryCount,
     });

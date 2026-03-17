@@ -15,7 +15,7 @@ import { workflowStore } from '../../start/route';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 认证检查
@@ -27,7 +27,7 @@ export async function GET(
       );
     }
 
-    const workflowId = params.id;
+    const { id: workflowId } = await params;
 
     if (!workflowId) {
       return NextResponse.json(

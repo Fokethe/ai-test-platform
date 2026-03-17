@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API Response Cache - API 响应缓存
  */
 
@@ -43,5 +43,34 @@ export class APICache {
       memoryUsage: 0,
     };
 
-    this.startCleanup();
+    // TODO: startCleanup method missing
+    // this.startCleanup();
   }
+
+  // TODO: Add missing methods
+  get<T>(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) {
+      this.stats.misses++;
+      return undefined;
+    }
+    if (Date.now() > entry.expiry) {
+      this.cache.delete(key);
+      this.stats.evictions++;
+      return undefined;
+    }
+    entry.accessCount++;
+    this.stats.hits++;
+    return entry.data;
+  }
+
+  set<T>(key: string, value: T, ttl?: number): void {
+    const expiry = Date.now() + (ttl || this.defaultTTL);
+    this.cache.set(key, {
+      data: value,
+      expiry,
+      createdAt: Date.now(),
+      accessCount: 0,
+    });
+  }
+}

@@ -6,8 +6,21 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { exportTestCasesToExcel } from '@/lib/ai/export/excel-export'
-import { TestCase } from '@/lib/ai/agents/testcase-generator'
 import { successResponse, errorResponse } from '@/lib/api-response'
+
+// 本地定义 TestCase 类型
+interface TestCase {
+  id: string
+  title: string
+  description?: string
+  steps?: Array<{
+    order: number
+    action: string
+    expected?: string
+  }>
+  priority?: string
+  tags?: string[]
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 生成 Excel 文件
-    const result = await exportTestCasesToExcel(testCases, moduleName)
+    const result = await exportTestCasesToExcel(testCases as any, moduleName)
 
     // 返回文件信息（前端可以使用这些信息触发下载）
     return successResponse({

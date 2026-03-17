@@ -22,7 +22,6 @@ export { CrossEncoderReranker } from './reranking/cross-encoder';
 
 // 文档处理
 export { DocumentProcessor } from './document-processor';
-export { SemanticChunker } from './document-parser/chunk-strategies';
 
 // 查询处理
 export { QueryRewriter } from './query/rewriter';
@@ -34,9 +33,6 @@ export { SelfRAG } from './generation/self-rag';
 
 // 缓存
 export { SemanticCache, getSemanticCache } from './cache/semantic-cache';
-
-// 评估
-export { RAGEvaluator } from './evaluation/evaluator';
 
 // 主RAG服务
 export { RAGService } from './rag-service';

@@ -68,3 +68,33 @@ export function DefaultErrorFallback({
     </div>
   );
 }
+
+// HOC 包装器
+export function withErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  fallback?: ReactNode
+) {
+  return function WithErrorBoundary(props: P) {
+    return (
+      <ErrorBoundary fallback={fallback}>
+        <Component {...props} />
+      </ErrorBoundary>
+    );
+  };
+}
+
+// Hook 用于处理错误
+export function useErrorHandler() {
+  return (error: Error) => {
+    console.error('useErrorHandler caught:', error);
+    // 可以在这里添加错误上报逻辑
+  };
+}
+
+// 类型导出
+export type ErrorBoundaryProps = Props;
+export type ErrorBoundaryState = State;
+export type FallbackProps = {
+  error: Error;
+  reset: () => void;
+};

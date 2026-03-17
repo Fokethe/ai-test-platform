@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         email,
         name: name || email.split('@')[0],
         role,
-        status: 'PENDING',
+        status: 'INACTIVE',
         // 生成随机密码，用户首次登录时需要重置
         password: generateTempPassword(),
       },

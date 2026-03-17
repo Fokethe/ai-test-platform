@@ -101,17 +101,25 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
 
+    // 手动查询项目信息
+    const projectIds = [...new Set(items.map(item => item.projectId).filter((id): id is string => !!id))]
+    const projects = await prisma.project.findMany({
+      where: { id: { in: projectIds } },
+      select: { id: true, name: true },
+    })
+    const projectMap = new Map(projects.map(p => [p.id, p]))
+
+    // 合并项目信息
+    const itemsWithProject = items.map(item => ({
+      ...item,
+      project: item.projectId ? projectMap.get(item.projectId) || null : null,
+    }))
+
     return NextResponse.json({
-      data: items,
+      data: itemsWithProject,
       pagination: {
         page,
         pageSize,
@@ -159,7 +167,7 @@ export async function POST(request: NextRequest) {
         title: data.title,
         content: data.content,
         category: data.category,
-        tags: data.tags || [],
+        tags: JSON.stringify(data.tags || []),
         projectId: data.projectId,
         authorId: session.user.id,
       },
@@ -171,16 +179,16 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
 
-    return NextResponse.json({ data: knowledge }, { status: 201 })
+    // 手动查询项目信息
+    const project = await prisma.project.findUnique({
+      where: { id: data.projectId },
+      select: { id: true, name: true },
+    })
+
+    return NextResponse.json({ data: { ...knowledge, project } }, { status: 201 })
   } catch (error) {
     console.error('创建知识库条目失败', error)
 

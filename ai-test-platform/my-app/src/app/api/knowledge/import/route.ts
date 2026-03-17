@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             data: {
               content: item.content,
               category: item.category,
-              tags: item.tags || [],
+              tags: JSON.stringify(item.tags || []),
             },
           })
         } else {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
               title: item.title,
               content: item.content,
               category: item.category,
-              tags: item.tags || [],
+              tags: JSON.stringify(item.tags || []),
               projectId: data.projectId,
               authorId: session.user.id,
             },

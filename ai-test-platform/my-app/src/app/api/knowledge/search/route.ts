@@ -96,9 +96,8 @@ export async function POST(request: NextRequest) {
           cacheHit: result.context.cacheHit,
         },
         selfRAG: result.selfRAGResult ? {
-          evaluation: result.selfRAGResult.evaluation,
-          factChecks: result.selfRAGResult.factChecks,
-          retrievalRounds: result.selfRAGResult.retrievalRounds,
+          reflections: result.selfRAGResult.reflections,
+          citations: result.selfRAGResult.citations,
         } : undefined,
       },
     });

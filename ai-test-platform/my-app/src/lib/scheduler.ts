@@ -220,6 +220,7 @@ class SchedulerEngineClass {
         name: `${task.name} - 定时执行`,
         status: 'RUNNING',
         totalCount: testCaseIds.length,
+        createdBy: 'system', // 定时任务使用系统用户
       },
     });
 
@@ -243,7 +244,7 @@ class SchedulerEngineClass {
         await prisma.testRun.update({
           where: { id: testRun.id },
           data: {
-            status: failed === 0 ? 'COMPLETED' : 'COMPLETED_WITH_FAILURES',
+            status: failed === 0 ? 'PASSED' : 'FAILED',
             passedCount: passed,
             failedCount: failed,
             completedAt: new Date(),

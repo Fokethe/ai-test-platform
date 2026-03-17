@@ -47,26 +47,37 @@ export async function GET(
             email: true,
           },
         },
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
+
+    // 手动查询项目信息
+    let project = null
+    if (knowledge?.projectId) {
+      project = await prisma.project.findUnique({
+        where: { id: knowledge.projectId },
+        select: { id: true, name: true },
+      })
+    }
 
     if (!knowledge) {
       return NextResponse.json({ error: '知识库条目不存在' }, { status: 404 })
     }
 
-    // 检查用户是否有权限访问该项目
-    const hasAccess = await checkProjectAccess(session.user.id, knowledge.projectId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+    // 检查用户是否有权限访问该项目（如果有关联项目）
+    if (knowledge.projectId) {
+      const hasAccess = await checkProjectAccess(session.user.id, knowledge.projectId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+      }
     }
 
-    return NextResponse.json({ data: knowledge })
+    // 合并项目信息到返回数据
+    const result = {
+      ...knowledge,
+      project,
+    }
+
+    return NextResponse.json({ data: result })
   } catch (error) {
     console.error('获取知识库详情失败:', error)
     return NextResponse.json({ error: '获取知识库详情失败' }, { status: 500 })
@@ -98,10 +109,12 @@ export async function PUT(
       return NextResponse.json({ error: '知识库条目不存在' }, { status: 404 })
     }
 
-    // 检查用户是否有权限访问该项目
-    const hasAccess = await checkProjectAccess(session.user.id, existing.projectId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+    // 检查用户是否有权限访问该项目（如果有关联项目）
+    if (existing.projectId) {
+      const hasAccess = await checkProjectAccess(session.user.id, existing.projectId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+      }
     }
 
     const body = await request.json()
@@ -114,7 +127,7 @@ export async function PUT(
         ...(data.title && { title: data.title }),
         ...(data.content && { content: data.content }),
         ...(data.category !== undefined && { category: data.category }),
-        ...(data.tags && { tags: data.tags }),
+        ...(data.tags && { tags: JSON.stringify(data.tags) }),
       },
       include: {
         author: {
@@ -124,16 +137,25 @@ export async function PUT(
             email: true,
           },
         },
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
 
-    return NextResponse.json({ data: knowledge })
+    // 手动查询项目信息
+    let project = null
+    if (knowledge?.projectId) {
+      project = await prisma.project.findUnique({
+        where: { id: knowledge.projectId },
+        select: { id: true, name: true },
+      })
+    }
+
+    // 合并项目信息到返回数据
+    const result = {
+      ...knowledge,
+      project,
+    }
+
+    return NextResponse.json({ data: result })
   } catch (error) {
     console.error('更新知识库条目失败:', error)
 
@@ -173,10 +195,12 @@ export async function DELETE(
       return NextResponse.json({ error: '知识库条目不存在' }, { status: 404 })
     }
 
-    // 检查用户是否有权限访问该项目
-    const hasAccess = await checkProjectAccess(session.user.id, existing.projectId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+    // 检查用户是否有权限访问该项目（如果有关联项目）
+    if (existing.projectId) {
+      const hasAccess = await checkProjectAccess(session.user.id, existing.projectId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: '无权限访问该项目' }, { status: 403 })
+      }
     }
 
     // 删除知识库条目

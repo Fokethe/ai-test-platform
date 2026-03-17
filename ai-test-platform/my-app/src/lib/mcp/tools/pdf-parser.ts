@@ -1,4 +1,4 @@
-﻿
+
 /**
  * PDF 文档解析工具
  * 基于 pdf-parse 库实现
@@ -82,7 +82,8 @@ export class PDFParserTool extends AbstractFileTool {
 
     try {
       // 动态导入 pdf-parse（避免在浏览器环境报错）
-      const pdfParse = (await import('pdf-parse')).default;
+      const pdfParseModule = await import('pdf-parse');
+      const pdfParse = (pdfParseModule as any).default || pdfParseModule;
       const fs = await import('fs/promises');
       
       // 读取PDF文件

@@ -22,6 +22,7 @@ import {
   FileText,
   X,
   ArrowUpDown,
+  ArrowRight,
   Trash2,
   FolderInput,
   CheckSquare,

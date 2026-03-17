@@ -23,8 +23,8 @@ export const TaskRunner = {
 
     for (const testCaseId of testCaseIds) {
       try {
-        // 获取测试用例详情
-        const testCase = await prisma.testCase.findUnique({
+        // 获取测试用例详情 (FIXME: 使用新 Test 模型)
+        const testCase = await (prisma as any).testCase.findUnique({
           where: { id: testCaseId },
         });
 
@@ -40,8 +40,8 @@ export const TaskRunner = {
         // 使用 Playwright 执行实际测试
         const testResult = await this.executePlaywrightTest(testCase);
 
-        // 更新执行记录
-        await prisma.testExecution.updateMany({
+        // 更新执行记录 (FIXME: 使用新 Execution 模型)
+        await (prisma as any).testExecution.updateMany({
           where: {
             runId,
             testCaseId,

@@ -4,7 +4,7 @@
  */
 
 import { StateGraph, END, START, Annotation } from '@langchain/langgraph';
-import { AgentState, WorkflowStatus, WorkflowConfig } from './types';
+import type { AgentState, WorkflowStatus, WorkflowConfig } from './types';
 import {
   documentParserNode,
   documentParserRouter,
@@ -37,7 +37,7 @@ const AgentStateAnnotation = Annotation.Root({
   status: Annotation<WorkflowStatus>,
   error: Annotation<string | undefined>,
   retryCount: Annotation<number>,
-  reviewDecision: Annotation<string | undefined>,
+  reviewDecision: Annotation<'approve' | 'regenerate' | 'edit' | undefined>,
   reviewComments: Annotation<string | undefined>,
 });
 
@@ -60,19 +60,19 @@ export function createWorkflow(config: Partial<WorkflowConfig> = {}) {
   // 添加边
   workflow
     // 开始 -> 文档解析
-    .addEdge(START, 'document_parser')
+    .addEdge(START, 'document_parser' as any)
     
     // 文档解析 -> 需求分析
-    .addEdge('document_parser', 'requirement_analyzer')
+    .addEdge('document_parser' as any, 'requirement_analyzer' as any)
     
     // 需求分析 -> RAG检索
-    .addEdge('requirement_analyzer', 'rag_retriever')
+    .addEdge('requirement_analyzer' as any, 'rag_retriever' as any)
     
     // RAG检索 -> 测试生成
-    .addEdge('rag_retriever', 'test_generator')
+    .addEdge('rag_retriever' as any, 'test_generator' as any)
     
     // 测试生成 -> 结束
-    .addEdge('test_generator', END);
+    .addEdge('test_generator' as any, END);
 
   // 编译工作流
   return workflow.compile();
@@ -95,11 +95,11 @@ export function createAdvancedWorkflow(config: Partial<WorkflowConfig> = {}) {
     .addNode('test_generator', testGeneratorNode);
 
   // 开始 -> 文档解析
-  workflow.addEdge(START, 'document_parser');
+  workflow.addEdge(START, 'document_parser' as any);
 
   // 文档解析 -> 条件路由
   workflow.addConditionalEdges(
-    'document_parser',
+    'document_parser' as any,
     (state) => {
       const route = documentParserRouter(state);
       if (route === 'error') return END;
@@ -107,24 +107,24 @@ export function createAdvancedWorkflow(config: Partial<WorkflowConfig> = {}) {
       return 'requirement_analyzer';
     },
     {
-      document_parser: 'document_parser',
-      requirement_analyzer: 'requirement_analyzer',
+      document_parser: 'document_parser' as any,
+      requirement_analyzer: 'requirement_analyzer' as any,
       [END]: END,
     }
   );
 
   // 需求分析 -> RAG检索
-  workflow.addEdge('requirement_analyzer', 'rag_retriever');
+  workflow.addEdge('requirement_analyzer' as any, 'rag_retriever' as any);
 
   // RAG检索 -> 测试生成
-  workflow.addEdge('rag_retriever', 'test_generator');
+  workflow.addEdge('rag_retriever' as any, 'test_generator' as any);
 
   // 测试生成 -> 结束
-  workflow.addEdge('test_generator', END);
+  workflow.addEdge('test_generator' as any, END);
 
   return workflow.compile();
 }
 
 // 导出类型
-export { AgentState, WorkflowStatus };
+export type { AgentState, WorkflowStatus, WorkflowConfig };
 export * from './types';

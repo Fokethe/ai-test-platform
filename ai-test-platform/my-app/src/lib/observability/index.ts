@@ -1,4 +1,5 @@
-﻿ * 可观测性模块统一导出
+/**
+ * 可观测性模块统一导出
  * Phase 8: Langfuse Observability
  */
 

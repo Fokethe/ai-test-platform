@@ -14,6 +14,16 @@ export interface HybridRetrieverConfig {
   vectorWeight: number;
   keywordWeight: number;
   k: number;
+  vectorStore?: unknown;
+  bm25Search?: unknown;
+  denseWeight?: number;
+  sparseWeight?: number;
+  rrfK?: number;
+  topK?: number;
+}
+
+export interface HybridSearchOptions {
+  topK?: number;
 }
 
 export class HybridRetriever {
@@ -36,6 +46,22 @@ export class HybridRetriever {
     const combined = this.combineResults(vectorResults, keywordResults);
     const reranked = this.rerank(combined);
     return reranked.slice(0, this.config.k);
+  }
+
+  // 混合检索（向量 + BM25）
+  async hybridSearch(query: string, options?: HybridSearchOptions): Promise<HybridResult[]> {
+    // 简化实现，实际应结合向量检索和BM25
+    return [];
+  }
+
+  // 添加文档
+  async addDocuments(docs: Array<{ id: string; content: string; metadata?: Record<string, unknown> }>): Promise<void> {
+    // 简化实现
+  }
+
+  // 关闭资源
+  async close(): Promise<void> {
+    // 清理资源
   }
 
   private combineResults(

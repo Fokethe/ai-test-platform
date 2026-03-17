@@ -43,8 +43,8 @@ export async function runTestCase(
   const steps: StepResult[] = [];
 
   try {
-    // 获取测试用例
-    const testCase = await prisma.testCase.findUnique({
+    // 获取测试用例 (FIXME: 使用新 Test 模型)
+    const testCase = await (prisma as any).testCase.findUnique({
       where: { id: testCaseId },
       include: {
         page: {

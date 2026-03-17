@@ -35,10 +35,9 @@ export async function POST(request: NextRequest) {
       return errors.badRequest('无效的 JSON 请求体');
     }
 
-    const { testCases, projectId, suiteId }: { 
+    const { testCases, projectId }: { 
       testCases: TestCaseInput[]; 
       projectId?: string;
-      suiteId?: string;
     } = body;
 
     if (!testCases || !Array.isArray(testCases) || testCases.length === 0) {
@@ -52,34 +51,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 批量创建测试用例
+    // 批量创建测试用例 - 使用新的 Test 模型
     const createdCases = await prisma.$transaction(
-      testCases.map((tc) =>
-        prisma.testCase.create({
-          data: {
-            name: tc.name,
-            description: tc.description || '',
-            type: 'CASE',
-            priority: tc.priority || 'MEDIUM',
-            status: 'ACTIVE',
-            tags: tc.tags ? JSON.stringify(tc.tags) : null,
-            projectId: projectId || null,
-            suiteId: suiteId || null,
-            steps: tc.steps
-              ? {
-                  create: tc.steps.map((step) => ({
-                    order: step.order,
-                    action: step.action,
-                    expected: step.expected || '',
-                  })),
-                }
-              : undefined,
-          },
-          include: {
-            steps: true,
-          },
-        })
-      )
+      testCases.map((tc) => {
+        const data: any = {
+          name: tc.name,
+          description: tc.description || '',
+          type: 'CASE',
+          priority: tc.priority || 'MEDIUM',
+          status: 'ACTIVE',
+          tags: tc.tags ? JSON.stringify(tc.tags) : null,
+          createdBy: session.user.id,
+          content: tc.steps ? JSON.stringify({ steps: tc.steps }) : null,
+        };
+        if (projectId) {
+          data.projectId = projectId;
+        }
+        return prisma.test.create({ data });
+      })
     );
 
     return successResponse(

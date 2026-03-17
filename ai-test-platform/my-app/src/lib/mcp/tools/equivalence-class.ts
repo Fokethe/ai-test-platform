@@ -1,4 +1,4 @@
-﻿
+
 /**
  * 等价类划分工具
  * 自动生成有效和无效等价类
@@ -23,12 +23,12 @@ export interface EquivalenceClassOutput {
   valid_classes: Array<{
     id: string;
     description: string;
-    examples: (string | number)[];
+    examples: unknown[];
   }>;
   invalid_classes: Array<{
     id: string;
     description: string;
-    examples: (string | number)[];
+    examples: unknown[];
   }>;
   test_cases: Array<{
     input: unknown;

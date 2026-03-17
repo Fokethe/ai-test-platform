@@ -23,29 +23,21 @@ export async function POST(request: NextRequest) {
 
     if (testIds && Array.isArray(testIds)) {
       // 导出指定测试用例
+      // FIXME: Test 模型没有 page 关系
       tests = await prisma.test.findMany({
         where: {
           id: { in: testIds },
           type: 'CASE',
         },
-        include: {
-          page: {
-            select: { name: true, path: true },
-          },
-        },
       });
     } else if (suiteId) {
       // 导出测试套件中的用例
+      // FIXME: Test 模型没有 page 关系和 children 关系
       const suite = await prisma.test.findUnique({
         where: { id: suiteId },
         include: {
           children: {
             where: { type: 'CASE' },
-            include: {
-              page: {
-                select: { name: true, path: true },
-              },
-            },
           },
         },
       });

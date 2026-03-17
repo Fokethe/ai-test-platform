@@ -19,7 +19,7 @@ import { z } from 'zod';
 const documentSchema = z.object({
   id: z.string().min(1, '文档ID不能为空'),
   content: z.string().min(1, '文档内容不能为空'),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // 请求验证schema
@@ -69,20 +69,20 @@ export async function POST(request: NextRequest) {
     for (const doc of validatedData.documents) {
       // 如果内容较长，进行分块
       if (doc.content.length > 1000) {
-        const chunks = await documentProcessor.processDocument(doc.content, {
+        const result = await documentProcessor.process(doc.content, {
           chunkSize: validatedData.chunkOptions?.chunkSize ?? 500,
           chunkOverlap: validatedData.chunkOptions?.chunkOverlap ?? 50,
         });
 
-        chunks.forEach((chunk, index) => {
+        result.chunks.forEach((chunk: string, index: number) => {
           processedDocs.push({
             id: `${doc.id}_chunk_${index}`,
-            content: chunk.content,
+            content: chunk,
             metadata: {
               ...doc.metadata,
               originalDocId: doc.id,
               chunkIndex: index,
-              totalChunks: chunks.length,
+              totalChunks: result.chunks.length,
             },
           });
         });

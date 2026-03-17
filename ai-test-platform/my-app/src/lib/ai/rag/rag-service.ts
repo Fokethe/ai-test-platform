@@ -100,7 +100,7 @@ export class RAGService {
       cacheTTL: 3600,
       selfRAGConfig: {},
       ...config,
-    };
+    } as Required<RAGConfig>;
 
     this.collectionManager = getCollectionManager();
     this.queryRewriter = new QueryRewriter();
@@ -112,10 +112,7 @@ export class RAGService {
     }
 
     if (this.config.enableCache) {
-      this.semanticCache = getSemanticCache('rag-cache', {
-        ttl: this.config.cacheTTL,
-        similarityThreshold: 0.95,
-      });
+      this.semanticCache = getSemanticCache();
     }
   }
 
@@ -164,7 +161,7 @@ export class RAGService {
     // 1. 查询重写
     let processedQuery = query;
     if (this.config.enableQueryRewrite) {
-      const rewritten = this.queryRewriter.rewrite(query);
+      const rewritten = await this.queryRewriter.rewrite(query);
       processedQuery = rewritten.expanded || query;
     }
 
@@ -190,19 +187,21 @@ export class RAGService {
     let selfRAGResult: SelfRAGResult | undefined;
 
     if (this.config.enableSelfRAG && this.selfRAG) {
-      selfRAGResult = await this.selfRAG.generate(
-        processedQuery,
-        async (q) => this.retrieve(q),
-        async (q, ctx) => this.generateAnswer(q, ctx)
-      );
-      answer = selfRAGResult.text;
+      // SelfRAG 需要上下文数组作为第二个参数
+      const contextForSelfRAG = finalResults.map(r => ({
+        id: r.id,
+        content: r.content,
+        score: r.score,
+      }));
+      const selfRAGOutput = await this.selfRAG.generate(processedQuery, contextForSelfRAG);
+      answer = selfRAGOutput.answer;
     } else {
       answer = await this.generateAnswer(processedQuery, finalResults);
     }
 
     // 6. 生成引用
-    const citations = this.citationGenerator.generateCitations(finalResults);
-    answer = this.citationGenerator.addCitationsToText(answer, citations);
+    const citationContext = this.citationGenerator.generateCitations(finalResults);
+    answer = this.citationGenerator.addCitationsToText(answer, citationContext.citations);
 
     const retrievalTime = Date.now() - startTime;
 
@@ -224,7 +223,7 @@ export class RAGService {
         retrievalTime,
       },
       selfRAGResult,
-      citations: citations.map(c => c.text),
+      citations: citationContext.citations.map(c => c.content),
     };
 
     // 7. 缓存结果
@@ -307,13 +306,14 @@ ${contextText}
     try {
       // 生成查询的embedding进行缓存匹配
       const queryEmbedding = await this.generateQueryEmbedding(query);
-      const cached = await this.semanticCache.get(queryEmbedding);
+      const cached = await this.semanticCache.get(query, queryEmbedding);
 
       if (cached) {
+        const cachedResult = cached as RAGQueryResult;
         return {
-          ...cached,
+          ...cachedResult,
           context: {
-            ...cached.context,
+            ...cachedResult.context,
             cacheHit: true,
           },
         };
@@ -333,7 +333,7 @@ ${contextText}
 
     try {
       const queryEmbedding = await this.generateQueryEmbedding(query);
-      await this.semanticCache.set(queryEmbedding, result);
+      await this.semanticCache.set(query, queryEmbedding, result);
     } catch (error) {
       console.error('缓存存储失败:', error);
     }

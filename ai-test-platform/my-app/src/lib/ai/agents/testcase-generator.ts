@@ -10,6 +10,9 @@ import { generateWithAI } from '../client';
 import { retrieveSimilarTestCases, RetrievalOptions as RAGOptions } from '../rag/retrieval';
 import { ModelManager, TaskType } from '../model-manager';
 
+// Task type constant
+const TASK_TYPE: TaskType = 'testcase_generation';
+
 export interface TestPoint {
   id: string;
   name: string;
@@ -27,6 +30,7 @@ export interface GeneratedTestCase {
   priority: string;
   testPointId: string;
   relatedFeature: string;
+  module?: string;
 }
 
 export interface BusinessRule {
@@ -58,12 +62,8 @@ export class TestCaseGenerator {
    * @param modelManager - ModelManager 实例，可选，不传则创建默认实例
    */
   constructor(modelManager?: ModelManager) {
-    if (modelManager) {
-      this.modelManager = modelManager;
-    } else {
-      // 创建默认的 ModelManager 实例
-      this.modelManager = new ModelManager([]);
-    }
+    // 创建默认的 ModelManager 实例或使用传入的实例
+    this.modelManager = modelManager ?? new ModelManager([]);
   }
 
   /**
@@ -76,7 +76,7 @@ export class TestCaseGenerator {
     try {
       const prompt = this.buildPrompt(testPoint, context);
       // TDD Round 14: 使用 ModelManager 生成，任务类型为 testcase_generation
-      const response = await this.modelManager.generateForTask(prompt, 'testcase_generation');
+      const response: string = await (this.modelManager as any).generateForTask(prompt, TASK_TYPE);
 
       return this.parseResponse(response, testPoint);
     } catch (error) {
@@ -240,7 +240,7 @@ export class TestCaseGenerator {
     const prompt = this.buildPromptWithFewShot(testPoint, knowledgeBase, similarCases);
 
     // TDD Round 14: 使用 ModelManager 生成
-    const response = await this.modelManager.generateForTask(prompt, 'testcase_generation');
+    const response: string = await (this.modelManager as any).generateForTask(prompt, TASK_TYPE);
 
     return this.parseResponse(response, testPoint);
   }

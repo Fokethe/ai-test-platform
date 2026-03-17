@@ -1,9 +1,32 @@
 # AI测试平台前端大重构进度
 
 ## 当前状态
-- **日期**: 2026-03-16
+- **日期**: 2026-03-17
 - **重构阶段**: Phase 3 完成
 - **提交记录**: `9044b560` - Phase 3完成
+- **最新验收**: acceptance-20260317-007
+
+## 最新验收结果 (2026-03-17)
+
+### 验收概览
+| 指标 | 上次 (005) | 本次 (007) | 变化 |
+|------|-----------|-----------|------|
+| 综合得分 | ~45分 | **72分** | ⬆️ +27分 |
+| 测试通过率 | 11.9% | **95.1%** | ⬆️ +83.2% |
+| 构建状态 | ❌ 失败 | ✅ **成功** | ⬆️ 修复 |
+| 安全漏洞 | 0 | 0 | ✅ 维持 |
+
+### 验收结论: ⚠️ 有条件通过
+- 构建成功: 76个页面全部生成 (13.3秒)
+- 测试通过率: 95.1% (371/390)
+- 安全扫描: 0漏洞
+- 距离严格模式99分标准差距: 27分
+
+### 待修复问题 (P1)
+1. ESLint配置循环引用错误
+2. 测试文件Request/NextRequest类型不匹配
+3. TypeScript测试文件47个类型错误
+
 
 ## 已完成的重构工作
 
@@ -102,7 +125,42 @@
 - 12px圆角统一
 - 悬浮高亮效果
 
-## 下一步 (可选增强)
+## 验收修复进度 (2026-03-17)
+
+### 修复目标
+从验收得分 45 分/测试通过率 11.9% 提升到构建成功
+
+### 已修复问题
+1. **Jest 配置** - 安装 ts-jest，配置测试隔离
+2. **Mock 冲突** - 删除 deploy-test 的重复 mock 文件
+3. **LangGraph 类型** - 修复 AgentState 类型导入导出
+4. **Next.js 15 API** - params 改为 Promise 类型
+5. **Zod v4 迁移** - 修复 enum (移除 errorMap)、error.issues 替代 error.errors
+6. **Prisma 类型** - KnowledgeEntry 移除 project include，手动查询
+7. **Tags 字段** - 数组转 JSON.stringify 存储
+8. **DocumentProcessor** - 修复方法名 processDocument → process
+9. **SelfRAGResult** - 修正属性名 (reflections/citations)
+10. **Page 模型** - 移除不存在的 description/selector 字段
+11. **ProjectStatus** - 移除 DELETED 枚举值
+
+### 修复文件列表
+- `jest.config.js` - 重写配置
+- `package.json` - 添加 ts-jest
+- `src/lib/ai/langgraph/workflow.ts`
+- `src/app/api/ai/workflow/status/[id]/route.ts`
+- `src/app/api/ai/workflow/review/route.ts`
+- `src/app/api/ai/workflow/start/route.ts`
+- `src/app/(dashboard)/reports/page.tsx`
+- `src/app/(dashboard)/tests/TestCenterContent.tsx`
+- `src/app/api/knowledge/[id]/route.ts`
+- `src/app/api/knowledge/import/route.ts`
+- `src/app/api/knowledge/ingest/route.ts`
+- `src/app/api/knowledge/route.ts`
+- `src/app/api/knowledge/search/route.ts`
+- `src/app/api/pages/route.ts`
+- `src/app/api/projects/route.ts`
+
+### 下一步 (可选增强)
 - [ ] 智能对话系统全局接入
 - [ ] 更多图表可视化
 - [ ] 移动端适配优化

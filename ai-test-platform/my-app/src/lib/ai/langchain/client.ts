@@ -92,7 +92,7 @@ export class LangChainClient {
     const execute = async (): Promise<GenerateResponse> => {
       const response = await this.model.invoke(messages, {
         temperature: options?.temperature ?? this.config.temperature,
-      });
+      } as any);
 
       const content = response.content.toString();
       const usage = this.extractUsage(response);
@@ -121,7 +121,7 @@ export class LangChainClient {
     try {
       const stream = await this.model.stream(messages, {
         temperature: options?.temperature ?? this.config.temperature,
-      });
+      } as any);
 
       let fullContent = '';
       let promptTokens = 0;
@@ -179,7 +179,7 @@ export class LangChainClient {
     const execute = async (): Promise<GenerateResponse> => {
       const response = await this.model.invoke(langChainMessages, {
         temperature: options?.temperature ?? this.config.temperature,
-      });
+      } as any);
 
       const content = response.content.toString();
       const usage = this.extractUsage(response);

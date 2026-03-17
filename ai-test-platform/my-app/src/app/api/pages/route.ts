@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { successResponse, errorResponse, errors } from '@/lib/api-response';
+import { successResponse, createdResponse, errorResponse, errors } from '@/lib/api-response';
 
 // GET /api/pages - 获取页面列表
 export async function GET(request: NextRequest) {
@@ -66,12 +66,10 @@ export async function POST(request: NextRequest) {
         name,
         path,
         systemId,
-        description,
-        selector,
       },
     });
 
-    return successResponse(page, 201);
+    return createdResponse(page);
   } catch (error) {
     console.error('Failed to create page:', error);
     return errorResponse('创建页面失败');

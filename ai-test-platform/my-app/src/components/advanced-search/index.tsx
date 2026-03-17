@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAdvancedSearch } from './hooks/useAdvancedSearch';
-import { AdvancedSearchProps } from './types';
+import { AdvancedSearchProps, TestStatus, TestPriority, TestType } from './types';
 
 export function AdvancedSearch({
   onFiltersChange,
@@ -208,7 +208,7 @@ export function AdvancedSearch({
                 <Select
                   value={filters.status || 'ALL'}
                   onValueChange={(value) =>
-                    updateFilter('status', value === 'ALL' ? '' : value)
+                    updateFilter('status', value === 'ALL' ? '' : value as TestStatus)
                   }
                 >
                   <SelectTrigger>
@@ -230,7 +230,7 @@ export function AdvancedSearch({
                 <Select
                   value={filters.priority || 'ALL'}
                   onValueChange={(value) =>
-                    updateFilter('priority', value === 'ALL' ? '' : value)
+                    updateFilter('priority', value === 'ALL' ? '' : value as TestPriority)
                   }
                 >
                   <SelectTrigger>
@@ -252,7 +252,7 @@ export function AdvancedSearch({
                 <Select
                   value={filters.type || 'ALL'}
                   onValueChange={(value) =>
-                    updateFilter('type', value === 'ALL' ? '' : value)
+                    updateFilter('type', value === 'ALL' ? '' : value as TestType)
                   }
                 >
                   <SelectTrigger>

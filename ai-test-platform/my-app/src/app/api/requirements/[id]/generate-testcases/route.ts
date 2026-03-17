@@ -60,7 +60,7 @@ async function loadKnowledgeBase(projectId: string): Promise<any[]> {
 
     // 解析 content JSON 字段提取用例详情
     return historicalCases.map(tc => {
-      let content = {};
+      let content: Record<string, any> = {};
       try {
         if (tc.content) {
           content = JSON.parse(tc.content);

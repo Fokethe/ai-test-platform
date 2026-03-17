@@ -4,7 +4,7 @@
  * TDD Round 10 实现
  */
 
-import { TestCase } from '../agents/testcase-generator'
+import { GeneratedTestCase as TestCase } from '../agents/testcase-generator'
 
 export interface TestPoint {
   id: string
@@ -88,8 +88,8 @@ function calculateSimilarity(testPoint: TestPoint, testCase: TestCase): number {
 
   // 1. 模块匹配 (50%) - 提高权重确保同模块用例能通过阈值
   const testPointModule = extractModule(testPoint.relatedFeature)
-  const caseModule = testCase.module.toLowerCase()
-  if (caseModule.includes(testPointModule) || testPointModule.includes(caseModule)) {
+  const caseModule = testCase.module?.toLowerCase() || ''
+  if (caseModule && (caseModule.includes(testPointModule) || testPointModule.includes(caseModule))) {
     score += weights.module
   }
 

@@ -5,8 +5,11 @@
  * 功能：智能选择策略、多样性保证、按模块分类
  */
 
-import { TestCase } from '../agents/testcase-generator'
 import { TestPoint, RetrievalResult, retrieveSimilarTestCases } from './retrieval'
+import { GeneratedTestCase } from '../agents/testcase-generator'
+
+// 使用 GeneratedTestCase 作为 TestCase 类型（module 可选）
+type TestCase = GeneratedTestCase & { module?: string }
 
 export type SelectionStrategy = 'similarity' | 'diversity' | 'coverage' | 'combined'
 
@@ -204,7 +207,7 @@ export class FewShotSelector {
     // 按模块分组
     const byModule = new Map<string, RetrievalResult[]>()
     candidates.forEach((c) => {
-      const module = c.testCase.module
+      const module = c.testCase.module || '未分类'
       if (!byModule.has(module)) {
         byModule.set(module, [])
       }
@@ -327,7 +330,7 @@ export class FewShotSelector {
     // 按模块分组
     const byModule = new Map<string, TestCase[]>()
     this.knowledgeBase.forEach((c) => {
-      const module = c.module
+      const module = c.module || '未分类'
       if (!byModule.has(module)) {
         byModule.set(module, [])
       }

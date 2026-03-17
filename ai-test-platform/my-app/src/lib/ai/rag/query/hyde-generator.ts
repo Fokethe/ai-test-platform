@@ -18,6 +18,12 @@ export class HyDEGenerator {
     };
   }
 
+  async generateHypotheticalDocs(query: string): Promise<string[]> {
+    // 生成多个假设文档用于增强检索
+    const result = await this.generate(query);
+    return result.hypotheticalDocument ? [result.hypotheticalDocument] : [];
+  }
+
   private createHypotheticalDoc(query: string): string {
     // 简化的假设文档生成
     const templates = [

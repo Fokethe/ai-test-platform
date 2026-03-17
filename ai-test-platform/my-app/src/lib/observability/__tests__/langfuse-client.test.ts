@@ -89,10 +89,11 @@ describe('LangfuseClient', () => {
 
   describe('createSpan', () => {
     it('should create a span under existing trace', () => {
-      const traceResult = client.createTrace('test-trace');
-      // Get the mock trace id from the mock
-      const traceId = 'mock-trace-id';
+      // First create a trace with a fixed traceId
+      const traceId = 'test-trace-id-123';
+      client.createTrace('test-trace', { traceId });
       
+      // Now create a span using that traceId
       const span = client.createSpan(traceId, {
         name: 'test-span',
         input: { data: 'test' },
@@ -111,7 +112,9 @@ describe('LangfuseClient', () => {
 
   describe('createGeneration', () => {
     it('should create a generation under existing trace', () => {
-      const traceId = 'mock-trace-id';
+      // First create a trace with a fixed traceId
+      const traceId = 'test-trace-id-456';
+      client.createTrace('test-trace', { traceId });
       
       const generation = client.createGeneration(traceId, {
         name: 'test-generation',
@@ -128,7 +131,9 @@ describe('LangfuseClient', () => {
     });
 
     it('should calculate cost when ending generation', async () => {
-      const traceId = 'mock-trace-id';
+      // First create a trace with a fixed traceId
+      const traceId = 'test-trace-id-789';
+      client.createTrace('test-trace', { traceId });
       
       const generation = client.createGeneration(traceId, {
         name: 'test-generation',
@@ -152,7 +157,9 @@ describe('LangfuseClient', () => {
 
   describe('cost tracking', () => {
     it('should track costs across multiple generations', async () => {
-      const traceId = 'mock-trace-id';
+      // First create a trace with a fixed traceId
+      const traceId = 'test-trace-id-cost';
+      client.createTrace('test-trace', { traceId });
 
       // Create multiple generations
       for (let i = 0; i < 3; i++) {
@@ -196,7 +203,9 @@ describe('LangfuseClient', () => {
 
   describe('data sanitization', () => {
     it('should sanitize sensitive fields', async () => {
-      const traceId = 'mock-trace-id';
+      // First create a trace with a fixed traceId
+      const traceId = 'test-trace-id-sanitize';
+      client.createTrace('test-trace', { traceId });
       
       const span = client.createSpan(traceId, {
         name: 'test-span',

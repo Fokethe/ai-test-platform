@@ -48,6 +48,9 @@ export class DocumentParser {
 
     // 检测文档类型
     const type = this.detectDocumentType(filename);
+    if (!type) {
+      throw new Error('不支持的文件类型');
+    }
 
     // 转换为文本（目前仅支持文本格式）
     const rawText = content.toString('utf-8');

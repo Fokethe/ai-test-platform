@@ -146,7 +146,8 @@ export class LangfuseClient implements ILangfuseClient {
 
     return {
       span: generation,
-      end: async (output?: unknown, usage?: GenerationOutput['usage']) => {
+      end: async (output?: unknown, metadata?: Record<string, unknown> | GenerationOutput['usage']) => {
+        const usage = metadata as GenerationOutput['usage'] | undefined;
         const cost = this.calculateCost(config.model, usage);
         
         generation.end({
@@ -179,7 +180,7 @@ export class LangfuseClient implements ILangfuseClient {
     trace.event({
       name: event.type,
       metadata: {
-        ...event.data,
+        ...(event.data as Record<string, unknown> || {}),
         timestamp: event.timestamp,
       },
     });

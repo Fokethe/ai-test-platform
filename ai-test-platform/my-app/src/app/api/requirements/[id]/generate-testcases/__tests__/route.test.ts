@@ -5,6 +5,7 @@
 
 import { POST } from '../route';
 import { prisma } from '@/lib/prisma';
+import { NextRequest } from 'next/server';
 
 // 模拟 AI 客户端
 jest.mock('@/lib/ai/client', () => ({
@@ -14,6 +15,11 @@ jest.mock('@/lib/ai/client', () => ({
 import { generateWithAI } from '@/lib/ai/client';
 
 const mockedGenerateWithAI = generateWithAI as jest.MockedFunction<typeof generateWithAI>;
+
+// 辅助函数：创建 NextRequest
+function createNextRequest(url: string, options: RequestInit = {}): NextRequest {
+  return new Request(url, options) as NextRequest;
+}
 
 describe('POST /api/requirements/[id]/generate-testcases', () => {
   let mockRequirement: any;

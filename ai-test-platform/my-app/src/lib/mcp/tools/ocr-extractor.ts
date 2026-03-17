@@ -1,4 +1,4 @@
-﻿
+
 /**
  * OCR 图片文字识别工具
  * 基于 tesseract.js 实现
@@ -106,8 +106,9 @@ export class OCRExtractorTool extends AbstractFileTool {
       // 提取单词级别的信息
       const words: OCRExtractorOutput['words'] = [];
       
-      if (result.data.words) {
-        result.data.words.forEach(word => {
+      const data = result.data as any;
+      if (data.words) {
+        data.words.forEach((word: any) => {
           if (word.bbox) {
             words.push({
               text: word.text,

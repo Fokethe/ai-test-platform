@@ -21,17 +21,11 @@ export {
 // 虚拟列表
 export {
   VirtualList,
-  type VirtualListProps,
-  type VirtualListItem,
-  type VirtualListRef,
 } from './virtual-list';
 
 // 优化图片
 export {
   OptimizedImage,
-  type OptimizedImageProps,
-  type ImageLoadingStrategy,
-  type ImageFormat,
 } from './optimized-image';
 
 // 延迟加载组件
@@ -41,9 +35,4 @@ export {
   TransitionLoader,
   DeferredData,
   PriorityRenderer,
-  type DeferredComponentProps,
-  type AsyncComponentLoaderProps,
-  type TransitionLoaderProps,
-  type DeferredDataProps,
-  type PriorityRendererProps,
 } from './deferred-component';

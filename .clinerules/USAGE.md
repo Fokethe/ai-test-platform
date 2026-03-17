@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Cline 技能使用指南
-# 版本: 2.5 | 最后更新: 2026-03-16
+# 版本: 2.6 | 最后更新: 2026-03-17
 
 ================================================================================
 ## 🚀 快捷指令总表
@@ -43,7 +43,7 @@
 ### 🎯 项目验收 (quality/)
 | 指令 | 功能 | 所属 Skill | 路径 |
 |------|------|-----------|------|
-| `/acceptance` | 启动44检查点全自动验收 | Project Acceptance | `quality/project-acceptance/` |
+| `/acceptance` | 启动V6.0分批SubAgent验收(56检查点+循环修复) | Project Acceptance | `quality/project-acceptance/` |
 | `/acceptance --quick` | 快速验收（仅阶段1+2） | Project Acceptance | `quality/project-acceptance/` |
 | `/acceptance --dim=1,3,5` | 验收指定维度 | Project Acceptance | `quality/project-acceptance/` |
 | `/acceptance --phase=1` | 仅执行指定阶段 | Project Acceptance | `quality/project-acceptance/` |
@@ -102,7 +102,7 @@
 | 09 | BugHunter V2.0 | `quality/bughunter/` | 12维度深度代码诊断 |
 | 12 | 系统健康检查 | `quality/health-check/` | 整体健康度评估 |
 | 13 | 功能深度审查器 | `quality/deep-inspector/` | 8维度功能完整度检查 |
-| 14 | 第三方验收专家 V5.0 | `quality/project-acceptance/` | 56检查点+运行时验证 |
+| 14 | 第三方验收专家 V6.0 | `quality/project-acceptance/` | 56检查点+分批SubAgent+循环修复+精美报告 |
 
 ### debug/ - 调试诊断 (2个)
 | # | Skill 名称 | 路径 | 说明 |
@@ -164,7 +164,7 @@
 ├── Skill 08: 危险信号检测 - 上下文与消耗监控
 ├── Skill 09: BugHunter V2.0 - 自主代码诊断修复
 ├── Skill 12: 系统健康检查 - 整体健康度评估
-└── Skill 14: 第三方验收专家 V5.0 - 56检查点+运行时验证+严格模式+YOLO/Compact实际执行
+└── Skill 14: 第三方验收专家 V6.0 - 56检查点+分批SubAgent检查+循环修复+精美HTML报告+自动打开
 
 🔧 维护优化阶段 (2个)
 ├── Skill 11: 自动清理 V2.5 - 项目文件自动整理
@@ -220,7 +220,7 @@
 ### 场景5: 项目验收
 ```
 你说: "验收项目" → Skill 14 (quality/project-acceptance/)
-系统执行: 44检查点全自动验收（11维度 × 四阶段）+ YOLO模式 + SubAgent TDD自动修复循环
+系统执行: V6.0分批验收（56检查点）+ Step1-5并行SubAgent检查 + Step6并行修复 + Step7回归循环 + Step8精美HTML报告自动打开
 ```
 
 ### 场景6: 项目整理
@@ -252,4 +252,4 @@
 | **总计** | **~28个** | **300+项** |
 
 ================================================================================
-*配置版本: 2.5 | 最后更新: 2026-03-16 | 核心 Skill: 28个 (新分类结构)*
+*配置版本: 2.6 | 最后更新: 2026-03-17 | 核心 Skill: 28个 (新分类结构)*

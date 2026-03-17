@@ -28,7 +28,7 @@ export class ChromaService {
   }
 
   async createCollection(name: string, metadata?: object): Promise<Collection> {
-    const collection = await this.client.createCollection({ name, metadata: metadata as Record<string, unknown> });
+    const collection = await this.client.createCollection({ name, metadata: metadata as any });
     this.collectionCache.set(name, collection);
     return collection;
   }
@@ -56,7 +56,7 @@ export class ChromaService {
       ids: [document.id],
       documents: [document.content],
       embeddings: [document.embedding],
-      metadatas: [document.metadata as Record<string, unknown>],
+      metadatas: [document.metadata as any],
     });
   }
 
@@ -66,7 +66,7 @@ export class ChromaService {
       ids: documents.map(d => d.id),
       documents: documents.map(d => d.content),
       embeddings: documents.map(d => d.embedding),
-      metadatas: documents.map(d => d.metadata as Record<string, unknown>),
+      metadatas: documents.map(d => d.metadata as any),
     });
   }
 
@@ -80,7 +80,7 @@ export class ChromaService {
     const results = await collection.query({
       queryEmbeddings: [queryEmbedding],
       nResults,
-      where: where as Record<string, unknown>,
+      where: where as any,
     });
 
     if (!results.ids || results.ids.length === 0) {

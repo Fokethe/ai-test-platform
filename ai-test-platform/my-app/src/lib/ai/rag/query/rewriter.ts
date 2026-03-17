@@ -6,6 +6,7 @@
 export interface RewriteResult {
   original: string;
   rewritten: string;
+  expanded?: string;  // 扩展查询（取rewritten或expansions的第一个）
   expansions: string[];
 }
 

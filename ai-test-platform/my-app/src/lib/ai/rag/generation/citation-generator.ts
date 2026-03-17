@@ -44,6 +44,14 @@ export class CitationGenerator {
       return acc + ` [${index + 1}]`;
     }, text);
   }
+
+  addCitationsToText(text: string, citations: Citation[]): string {
+    // 简化实现：在文本末尾添加引用列表
+    if (citations.length === 0) return text;
+    
+    const citationList = citations.map(c => c.id).join('');
+    return `${text}\n\n[引用]: ${citationList}`;
+  }
 }
 
 export function createCitationGenerator(): CitationGenerator {

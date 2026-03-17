@@ -1,5 +1,4 @@
-import { lazy, Suspense } from 'react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
 
 /**
  * 组件懒加载封装
@@ -13,16 +12,18 @@ export function createLazyComponent<T extends React.ComponentType<any>>(
     fallback?: React.ReactNode;
     prefetch?: boolean;
   } = {}
-) {
-  const LazyComponent = lazy(factory);
+): React.FC<React.ComponentProps<T>> {
+  const LazyComponent = React.lazy(factory);
   
-  return function LazyWrapper(props: React.ComponentProps<T>) {
-    return (
-      <Suspense fallback={options.fallback || <div>Loading...</div>}>
-        <LazyComponent {...props} />
-      </Suspense>
+  const LazyWrapper: React.FC<React.ComponentProps<T>> = (props) => {
+    return React.createElement(
+      React.Suspense,
+      { fallback: options.fallback || React.createElement('div', null, 'Loading...') },
+      React.createElement(LazyComponent, props)
     );
   };
+  
+  return LazyWrapper;
 }
 
 /**
@@ -38,11 +39,11 @@ export function useLazyImage(
     threshold?: number;
   } = {}
 ) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [isInView, setIsInView] = React.useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -63,7 +64,7 @@ export function useLazyImage(
     return () => observer.disconnect();
   }, [options.rootMargin, options.threshold]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInView && imgRef.current) {
       const img = new Image();
       img.src = src;
@@ -86,13 +87,13 @@ export function useLazyData<T>(
     threshold?: number;
   }
 ) {
-  const [data, setData] = useState<T | undefined>(options.initialData);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [data, setData] = React.useState<T | undefined>(options.initialData);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+  const [hasLoaded, setHasLoaded] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
 
-  const loadData = useCallback(async () => {
+  const loadData = React.useCallback(async () => {
     if (hasLoaded) return;
     
     setIsLoading(true);
@@ -109,7 +110,7 @@ export function useLazyData<T>(
     }
   }, [options.fetcher, hasLoaded]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasLoaded) {
@@ -142,9 +143,9 @@ export function useDeferredLoad(
     enabled?: boolean;
   } = {}
 ) {
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (options.enabled === false) return;
 
     const id = requestIdleCallback(
@@ -173,14 +174,14 @@ export function useInfiniteScroll<T>(
     threshold?: number;
   }
 ) {
-  const [data, setData] = useState<T[]>([]);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const [data, setData] = React.useState<T[]>([]);
+  const [page, setPage] = React.useState(1);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(true);
+  const [error, setError] = React.useState<Error | null>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
 
-  const loadMore = useCallback(async () => {
+  const loadMore = React.useCallback(async () => {
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
@@ -198,7 +199,7 @@ export function useInfiniteScroll<T>(
     }
   }, [page, isLoading, hasMore, options]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && hasMore && !isLoading) {

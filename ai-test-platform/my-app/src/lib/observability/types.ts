@@ -140,7 +140,7 @@ export interface SpanResult {
   /** Span 客户端 */
   span: LangfuseSpanClient | LangfuseGenerationClient;
   /** 结束 Span 的回调 */
-  end: (output?: unknown, metadata?: Record<string, unknown>) => Promise<void>;
+  end: (output?: unknown, metadata?: Record<string, unknown> | GenerationOutput['usage']) => Promise<void>;
 }
 
 /** Langfuse 客户端接口 */

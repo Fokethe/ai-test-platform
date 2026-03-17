@@ -12,7 +12,7 @@ const exportSchema = z.object({
   type: z.string(),
   timeRange: z.string(),
   data: z.object({
-    stats: z.record(z.any()),
+    stats: z.record(z.string(), z.any()),
     trendData: z.array(z.any()).optional(),
   }),
 });

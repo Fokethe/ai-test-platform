@@ -12,7 +12,7 @@ export class EmbeddingService {
 
   async generateEmbedding(text: string): Promise<number[]> {
     const { embedding } = await embed({
-      model: openai.embedding(this.model, { dimensions: this.dimensions }),
+      model: openai.embedding(this.model),
       value: text,
     });
     return embedding;
@@ -30,7 +30,7 @@ export class EmbeddingService {
   }
 
   calculateCosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) throw new Error("ÏòÁ¿Î¬¶È²»Æ¥Åä");
+    if (a.length !== b.length) throw new Error("å‘é‡ç»´åº¦ä¸åŒ¹é…");
     let dotProduct = 0, normA = 0, normB = 0;
     for (let i = 0; i < a.length; i++) {
       dotProduct += a[i] * b[i];

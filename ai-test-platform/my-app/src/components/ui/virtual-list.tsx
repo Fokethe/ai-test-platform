@@ -146,7 +146,7 @@ export function DeferredList<T>({
   className = '',
 }: DeferredListProps<T>) {
   const [visibleCount, setVisibleCount] = useState(batchSize);
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     setVisibleCount(batchSize);

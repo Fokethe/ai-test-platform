@@ -12,34 +12,9 @@ import type {
   HNSWIndexConfig,
 } from './vector-store';
 
-interface ChromaClient {
-  getOrCreateCollection(options: {
-    name: string;
-    metadata?: Record<string, unknown>;
-  }): Promise<ChromaCollection>;
-}
-
-interface ChromaCollection {
-  add(options: {
-    ids: string[];
-    documents: string[];
-    embeddings: number[][];
-    metadatas?: Record<string, unknown>[];
-  }): Promise<void>;
-  query(options: {
-    queryEmbeddings: number[][];
-    nResults: number;
-  }): Promise<ChromaQueryResult>;
-  delete(options: { ids: string[] }): Promise<void>;
-  count(): Promise<number>;
-}
-
-interface ChromaQueryResult {
-  ids: string[][];
-  documents: (string | null)[][];
-  distances: number[][];
-  metadatas: (Record<string, unknown> | null)[][];
-}
+// 使用any类型避免与chromadb库类型冲突
+type ChromaClient = any;
+type ChromaCollection = any;
 
 const DEFAULT_HNSW_CONFIG: HNSWIndexConfig = {
   M: 16,

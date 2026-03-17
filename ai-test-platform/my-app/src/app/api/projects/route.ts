@@ -17,7 +17,7 @@ const createProjectSchema = z.object({
   name: z.string().min(1, '项目名称不能为空').max(100, '项目名称最大100个字符'),
   description: z.string().max(500, '项目描述最大500个字符').optional(),
   workspaceId: z.string().min(1, '工作空间ID不能为空'),
-  status: z.enum(['ACTIVE', 'ARCHIVED', 'DELETED']).optional(),
+  status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
 });
 
 // GET /api/projects - 获取项目列表

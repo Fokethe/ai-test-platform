@@ -4,7 +4,15 @@
  * TDD Round 10 实现
  */
 
-import { TestCase } from '../agents/testcase-generator'
+// 本地定义 TestCase 类型
+interface TestCase {
+  id: string
+  title: string
+  module: string
+  priority?: string
+  precondition?: string
+  expectedResult?: string
+}
 
 export interface TestPoint {
   id: string
@@ -162,7 +170,7 @@ function calculateFeatureSimilarity(testPoint: TestPoint, testCase: TestCase): n
   // 优先级匹配
   const priorityMap: Record<string, number> = { P0: 4, P1: 3, P2: 2, P3: 1, 高: 4, 中: 2, 低: 1 }
   const testPointPriority = priorityMap[testPoint.priority] || 2
-  const casePriority = priorityMap[testCase.priority] || 2
+  const casePriority = priorityMap[testCase.priority || ''] || 2
   if (Math.abs(testPointPriority - casePriority) <= 1) {
     score += 0.5
   }

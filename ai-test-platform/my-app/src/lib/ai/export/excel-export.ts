@@ -3,8 +3,18 @@
  * 将测试用例导出为 Excel 文件，供测试人员执行使用
  */
 
-import * as XLSX from 'xlsx'
-import { TestCase } from '../agents/testcase-generator'
+import ExcelJS from 'exceljs'
+
+// 本地定义 TestCase 类型
+interface TestCase {
+  id: string
+  title: string
+  module?: string
+  precondition?: string
+  steps?: string[]
+  expectedResult?: string
+  priority?: string
+}
 
 export interface ExcelExportResult {
   filename: string
@@ -18,52 +28,51 @@ export interface ExcelExportResult {
  */
 export async function generateExcelBuffer(testCases: TestCase[]): Promise<Buffer> {
   // 创建工作簿
-  const workbook = XLSX.utils.book_new()
-
-  // 准备数据
-  const data = testCases.map((tc, index) => ({
-    '序号': index + 1,
-    '用例编号': tc.id,
-    '所属模块': tc.module || '',
-    '用例标题': tc.title,
-    '前置条件': tc.precondition || '',
-    '测试步骤': formatSteps(tc.steps),
-    '预期结果': tc.expectedResult || '',
-    '优先级': tc.priority || '中',
-    '执行结果': '', // 留空供测试人员填写
-    '备注': '', // 留空供测试人员填写
-  }))
-
-  // 创建工作表
-  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('测试用例')
 
   // 设置列宽
-  const colWidths = [
-    { wch: 6 },   // 序号
-    { wch: 15 },  // 用例编号
-    { wch: 15 },  // 所属模块
-    { wch: 40 },  // 用例标题
-    { wch: 30 },  // 前置条件
-    { wch: 50 },  // 测试步骤
-    { wch: 40 },  // 预期结果
-    { wch: 8 },   // 优先级
-    { wch: 10 },  // 执行结果
-    { wch: 20 },  // 备注
+  worksheet.columns = [
+    { header: '序号', key: 'index', width: 6 },
+    { header: '用例编号', key: 'id', width: 15 },
+    { header: '所属模块', key: 'module', width: 15 },
+    { header: '用例标题', key: 'title', width: 40 },
+    { header: '前置条件', key: 'precondition', width: 30 },
+    { header: '测试步骤', key: 'steps', width: 50 },
+    { header: '预期结果', key: 'expectedResult', width: 40 },
+    { header: '优先级', key: 'priority', width: 8 },
+    { header: '执行结果', key: 'result', width: 10 },
+    { header: '备注', key: 'remark', width: 20 },
   ]
-  worksheet['!cols'] = colWidths
 
-  // 设置行高
-  worksheet['!rows'] = testCases.map(() => ({ hpt: 30 }))
-
-  // 添加工作表到工作簿
-  XLSX.utils.book_append_sheet(workbook, worksheet, '测试用例')
-
-  // 生成 Buffer
-  const buffer = XLSX.write(workbook, {
-    type: 'buffer',
-    bookType: 'xlsx',
+  // 设置表头样式
+  worksheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true }
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    }
   })
 
+  // 添加数据
+  testCases.forEach((tc, index) => {
+    worksheet.addRow({
+      index: index + 1,
+      id: tc.id,
+      module: tc.module || '',
+      title: tc.title,
+      precondition: tc.precondition || '',
+      steps: formatSteps(tc.steps),
+      expectedResult: tc.expectedResult || '',
+      priority: tc.priority || '中',
+      result: '', // 留空供测试人员填写
+      remark: '', // 留空供测试人员填写
+    })
+  })
+
+  // 生成 Buffer
+  const buffer = await workbook.xlsx.writeBuffer()
   return Buffer.from(buffer)
 }
 

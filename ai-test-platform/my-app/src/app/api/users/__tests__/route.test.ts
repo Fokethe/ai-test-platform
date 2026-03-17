@@ -5,6 +5,7 @@
 
 import { GET, POST } from '../route';
 import { prisma } from '@/lib/prisma';
+import { NextRequest } from 'next/server';
 
 // Mock prisma
 jest.mock('@/lib/prisma', () => ({
@@ -27,6 +28,11 @@ jest.mock('@/lib/auth', () => ({
 }));
 
 import { auth } from '@/lib/auth';
+
+// 辅助函数：创建 NextRequest
+function createNextRequest(url: string, options: RequestInit = {}): NextRequest {
+  return new Request(url, options) as NextRequest;
+}
 
 describe('Users API', () => {
   beforeEach(() => {
