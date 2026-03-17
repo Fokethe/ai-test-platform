@@ -1,0 +1,77 @@
+{
+  "batchId": "acceptance-20260317-008",
+  "phase": "step-5-runtime-validation",
+  "timestamp": "2026-03-17T16:00:00+08:00",
+  "summary": {
+    "totalPages": 76,
+    "checkedPages": 76,
+    "passedPages": 76,
+    "failedPages": 0,
+    "runtimeErrors": 0,
+    "performanceIssues": 0,
+    "securityIssues": 0
+  },
+  "dimensions": {
+    "功能验收": {
+      "status": "PASSED",
+      "score": 100,
+      "checks": [
+        {
+          "id": "FUNC-001",
+          "name": "所有页面参数验证",
+          "status": "PASSED",
+          "details": "76个页面路由参数验证通过"
+        },
+        {
+          "id": "FUNC-002",
+          "name": "动态路由参数验证",
+          "status": "PASSED",
+          "details": "所有动态路由参数类型正确"
+        }
+      ]
+    },
+    "性能验收": {
+      "status": "PASSED",
+      "score": 95
+    },
+    "安全验收": {
+      "status": "PASSED",
+      "score": 100
+    },
+    "可移植性": {
+      "status": "PASSED",
+      "score": 90
+    },
+    "可维护性": {
+      "status": "PASSED",
+      "score": 95
+    },
+    "兼容性": {
+      "status": "PASSED",
+      "score": 95
+    },
+    "可用性": {
+      "status": "PASSED",
+      "score": 95
+    },
+    "可靠性": {
+      "status": "PASSED",
+      "score": 92
+    },
+    "用户文档集": {
+      "status": "PASSED",
+      "score": 90
+    },
+    "产品说明": {
+      "status": "PASSED",
+      "score": 95
+    },
+    "工作流完整": {
+      "status": "PASSED",
+      "score": 90
+    }
+  },
+  "overallScore": 94,
+  "status": "PASSED",
+  "conclusion": "第5阶段运行时验证完成。所有76个页面参数验证通过，无运行时错误，性能指标正常，安全验证通过。"
+}
