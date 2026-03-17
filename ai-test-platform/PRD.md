@@ -1,7 +1,13 @@
 # encoding: utf-8
 # AI Test Platform - 产品需求文档 (PRD)
 
-> **核心产品文档** | 最后更新: 2026-03-09 | 版本: v2.1
+> ⚠️ **本文档已过时** - 内容可能不符合当前代码实际状态  
+> **替代文档**: [docs/00-core/project-overview.md](./docs/00-core/project-overview.md)（基于代码扫描生成）  
+> **最后更新**: 2026-03-09 | 版本: v2.1
+
+---
+
+> 📌 **注意**: 本文档为历史规划文档，仅作参考。请以 `docs/00-core/project-overview.md` 为准。
 
 ---
 

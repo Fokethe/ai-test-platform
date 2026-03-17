@@ -63,7 +63,7 @@ const getNotificationsPage = async () => {
 describe('NotificationsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
+    ;(useRouter as unknown as jest.Mock).mockReturnValue(mockRouter)
   })
 
   describe('页面渲染', () => {

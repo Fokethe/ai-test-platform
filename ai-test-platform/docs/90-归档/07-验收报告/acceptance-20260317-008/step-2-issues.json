@@ -1,0 +1,115 @@
+﻿{
+    "batchId":  "acceptance-20260317-008",
+    "timestamp":  "2026-03-17T15:35:00+08:00",
+    "testResults":  {
+                        "envCheck":  {
+                                         "missingRequired":  [
+                                                                 "NEXTAUTH_SECRET",
+                                                                 "DATABASE_URL"
+                                                             ],
+                                         "status":  "FAILED"
+                                     },
+                        "lint":  {
+                                     "status":  "FAILED",
+                                     "errors":  419,
+                                     "warnings":  598
+                                 },
+                        "build":  {
+                                      "duration":  "36.5s",
+                                      "status":  "SUCCESS_WITH_WARNINGS",
+                                      "routesGenerated":  76
+                                  },
+                        "audit":  {
+                                      "low":  4,
+                                      "status":  "VULNERABILITIES_FOUND",
+                                      "moderate":  2,
+                                      "total":  12,
+                                      "high":  6
+                                  },
+                        "test":  {
+                                     "status":  "PARTIAL_FAILURE",
+                                     "tests":  {
+                                                   "failed":  19,
+                                                   "total":  390,
+                                                   "passed":  371
+                                               },
+                                     "suites":  {
+                                                    "failed":  6,
+                                                    "total":  34,
+                                                    "passed":  28
+                                                }
+                                 }
+                    },
+    "summary":  {
+                    "passedChecks":  45,
+                    "critical":  0,
+                    "medium":  4,
+                    "high":  6,
+                    "low":  2,
+                    "failedChecks":  12,
+                    "totalIssues":  12
+                },
+    "phase":  "step-2-dynamic-validation",
+    "issues":  [
+                   {
+                       "dimension":  "功能验收",
+                       "id":  "DYN-001",
+                       "recommendation":  "修复.env.production文件格式问题，考虑统一workspace配置",
+                       "evidence":  "RangeError: Maximum call stack size exceeded at env load; Multiple lockfiles detected",
+                       "category":  "构建测试",
+                       "description":  "Next.js构建成功但检测到.env.production加载时栈溢出警告，以及多lockfile警告",
+                       "status":  "OPEN",
+                       "location":  "ai-test-platform/my-app/.env.production",
+                       "severity":  "low",
+                       "title":  "构建成功但有环境警告"
+                   },
+                   {
+                       "dimension":  "功能验收",
+                       "id":  "DYN-002",
+                       "recommendation":  "修复Prisma客户端在测试环境中的配置，修复ApiError类实现",
+                       "evidence":  "Test Suites: 6 failed, 28 passed, 34 total; Tests: 19 failed, 371 passed, 390 total",
+                       "category":  "测试套件运行",
+                       "description":  "34个测试套件中6个失败，390个测试中19个失败，主要涉及Prisma浏览器环境问题和API错误处理",
+                       "status":  "OPEN",
+                       "location":  "ai-test-platform/my-app/src/lib/__tests__/",
+                       "severity":  "high",
+                       "title":  "测试套件部分失败"
+                   },
+                   {
+                       "dimension":  "安全验收",
+                       "id":  "DYN-003",
+                       "recommendation":  "运行npm audit fix修复可自动修复的漏洞，手动更新xlsx等无自动修复方案的依赖",
+                       "evidence":  "12 vulnerabilities (4 low, 2 moderate, 6 high): hono, minimatch, xlsx, flatted, express-rate-limit等",
+                       "category":  "依赖漏洞扫描",
+                       "description":  "发现12个安全漏洞，其中6个高危、2个中危、4个低危，涉及hono、minimatch、xlsx等依赖",
+                       "status":  "OPEN",
+                       "location":  "ai-test-platform/my-app/package.json",
+                       "severity":  "high",
+                       "title":  "npm audit发现多个高危漏洞"
+                   },
+                   {
+                       "dimension":  "可维护性",
+                       "id":  "DYN-004",
+                       "recommendation":  "分批次修复ESLint错误，优先处理错误级别的规则，配置CI/CD阻止新错误引入",
+                       "evidence":  "1017 problems (419 errors, 598 warnings): unused vars, no-console, ban-ts-comment, complexity",
+                       "category":  "代码质量检查",
+                       "description":  "发现1017个代码质量问题，其中419个错误、598个警告，主要包括未使用变量、console语句、@ts-ignore使用等",
+                       "status":  "OPEN",
+                       "location":  "ai-test-platform/my-app/src/",
+                       "severity":  "high",
+                       "title":  "ESLint检查发现大量代码质量问题"
+                   },
+                   {
+                       "dimension":  "可移植性",
+                       "id":  "DYN-005",
+                       "recommendation":  "配置.env文件中的必需环境变量，提供.env.example供部署参考",
+                       "evidence":  "NEXTAUTH_SECRET: 未配置; DATABASE_URL: 未配置",
+                       "category":  "环境变量配置",
+                       "description":  "运行env:check发现NEXTAUTH_SECRET和DATABASE_URL两个必需环境变量未配置",
+                       "status":  "OPEN",
+                       "location":  "ai-test-platform/my-app/.env",
+                       "severity":  "high",
+                       "title":  "必需环境变量未配置"
+                   }
+               ]
+}

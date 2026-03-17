@@ -29,7 +29,7 @@ describe('TDD Round 17: 用例预览页面接收 modelId 参数', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(useRouter as jest.Mock).mockReturnValue({
+    ;(useRouter as unknown as jest.Mock).mockReturnValue({
       push: mockPush,
       back: mockBack,
     })

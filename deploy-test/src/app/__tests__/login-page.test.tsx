@@ -52,8 +52,8 @@ describe('LoginPage - Remember Email Feature', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (useSearchParams as jest.Mock).mockReturnValue({
+    (useRouter as unknown as jest.Mock).mockReturnValue(mockRouter);
+    (useSearchParams as unknown as jest.Mock).mockReturnValue({
       get: jest.fn().mockReturnValue(null),
     });
     // Clear localStorage
@@ -232,7 +232,7 @@ describe('LoginPage - Remember Email Feature', () => {
     });
 
     it('should use callbackUrl from search params if provided', async () => {
-      (useSearchParams as jest.Mock).mockReturnValue({
+      (useSearchParams as unknown as jest.Mock).mockReturnValue({
         get: jest.fn().mockReturnValue('/custom-page'),
       });
       (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });

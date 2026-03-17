@@ -1,0 +1,39 @@
+# EditorConfig 帮助开发人员定义和维护一致的编码风格
+# 了解更多: https://editorconfig.org
+
+root = true
+
+[*]
+# 字符编码
+charset = utf-8
+
+# 缩进风格
+indent_style = space
+indent_size = 2
+
+# 换行符
+end_of_line = lf
+
+# 文件末尾插入空行
+insert_final_newline = true
+
+# 删除行尾空格
+trim_trailing_whitespace = true
+
+# 最大行长度
+max_line_length = 120
+
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.prisma]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{diff,patch}]
+trim_trailing_whitespace = false
