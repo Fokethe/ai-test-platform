@@ -11,7 +11,8 @@ describe('api-enhanced', () => {
 
   describe('ApiError', () => {
     it('should create ApiError with correct properties', () => {
-      const error = new ApiError('Test error', 500, { detail: 'test' });
+      const error = new ApiError('TEST_ERROR', 'Test error', 500, { detail: ['test'] });
+      expect(error.code).toBe('TEST_ERROR');
       expect(error.message).toBe('Test error');
       expect(error.status).toBe(500);
     });

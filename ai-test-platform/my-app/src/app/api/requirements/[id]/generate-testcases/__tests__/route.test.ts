@@ -1,6 +1,8 @@
 /**
  * TDD Round 7: 用例生成 API 测试
  * 目标: 实现用例生成的 API 端点
+ *
+ * @jest-environment node
  */
 
 import { POST } from '../route';

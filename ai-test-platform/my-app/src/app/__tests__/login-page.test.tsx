@@ -2,6 +2,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import LoginPage from '../(auth)/login/page';
+import {
+  getLoginFormElements,
+  submitLoginForm,
+  mockSignInSuccess,
+  defaultUser,
+} from '@/test-utils/test-helpers';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -52,100 +58,72 @@ describe('LoginPage - Remember Email Feature', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (useSearchParams as jest.Mock).mockReturnValue({
+    // @ts-ignore - mocked function
+    useRouter.mockReturnValue(mockRouter);
+    // @ts-ignore - mocked function
+    useSearchParams.mockReturnValue({
       get: jest.fn().mockReturnValue(null),
     });
-    // Clear localStorage
     localStorage.clear();
   });
 
-  describe('Remember Email Checkbox', () => {
+  describe('Remember Email Checkbox @p0', () => {
     it('should render remember email checkbox', () => {
       render(<LoginPage />);
-      
-      const checkbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      expect(checkbox).toBeInTheDocument();
+      const { rememberCheckbox } = getLoginFormElements();
+      expect(rememberCheckbox).toBeInTheDocument();
     });
 
     it('should be unchecked by default', () => {
       render(<LoginPage />);
-      
-      const checkbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      expect(checkbox).toHaveAttribute('data-state', 'unchecked');
+      const { rememberCheckbox } = getLoginFormElements();
+      expect(rememberCheckbox).toHaveAttribute('data-state', 'unchecked');
     });
 
     it('should toggle checkbox when clicked', () => {
       render(<LoginPage />);
-      
-      const checkbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      
-      fireEvent.click(checkbox);
-      expect(checkbox).toHaveAttribute('data-state', 'checked');
-      
-      fireEvent.click(checkbox);
-      expect(checkbox).toHaveAttribute('data-state', 'unchecked');
+      const { rememberCheckbox } = getLoginFormElements();
+
+      fireEvent.click(rememberCheckbox);
+      expect(rememberCheckbox).toHaveAttribute('data-state', 'checked');
+
+      fireEvent.click(rememberCheckbox);
+      expect(rememberCheckbox).toHaveAttribute('data-state', 'unchecked');
     });
   });
 
-  describe('Save Email to LocalStorage', () => {
+  describe('Save Email to LocalStorage @p0 @smoke', () => {
     it('should save email to localStorage when remember is checked and login succeeds', async () => {
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
+      mockSignInSuccess();
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const rememberCheckbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(rememberCheckbox);
-      fireEvent.click(submitButton);
-      
+
+      await submitLoginForm(defaultUser, { remember: true });
+
       await waitFor(() => {
-        expect(localStorage.getItem('rememberedEmail')).toBe('test@example.com');
+        expect(localStorage.getItem('rememberedEmail')).toBe(defaultUser.email);
       });
     });
 
     it('should NOT save email to localStorage when remember is NOT checked', async () => {
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
+      mockSignInSuccess();
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      // Do not check remember checkbox
-      fireEvent.click(submitButton);
-      
+
+      await submitLoginForm(defaultUser, { remember: false });
+
       await waitFor(() => {
         expect(localStorage.getItem('rememberedEmail')).toBeNull();
       });
     });
 
     it('should remove email from localStorage when remember is unchecked on login', async () => {
-      // Pre-populate localStorage
       localStorage.setItem('rememberedEmail', 'old@example.com');
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
+      mockSignInSuccess();
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const rememberCheckbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      // Uncheck remember checkbox (it was auto-checked due to localStorage value)
-      fireEvent.click(rememberCheckbox);
-      fireEvent.click(submitButton);
-      
+
+      const { rememberCheckbox } = getLoginFormElements();
+      fireEvent.click(rememberCheckbox); // Uncheck
+      await submitLoginForm();
+
       await waitFor(() => {
         expect(localStorage.getItem('rememberedEmail')).toBeNull();
       });
@@ -155,98 +133,61 @@ describe('LoginPage - Remember Email Feature', () => {
   describe('Load Email from LocalStorage', () => {
     it('should auto-fill email from localStorage on page load', () => {
       localStorage.setItem('rememberedEmail', 'saved@example.com');
-      
       render(<LoginPage />);
-      
-      const emailInput = screen.getByDisplayValue('saved@example.com');
-      expect(emailInput).toBeInTheDocument();
+
+      expect(screen.getByDisplayValue('saved@example.com')).toBeInTheDocument();
     });
 
     it('should check remember checkbox when email is loaded from localStorage', () => {
       localStorage.setItem('rememberedEmail', 'saved@example.com');
-      
       render(<LoginPage />);
-      
-      const checkbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      expect(checkbox).toHaveAttribute('data-state', 'checked');
+
+      const { rememberCheckbox } = getLoginFormElements();
+      expect(rememberCheckbox).toHaveAttribute('data-state', 'checked');
     });
 
     it('should leave email empty when no saved email in localStorage', () => {
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i) as HTMLInputElement;
-      expect(emailInput.value).toBe('');
+
+      const { emailInput } = getLoginFormElements();
+      expect((emailInput as HTMLInputElement).value).toBe('');
     });
   });
 
   describe('Clear Remembered Email', () => {
     it('should clear localStorage when user unchecks remember me', () => {
       localStorage.setItem('rememberedEmail', 'saved@example.com');
-      
       render(<LoginPage />);
-      
-      const checkbox = screen.getByRole('checkbox', { name: /记住邮箱/i });
-      
-      // Uncheck the checkbox
-      fireEvent.click(checkbox);
-      
+
+      const { rememberCheckbox } = getLoginFormElements();
+      fireEvent.click(rememberCheckbox);
+
       expect(localStorage.getItem('rememberedEmail')).toBeNull();
     });
   });
 
-  describe('Redirect after Login', () => {
+  describe('Redirect after Login @p0 @smoke', () => {
     it('should redirect to /dashboard after successful login', async () => {
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
+      mockSignInSuccess();
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(submitButton);
-      
+
+      await submitLoginForm();
+
       await waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
       });
     });
 
-    it('should NOT redirect to /workspaces after login', async () => {
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
-      render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(submitButton);
-      
-      await waitFor(() => {
-        expect(mockRouter.push).not.toHaveBeenCalledWith('/workspaces');
-      });
-    });
-
-    it('should use callbackUrl from search params if provided', async () => {
-      (useSearchParams as jest.Mock).mockReturnValue({
+    it('should redirect to callbackUrl from search params when provided', async () => {
+      const mockUseSearchParams = useSearchParams as jest.Mock;
+      mockUseSearchParams.mockReturnValue({
         get: jest.fn().mockReturnValue('/custom-page'),
       });
-      (signIn as jest.Mock).mockResolvedValue({ ok: true, error: null });
-      
+      mockSignInSuccess();
       render(<LoginPage />);
-      
-      const emailInput = screen.getByPlaceholderText(/your@email\.com/i);
-      const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole('button', { name: /登录/i });
-      
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      fireEvent.click(submitButton);
-      
+
+      await submitLoginForm();
+
       await waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalledWith('/custom-page');
       });

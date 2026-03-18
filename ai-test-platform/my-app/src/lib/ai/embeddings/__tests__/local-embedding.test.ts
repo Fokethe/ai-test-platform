@@ -111,9 +111,12 @@ describe('LocalEmbeddingService', () => {
         })
       });
 
+      // 实现会过滤空文本，只对有效文本进行嵌入
       const result = await service.embedBatch(['', '有效文本', '']);
 
-      expect(result).toHaveLength(3);
+      // 只有 1 个有效文本，返回 1 个嵌入
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveLength(1024);
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({

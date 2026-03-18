@@ -53,41 +53,40 @@ describe('AIGeneratePage', () => {
     })
   })
 
-  describe('导航功能', () => {
-    it('点击需求生成卡片应导航到需求生成页面', async () => {
+  describe('导航链接', () => {
+    it('应该包含需求生成页面的链接', async () => {
       const AIGeneratePage = await getAIGeneratePage()
       render(<AIGeneratePage />)
 
-      const requirementCard = screen.getByTestId('requirement-card')
-      fireEvent.click(requirementCard)
-
-      expect(mockRouter.push).toHaveBeenCalledWith('/ai-generate/requirements')
+      // 查找包含需求生成链接的元素
+      const requirementLinks = screen.getAllByRole('link')
+      const requirementLink = requirementLinks.find(link => 
+        link.getAttribute('href') === '/ai-generate/requirements'
+      )
+      expect(requirementLink).toBeDefined()
     })
 
-    it('点击用例生成卡片应导航到用例生成页面', async () => {
+    it('应该包含用例生成页面的链接', async () => {
       const AIGeneratePage = await getAIGeneratePage()
       render(<AIGeneratePage />)
 
-      const testcaseCard = screen.getByTestId('testcase-card')
-      fireEvent.click(testcaseCard)
-
-      expect(mockRouter.push).toHaveBeenCalledWith('/ai-generate/testcases')
+      // 查找包含用例生成链接的元素
+      const links = screen.getAllByRole('link')
+      const testcaseLink = links.find(link => 
+        link.getAttribute('href') === '/ai-generate/testcases'
+      )
+      expect(testcaseLink).toBeDefined()
     })
 
-    it('需求生成页面的链接应正确', async () => {
+    it('应该包含历史页面的链接', async () => {
       const AIGeneratePage = await getAIGeneratePage()
       render(<AIGeneratePage />)
 
-      const requirementButton = screen.getByTestId('requirement-button')
-      expect(requirementButton).toHaveAttribute('href', '/ai-generate/requirements')
-    })
-
-    it('用例生成页面的链接应正确', async () => {
-      const AIGeneratePage = await getAIGeneratePage()
-      render(<AIGeneratePage />)
-
-      const testcaseButton = screen.getByTestId('testcase-button')
-      expect(testcaseButton).toHaveAttribute('href', '/ai-generate/testcases')
+      const links = screen.getAllByRole('link')
+      const historyLink = links.find(link => 
+        link.getAttribute('href') === '/tests?tab=ai'
+      )
+      expect(historyLink).toBeDefined()
     })
   })
 
@@ -119,12 +118,21 @@ describe('AIGeneratePage', () => {
       expect(screen.getByText('最近生成')).toBeInTheDocument()
     })
 
-    it('应该显示跳转到历史页面的链接', async () => {
+    it('应该显示暂无记录提示', async () => {
       const AIGeneratePage = await getAIGeneratePage()
       render(<AIGeneratePage />)
 
-      const historyLink = screen.getByTestId('history-link')
-      expect(historyLink).toHaveAttribute('href', '/tests?tab=ai')
+      expect(screen.getByText('暂无最近生成记录')).toBeInTheDocument()
+    })
+  })
+
+  describe('使用提示', () => {
+    it('应该显示使用提示区域', async () => {
+      const AIGeneratePage = await getAIGeneratePage()
+      render(<AIGeneratePage />)
+
+      expect(screen.getByText('使用提示')).toBeInTheDocument()
+      expect(screen.getByText(/需求生成：支持上传文档或直接输入需求描述/)).toBeInTheDocument()
     })
   })
 })

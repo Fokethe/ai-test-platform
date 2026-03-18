@@ -7,8 +7,13 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.3.0",
+    "@playwright/test": "^1.58.2",
+    "globals": "^17.4.0",
     "prisma": "^6.6.0",
-    "ts-jest": "^29.4.6"
+    "ts-jest": "^29.4.6",
+    "typescript-eslint": "^8.57.1"
   },
   "engines": {
     "node": ">=18.0.0",

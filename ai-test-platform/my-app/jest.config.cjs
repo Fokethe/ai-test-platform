@@ -16,11 +16,10 @@ module.exports = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/.next/',
-    '<rootDir>/../',
-    'my-app_root',
-    'deploy-test',
-    'src_root',
-    'docs/99-历史归档',
+    '/my-app_root/',
+    '/deploy-test/',
+    '/src_root/',
+    '/docs/90-归档/99-历史归档/',
   ],
   
   // 模块搜索路径
@@ -40,7 +39,7 @@ module.exports = {
   
   // 不转换node_modules中的文件，但允许ES模块
   transformIgnorePatterns: [
-    '/node_modules/(?!(next|@next|react|react-dom|@testing-library)/)',
+    '/node_modules/(?!(next|@next|react|react-dom|@testing-library|exceljs|uuid|\.prisma)/)',
   ],
   
   // 模块名映射
@@ -48,6 +47,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^next/navigation$': '<rootDir>/src/__mocks__/next-navigation.ts',
     '^next-auth/react$': '<rootDir>/src/__mocks__/next-auth-react.ts',
+    '^exceljs$': '<rootDir>/src/__mocks__/exceljs.ts',
   },
   
   // 启动文件

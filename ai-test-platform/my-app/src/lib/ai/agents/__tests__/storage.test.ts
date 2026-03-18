@@ -1,6 +1,8 @@
 /**
  * 需求存储测试
  * TDD 第 4 轮：数据库模型 + 存储
+ *
+ * @jest-environment node
  */
 
 import { prisma } from '@/lib/prisma';
