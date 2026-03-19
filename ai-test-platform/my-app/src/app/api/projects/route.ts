@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
 import { z } from 'zod';
+import { hasWorkspaceAccess, MANAGE_ROLES } from '@/lib/project-access';
 
 // Project 创建验证 Schema
 const createProjectSchema = z.object({
@@ -35,18 +36,32 @@ export async function GET(request: NextRequest) {
     const { page, pageSize, skip, take } = buildQueryParams(searchParams);
 
     const where: Prisma.ProjectWhereInput = {};
-    
+
+    // Always scope project visibility by workspace membership.
+    where.workspace = {
+      members: {
+        some: {
+          userId: session.user.id,
+        },
+      },
+    };
+
     if (workspaceId) {
+      const canAccessWorkspace = await hasWorkspaceAccess(session.user.id, workspaceId);
+      if (!canAccessWorkspace) {
+        return errors.forbidden();
+      }
       where.workspaceId = workspaceId;
     }
-    
+
     if (status) {
       where.status = status as Prisma.ProjectWhereInput['status'];
     }
-    
+
     if (search) {
       where.name = {
         contains: search,
+        mode: 'insensitive',
       };
     }
 
@@ -59,19 +74,27 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: 'desc' },
       include: {
         workspace: {
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: { members: true },
+            },
+          },
         },
         _count: {
-          select: { tests: true, runs: true, issues: true },
+          select: { systems: true, tests: true, runs: true, issues: true },
         },
       },
     });
 
     const formattedProjects = projects.map(p => ({
       ...p,
+      systemCount: p._count.systems,
       testCount: p._count.tests,
       runCount: p._count.runs,
       issueCount: p._count.issues,
+      memberCount: p.workspace._count.members,
       _count: undefined,
     }));
 
@@ -109,15 +132,12 @@ export async function POST(request: NextRequest) {
     const { name, description, workspaceId } = validationResult.data;
 
     // 检查用户是否有权限在该工作空间创建项目
-    const membership = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId,
-        userId: session.user.id,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!membership) {
+    const canManageWorkspace = await hasWorkspaceAccess(
+      session.user.id,
+      workspaceId,
+      MANAGE_ROLES
+    );
+    if (!canManageWorkspace) {
       return errors.forbidden();
     }
 

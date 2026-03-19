@@ -1,16 +1,24 @@
-/**
- * Project Detail API
- * GET /api/projects/[id] - 获取项目详情
- * PUT /api/projects/[id] - 更新项目
- * DELETE /api/projects/[id] - 删除项目
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse, notFoundResponse, errors } from '@/lib/api-response';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { parseJsonBody } from '@/lib/api-handler';
+import { prisma } from '@/lib/prisma';
+import { errors, errorResponse, successResponse } from '@/lib/api-response';
+import { hasWorkspaceAccess, MANAGE_ROLES } from '@/lib/project-access';
 
-// GET - 获取项目详情
+const updateProjectSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
+});
+
+async function getProjectWorkspace(projectId: string) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, workspaceId: true },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,11 +30,27 @@ export async function GET(
       return errors.unauthorized();
     }
 
+    const projectBase = await getProjectWorkspace(id);
+    if (!projectBase) {
+      return errors.notFound('项目');
+    }
+
+    const canAccessProject = await hasWorkspaceAccess(session.user.id, projectBase.workspaceId);
+    if (!canAccessProject) {
+      return errors.forbidden();
+    }
+
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
         workspace: {
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: { members: true },
+            },
+          },
         },
         tests: {
           select: { id: true, name: true, type: true, status: true },
@@ -60,6 +84,7 @@ export async function GET(
       runCount: project._count.runs,
       issueCount: project._count.issues,
       systemCount: project._count.systems,
+      memberCount: project.workspace._count.members,
       _count: undefined,
     });
   } catch (error) {
@@ -68,7 +93,6 @@ export async function GET(
   }
 }
 
-// PUT - 更新项目
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -80,19 +104,32 @@ export async function PUT(
       return errors.unauthorized();
     }
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return errors.badRequest('无效的 JSON 请求体');
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
     }
-    const { name, description, status } = body;
 
-    const existing = await prisma.project.findUnique({ where: { id } });
+    const validationResult = updateProjectSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`输入验证失败: ${errorMessages}`);
+    }
+
+    const existing = await getProjectWorkspace(id);
     if (!existing) {
       return errors.notFound('项目');
     }
 
+    const canManageProject = await hasWorkspaceAccess(
+      session.user.id,
+      existing.workspaceId,
+      MANAGE_ROLES
+    );
+    if (!canManageProject) {
+      return errors.forbidden();
+    }
+
+    const { name, description, status } = validationResult.data;
     const updated = await prisma.project.update({
       where: { id },
       data: {
@@ -110,7 +147,6 @@ export async function PUT(
   }
 }
 
-// DELETE - 删除项目
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -122,13 +158,21 @@ export async function DELETE(
       return errors.unauthorized();
     }
 
-    const existing = await prisma.project.findUnique({ where: { id } });
+    const existing = await getProjectWorkspace(id);
     if (!existing) {
       return errors.notFound('项目');
     }
 
-    await prisma.project.delete({ where: { id } });
+    const canManageProject = await hasWorkspaceAccess(
+      session.user.id,
+      existing.workspaceId,
+      MANAGE_ROLES
+    );
+    if (!canManageProject) {
+      return errors.forbidden();
+    }
 
+    await prisma.project.delete({ where: { id } });
     return successResponse(null, '删除成功');
   } catch (error) {
     console.error('Delete project error:', error);

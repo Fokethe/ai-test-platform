@@ -1,36 +1,82 @@
-/**
- * Pages API
- * 页面管理 API 路由
- */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
-import { successResponse, createdResponse, errorResponse, errors } from '@/lib/api-response';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { prisma } from '@/lib/prisma';
+import {
+  buildMeta,
+  createdResponse,
+  errorResponse,
+  errors,
+  listResponse,
+  successResponse,
+} from '@/lib/api-response';
+import { hasSystemAccess, MANAGE_ROLES } from '@/lib/project-access';
 
-// GET /api/pages - 获取页面列表
+const createPageSchema = z.object({
+  name: z.string().min(1).max(100),
+  path: z.string().min(1).max(500),
+  systemId: z.string().min(1),
+});
+
+const updatePagesSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+  data: z
+    .object({
+      name: z.string().min(1).max(100).optional(),
+      path: z.string().min(1).max(500).optional(),
+    })
+    .refine((value) => Object.keys(value).length > 0, {
+      message: '更新数据不能为空',
+    }),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
       return errors.unauthorized();
     }
 
     const { searchParams } = new URL(request.url);
     const systemId = searchParams.get('systemId');
     const search = searchParams.get('search');
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
 
-    const where: any = {};
-    if (systemId) where.systemId = systemId;
+    const where: Prisma.PageWhereInput = {};
+    if (systemId) {
+      const canAccessSystem = await hasSystemAccess(session.user.id, systemId);
+      if (!canAccessSystem) {
+        return errors.forbidden();
+      }
+      where.systemId = systemId;
+    } else {
+      where.system = {
+        project: {
+          workspace: {
+            members: {
+              some: {
+                userId: session.user.id,
+              },
+            },
+          },
+        },
+      };
+    }
+
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { path: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { path: { contains: search, mode: 'insensitive' } },
       ];
     }
 
+    const total = await prisma.page.count({ where });
     const pages = await prisma.page.findMany({
       where,
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
       include: {
         system: {
@@ -39,92 +85,126 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return successResponse(pages);
+    return listResponse(pages, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error('Failed to fetch pages:', error);
-    return errorResponse('获取页面列表失败');
+    return errorResponse('获取页面列表失败', 500);
   }
 }
 
-// POST /api/pages - 创建页面
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
       return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { name, path, systemId, description, selector } = body;
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
+    }
 
-    if (!name || !path || !systemId) {
-      return errors.badRequest('缺少必要参数');
+    const validationResult = createPageSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`输入验证失败: ${errorMessages}`);
+    }
+
+    const { name, path, systemId } = validationResult.data;
+    const canManageSystem = await hasSystemAccess(session.user.id, systemId, MANAGE_ROLES);
+    if (!canManageSystem) {
+      return errors.forbidden();
     }
 
     const page = await prisma.page.create({
-      data: {
-        name,
-        path,
-        systemId,
-      },
+      data: { name, path, systemId },
     });
 
     return createdResponse(page);
   } catch (error) {
     console.error('Failed to create page:', error);
-    return errorResponse('创建页面失败');
+    return errorResponse('创建页面失败', 500);
   }
 }
 
-// PUT /api/pages - 批量更新页面
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
       return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { ids, data } = body;
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
+    }
 
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return errors.badRequest('缺少页面ID列表');
+    const validationResult = updatePagesSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`输入验证失败: ${errorMessages}`);
+    }
+
+    const { ids, data } = validationResult.data;
+    const targetPages = await prisma.page.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, systemId: true },
+    });
+
+    if (targetPages.length !== ids.length) {
+      return errors.badRequest('部分页面不存在');
+    }
+
+    const systemIds = [...new Set(targetPages.map((page) => page.systemId))];
+    for (const systemId of systemIds) {
+      const canManageSystem = await hasSystemAccess(session.user.id, systemId, MANAGE_ROLES);
+      if (!canManageSystem) {
+        return errors.forbidden();
+      }
     }
 
     const result = await prisma.page.updateMany({
       where: { id: { in: ids } },
-      data,
+      data: data as Prisma.PageUpdateManyMutationInput,
     });
 
     return successResponse({ updated: result.count });
   } catch (error) {
     console.error('Failed to update pages:', error);
-    return errorResponse('更新页面失败');
+    return errorResponse('更新页面失败', 500);
   }
 }
 
-// DELETE /api/pages - 删除页面
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user) {
       return errors.unauthorized();
     }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-
     if (!id) {
       return errors.badRequest('缺少页面ID');
     }
 
-    await prisma.page.delete({
+    const targetPage = await prisma.page.findUnique({
       where: { id },
+      select: { id: true, systemId: true },
     });
+    if (!targetPage) {
+      return errors.notFound('页面');
+    }
 
+    const canManageSystem = await hasSystemAccess(session.user.id, targetPage.systemId, MANAGE_ROLES);
+    if (!canManageSystem) {
+      return errors.forbidden();
+    }
+
+    await prisma.page.delete({ where: { id } });
     return successResponse({ deleted: true });
   } catch (error) {
     console.error('Failed to delete page:', error);
-    return errorResponse('删除页面失败');
+    return errorResponse('删除页面失败', 500);
   }
 }

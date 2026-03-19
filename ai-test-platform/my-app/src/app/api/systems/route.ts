@@ -1,38 +1,59 @@
-/**
- * Systems API
- * 系统管理（被测系统）
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { listResponse, itemResponse, createdResponse, errorResponse, errors, buildMeta } from '@/lib/api-response';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { prisma } from '@/lib/prisma';
+import {
+  buildMeta,
+  createdResponse,
+  errorResponse,
+  errors,
+  listResponse,
+} from '@/lib/api-response';
+import { hasProjectAccess, MANAGE_ROLES } from '@/lib/project-access';
 
-// GET /api/systems - 获取系统列表
+const createSystemSchema = z.object({
+  name: z.string().min(1).max(100),
+  baseUrl: z.string().min(1).max(500),
+  projectId: z.string().min(1),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
 
-    const where: any = {};
-    
+    const where: Prisma.SystemWhereInput = {};
     if (projectId) {
+      const canAccessProject = await hasProjectAccess(session.user.id, projectId);
+      if (!canAccessProject) {
+        return errors.forbidden();
+      }
       where.projectId = projectId;
+    } else {
+      where.project = {
+        workspace: {
+          members: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+      };
     }
 
     const total = await prisma.system.count({ where });
-
     const systems = await prisma.system.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take,
       orderBy: { updatedAt: 'desc' },
       include: {
         project: {
@@ -44,45 +65,50 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const formattedSystems = systems.map(s => ({
-      ...s,
-      pageCount: s._count.pages,
+    const formattedSystems = systems.map((system) => ({
+      ...system,
+      pageCount: system._count.pages,
       _count: undefined,
     }));
 
     return listResponse(formattedSystems, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error('Failed to fetch systems:', error);
-    return Response.json(errorResponse('获取系统列表失败'), { status: 500 });
+    return errorResponse('获取系统列表失败', 500);
   }
 }
 
-// POST /api/systems - 创建系统
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { name, baseUrl, projectId } = body;
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
+    }
 
-    if (!name || !baseUrl || !projectId) {
-      return errors.badRequest('名称、URL 和项目 ID 不能为空');
+    const validationResult = createSystemSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`输入验证失败: ${errorMessages}`);
+    }
+
+    const { name, baseUrl, projectId } = validationResult.data;
+    const canManageProject = await hasProjectAccess(session.user.id, projectId, MANAGE_ROLES);
+    if (!canManageProject) {
+      return errors.forbidden();
     }
 
     const system = await prisma.system.create({
-      data: {
-        name,
-        baseUrl,
-        projectId,
-      },
+      data: { name, baseUrl, projectId },
     });
 
     return createdResponse(system);
   } catch (error) {
     console.error('Failed to create system:', error);
-    return Response.json(errorResponse('创建系统失败'), { status: 500 });
+    return errorResponse('创建系统失败', 500);
   }
 }

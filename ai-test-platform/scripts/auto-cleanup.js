@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-# encoding: utf-8
-# -*- coding: utf-8 -*-
 
 /**
  * 自动清理脚本 - AutoCleanup
@@ -8,18 +6,22 @@
  * 使用方法：node auto-cleanup.js [--dry-run] [--no-git]
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 配置
 const CONFIG = {
   // 空文件大小阈值（bytes）
   emptyFileThreshold: 50,
-  
+
   // 项目根目录
   projectRoot: path.join(__dirname, '..'),
-  
+
   // 临时文件模式
   tempPatterns: [
     /^temp.*\.(js|ts|txt)$/i,
@@ -29,16 +31,16 @@ const CONFIG = {
     /^test.*\.txt$/i,
     /^output\.txt$/i,
   ],
-  
+
   // 临时目录模式
   tempDirs: ['-Force', '-p', '[name]', 'temp', 'test', '-Force', '-p'],
-  
+
   // 异常文件名模式
   abnormalPatterns: [
     /^\($/,
     /^\{\{$/,
     /^\$null$/,
-    /^\(\{$/,
+/^\(\{$/,
     /^\{n$/,
   ],
 };
@@ -74,12 +76,12 @@ function log(message, color = 'reset') {
 function isEmptyCodeFile(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const codeExts = ['.ts', '.js', '.tsx', '.jsx'];
-  
+
   if (!codeExts.includes(ext)) return false;
-  
+
   try {
-    const stats = fs.statSync(filePath);
-    return stats.size < CONFIG.emptyFileThreshold;
+    const stat = fs.statSync(filePath);
+    return stat.size < CONFIG.emptyFileThreshold;
   } catch (e) {
     return false;
   }
@@ -98,8 +100,8 @@ function isAbnormalFile(filename) {
 // 获取文件大小
 function getFileSize(filePath) {
   try {
-    const stats = fs.statSync(filePath);
-    return stats.size;
+    const stat = fs.statSync(filePath);
+    return stat.size;
   } catch (e) {
     return 0;
   }
@@ -108,17 +110,17 @@ function getFileSize(filePath) {
 // 扫描目录
 function scanDirectory(dirPath, dryRun = false) {
   const items = fs.readdirSync(dirPath);
-  
+
   for (const item of items) {
     // 跳过 .git 和 node_modules
     if (item === '.git' || item === 'node_modules') continue;
-    
+
     const fullPath = path.join(dirPath, item);
     const relativePath = path.relative(CONFIG.projectRoot, fullPath);
-    
+
     try {
       const stat = fs.statSync(fullPath);
-      
+
       if (stat.isDirectory()) {
         // 检查是否为临时目录
         if (CONFIG.tempDirs.includes(item) || isAbnormalFile(item)) {
@@ -135,7 +137,7 @@ function scanDirectory(dirPath, dryRun = false) {
       } else {
         // 检查文件
         const size = stat.size;
-        
+
         if (isEmptyCodeFile(fullPath)) {
           log(`📄 发现空代码文件: ${relativePath} (${size} bytes)`, 'yellow');
           if (!dryRun) {
@@ -191,7 +193,7 @@ ${stats.deletedDirs.length > 0 ? '删除的目录:\n' + stats.deletedDirs.map(d 
 
 ✅ 清理完成！
 `;
-  
+
   return report;
 }
 
@@ -208,10 +210,10 @@ function gitCommit() {
 - 移动分类文件 ${stats.classifiedFiles} 个
 
 自动清理执行时间: ${timestamp}`;
-    
+
     execSync('git add -A', { cwd: CONFIG.projectRoot, stdio: 'ignore' });
     execSync(`git commit -m "${commitMessage}"`, { cwd: CONFIG.projectRoot, stdio: 'ignore' });
-    
+
     const commitHash = execSync('git rev-parse --short HEAD', { cwd: CONFIG.projectRoot, encoding: 'utf8' }).trim();
     return commitHash;
   } catch (e) {
@@ -225,21 +227,21 @@ function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const noGit = args.includes('--no-git');
-  
+
   log('\n🔧 AutoCleanup - 自动清理工具\n', 'cyan');
-  
+
   if (dryRun) {
     log('🧪 预览模式（不会实际删除文件）\n', 'blue');
   }
-  
+
   // 扫描项目根目录
   log('🔍 正在扫描项目...\n', 'blue');
   scanDirectory(CONFIG.projectRoot, dryRun);
-  
+
   // 生成报告
   const report = generateReport();
   console.log(report);
-  
+
   // Git 提交
   if (!dryRun && !noGit) {
     log('📝 正在提交 Git...', 'blue');
@@ -248,7 +250,7 @@ function main() {
       log(`✅ Git 提交: ${commitHash}`, 'green');
     }
   }
-  
+
   log('\n🎉 清理完成！\n', 'green');
 }
 
