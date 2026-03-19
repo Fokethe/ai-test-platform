@@ -6,6 +6,29 @@
 - **提交记录**: `40919342` - 验收完成 acceptance-20260317-008
 - **最新验收**: acceptance-20260317-008 ✅ **全部通过**
 
+## 最新E2E进展 (2026-03-18)
+
+### Login E2E 修复完成
+- ✅ 修复 `ai-test-platform/my-app/e2e/auth.setup.ts`
+  - 测试账号改为与 seed 数据一致的 `demo@example.com / password123`
+  - 登录表单选择器改为稳定的 `#email` / `#password` / `#remember`
+  - 新增 `waitForLoginFormReady()`，在执行前先校验登录表单和记住邮箱控件状态
+- ✅ 修复 `ai-test-platform/my-app/e2e/login.spec.ts`
+  - 成功登录断言改为匹配当前仪表盘真实文案
+  - 无效登录用例改为校验“停留在登录页”这一稳定行为
+  - 记住邮箱用例改为使用真实 seeded 用户，并复用表单稳定化逻辑
+  - 移动端与空表单校验用例已验证通过
+
+### 验证结果
+- ✅ `npm --prefix f:\ai-test-platform\ai-test-platform\ai-test-platform\my-app run test:e2e -- e2e/login.spec.ts --project=chromium --workers=1`
+- ✅ 结果：**5 passed (31.4s)**
+
+### 当前观察
+- ⚠️ Playwright/Next.js 仍有非阻塞警告：
+  - 多个 `package-lock.json` 导致 workspace root 推断警告
+  - `middleware.ts` 命名约定已被 Next.js 标记为 deprecated，后续应迁移为 `proxy`
+- ℹ️ 当前已确认 `login.spec.ts` 在 Chromium 单 worker 下稳定通过，后续可继续扩展到其它 E2E 套件
+
 ## 最新验收结果 (2026-03-17 008批次)
 
 ### 验收概览

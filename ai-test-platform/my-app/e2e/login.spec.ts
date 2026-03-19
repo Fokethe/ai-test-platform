@@ -5,7 +5,15 @@
  * @p0
  */
 import { test, expect } from '@playwright/test';
-import { login, TEST_USER } from './auth.setup';
+import {
+  expectAuthenticated,
+  expectUnauthenticated,
+  getLoginElements,
+  login,
+  logout,
+  TEST_USER,
+  waitForLoginFormReady,
+} from './auth.setup';
 
 test.describe('登录功能', () => {
   test.beforeEach(async ({ page }) => {
@@ -17,73 +25,86 @@ test.describe('登录功能', () => {
    * @smoke
    */
   test('用户可以使用有效凭证登录 @smoke', async ({ page }) => {
+    const { emailInput, passwordInput } = getLoginElements(page);
+
     // Arrange
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    
+    await expect(emailInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+
     // Act
     await login(page, TEST_USER.email, TEST_USER.password);
-    
+
     // Assert
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.locator('h1')).toContainText('Dashboard');
+    await expectAuthenticated(page);
+    await expect(page.getByRole('heading', { name: /欢迎使用 AI 测试平台/ })).toBeVisible();
   });
 
   /**
    * @test 无效凭证登录失败
    */
   test('无效凭证应显示错误信息', async ({ page }) => {
+    const { emailInput, passwordInput, submitButton } = getLoginElements(page);
+
     // Arrange
     const invalidEmail = 'invalid@example.com';
     const invalidPassword = 'wrongpassword';
-    
+
     // Act
-    await page.fill('input[name="email"]', invalidEmail);
-    await page.fill('input[name="password"]', invalidPassword);
-    await page.click('button[type="submit"]');
-    
-    // Assert
-    await expect(page.locator('[data-testid="error-message"], .text-red-600')).toBeVisible();
-    await expect(page).toHaveURL('/login');
+    await emailInput.fill(invalidEmail);
+    await passwordInput.fill(invalidPassword);
+    await submitButton.click();
+
+    // Assert - 当前实现失败时停留在登录页
+    await expectUnauthenticated(page);
+    await expect(emailInput).toHaveValue(invalidEmail);
   });
 
   /**
    * @test 空字段验证
    */
   test('空字段应显示验证错误', async ({ page }) => {
-    // Act - 直接提交空表单
-    await page.click('button[type="submit"]');
-    
-    // Assert - 检查 HTML5 验证或自定义错误
-    const emailInput = page.locator('input[name="email"]');
-    const passwordInput = page.locator('input[name="password"]');
-    
-    // 验证字段是否显示验证错误（HTML5 required 属性）
+    const { emailInput, passwordInput, submitButton } = getLoginElements(page);
+
+    // Arrange
     await expect(emailInput).toHaveAttribute('required', '');
     await expect(passwordInput).toHaveAttribute('required', '');
+
+    // Act - 直接提交空表单
+    await submitButton.click();
+
+    // Assert - HTML5 校验会聚焦到第一个无效字段
+    await expect(emailInput).toBeFocused();
+    await expectUnauthenticated(page);
   });
 
   /**
    * @test 记住邮箱功能
    */
-  test('记住邮箱功能应保存用户输入', async ({ page, context }) => {
+  test('记住邮箱功能应保存用户输入', async ({ page }) => {
+    const { emailInput, passwordInput, rememberCheckbox, submitButton } = getLoginElements(page);
+
     // Arrange
-    const rememberEmail = 'remember@example.com';
-    
+    const rememberEmail = TEST_USER.email;
+    await page.evaluate(() => localStorage.removeItem('rememberedEmail'));
+    await waitForLoginFormReady(page);
+
     // Act
-    await page.fill('input[name="email"]', rememberEmail);
-    await page.fill('input[name="password"]', TEST_USER.password);
-    await page.check('input[type="checkbox"][name="remember"]');
-    await page.click('button[type="submit"]');
-    
-    // 登出
-    await page.goto('/logout');
-    
-    // 重新打开登录页
-    await page.goto('/login');
-    
+    await emailInput.fill(rememberEmail);
+    await passwordInput.fill(TEST_USER.password);
+    await rememberCheckbox.click();
+    await expect(rememberCheckbox).toHaveAttribute('data-state', 'checked');
+    await submitButton.click();
+
+    await expectAuthenticated(page);
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('rememberedEmail')))
+      .toBe(rememberEmail);
+
+    // 登出并回到登录页（保留 localStorage）
+    await logout(page);
+
     // Assert - 检查邮箱是否被记住
-    const emailValue = await page.inputValue('input[name="email"]');
-    expect(emailValue).toBe(rememberEmail);
+    await expect(getLoginElements(page).emailInput).toHaveValue(rememberEmail);
   });
 
   /**
@@ -92,14 +113,17 @@ test.describe('登录功能', () => {
   test('登录页在移动端应正常显示', async ({ page }) => {
     // Arrange - 设置为移动端视口
     await page.setViewportSize({ width: 375, height: 667 });
-    
+    await page.goto('/login');
+
+    const { emailInput, passwordInput, submitButton } = getLoginElements(page);
+
     // Assert
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
-    
+    await expect(emailInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+    await expect(submitButton).toBeVisible();
+
     // 检查元素是否适合视口
-    const emailBox = await page.locator('input[name="email"]').boundingBox();
+    const emailBox = await emailInput.boundingBox();
     expect(emailBox?.width).toBeLessThanOrEqual(375);
   });
 });

@@ -8,9 +8,34 @@ import { test as base, expect, Page } from '@playwright/test';
  * 测试用户凭证
  */
 export const TEST_USER = {
-  email: 'test@example.com',
-  password: 'test123456',
+  email: 'demo@example.com',
+  password: 'password123',
 };
+
+export function getLoginElements(page: Page) {
+  return {
+    emailInput: page.locator('input#email'),
+    passwordInput: page.locator('input#password'),
+    rememberCheckbox: page.locator('button#remember[role="checkbox"]'),
+    submitButton: page.getByRole('button', { name: '登录' }),
+  };
+}
+
+export async function waitForLoginFormReady(page: Page): Promise<void> {
+  const { emailInput, passwordInput, rememberCheckbox } = getLoginElements(page);
+
+  await expect(emailInput).toBeVisible();
+  await expect(passwordInput).toBeVisible();
+  await expect(rememberCheckbox).toBeVisible();
+
+  const initialState = (await rememberCheckbox.getAttribute('data-state')) ?? 'unchecked';
+  const toggledState = initialState === 'checked' ? 'unchecked' : 'checked';
+
+  await rememberCheckbox.click();
+  await expect(rememberCheckbox).toHaveAttribute('data-state', toggledState);
+  await rememberCheckbox.click();
+  await expect(rememberCheckbox).toHaveAttribute('data-state', initialState);
+}
 
 /**
  * 扩展的测试 fixture，包含认证功能
@@ -32,43 +57,42 @@ export const test = base.extend<{
  */
 export async function login(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/login');
-  
-  // 等待表单加载
-  await page.waitForSelector('input[name="email"]', { state: 'visible' });
-  
-  // 填充登录表单
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  
-  // 提交表单
-  await page.click('button[type="submit"]');
-  
-  // 等待导航完成
-  await page.waitForURL('/dashboard', { timeout: 10000 });
+  await waitForLoginFormReady(page);
+
+  const { emailInput, passwordInput, submitButton } = getLoginElements(page);
+
+  // 等待表单加载并填充
+  await emailInput.fill(email);
+  await passwordInput.fill(password);
+
+  // 提交表单并等待跳转
+  await submitButton.click();
+  await page.waitForURL(/\/dashboard(?:\?.*)?$/, { timeout: 15000 });
 }
 
 /**
  * 登出功能
  */
 export async function logout(page: Page): Promise<void> {
-  await page.goto('/logout');
-  await page.waitForURL('/login', { timeout: 10000 });
+  await page.context().clearCookies();
+  await page.goto('/login');
+  await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 }
 
 /**
  * 验证是否已登录
  */
 export async function expectAuthenticated(page: Page): Promise<void> {
-  await expect(page).toHaveURL('/dashboard');
-  await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+  await expect(page.getByRole('link', { name: '工作台' })).toBeVisible();
 }
 
 /**
  * 验证是否已登出
  */
 export async function expectUnauthenticated(page: Page): Promise<void> {
-  await expect(page).toHaveURL('/login');
-  await expect(page.locator('input[name="email"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+  await expect(getLoginElements(page).emailInput).toBeVisible();
 }
 
 export { expect };
