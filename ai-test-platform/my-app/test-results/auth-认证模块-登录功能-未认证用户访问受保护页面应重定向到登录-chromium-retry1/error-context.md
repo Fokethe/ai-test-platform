@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "AI测试平台" [ref=e6] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e8]
+          - generic [ref=e11]: AI测试平台
+        - button [ref=e12]:
+          - img
+      - navigation [ref=e13]:
+        - link "工作台" [ref=e14] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e16]
+          - generic [ref=e21]: 工作台
+        - link "项目管理" [ref=e22] [cursor=pointer]:
+          - /url: /projects
+          - img [ref=e23]
+          - generic [ref=e25]: 项目管理
+        - link "需求管理" [ref=e26] [cursor=pointer]:
+          - /url: /requirements
+          - img [ref=e27]
+          - generic [ref=e30]: 需求管理
+        - link "测试设计" [ref=e31] [cursor=pointer]:
+          - /url: /tests
+          - img [ref=e32]
+          - generic [ref=e34]: 测试设计
+        - link "测试执行" [ref=e35] [cursor=pointer]:
+          - /url: /executions
+          - img [ref=e36]
+          - generic [ref=e38]: 测试执行
+        - link "缺陷管理" [ref=e39] [cursor=pointer]:
+          - /url: /issues
+          - img [ref=e40]
+          - generic [ref=e49]: 缺陷管理
+        - link "报告中心" [ref=e50] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e51]
+          - generic [ref=e53]: 报告中心
+        - link "知识库" [ref=e54] [cursor=pointer]:
+          - /url: /knowledge
+          - img [ref=e55]
+          - generic [ref=e57]: 知识库
+        - link "设置" [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e60]
+          - generic [ref=e63]: 设置
+      - button "U" [ref=e65]:
+        - generic [ref=e67]: U
+        - generic:
+          - paragraph
+          - paragraph
+    - main [ref=e68]:
+      - generic [ref=e69]:
+        - button "搜索... ⌘K" [ref=e71]:
+          - img [ref=e72]
+          - generic [ref=e75]: 搜索...
+          - generic [ref=e76]: ⌘K
+        - button "消息通知" [ref=e78]:
+          - img
+  - region "Notifications alt+T"
+```

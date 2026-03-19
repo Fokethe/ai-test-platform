@@ -1,0 +1,71 @@
+﻿# generated: 2026-03-19 01:14
+# last_updated: 2026-03-19 09:19
+# project: ai-test-platform-1
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+generated: "2026-03-19 01:14"
+last_updated: "2026-03-19 09:19"
+project: "ai-test-platform-1"
+project_key: "NOKEY"
+tracking_system: "file-system"
+story_location: "_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-baseline-env-setup: review
+  1-2-workspace-project-governance: backlog
+  1-3-auth-login-session: backlog
+  1-4-rbac-user-status: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-requirement-ingestion-testpoint-extraction: backlog
+  2-2-testpoint-review-traceability: backlog
+  2-3-test-asset-create-search: backlog
+  2-4-bulk-ops-source-tracking: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-multi-source-query-construction: backlog
+  3-2-rag-strategy-toggles: backlog
+  3-3-logic-routing-engine: backlog
+  3-4-semantic-routing-prompt-versioning: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-semantic-splitting-index-units: backlog
+  4-2-multi-representation-summary-indexing: backlog
+  4-3-special-embedding-adapter: backlog
+  4-4-hierarchical-indexing-recovery: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-retrieval-refinement-evidence-explainability: backlog
+  5-2-reranking-service: backlog
+  5-3-active-retrieval-cited-generation: backlog
+  5-4-self-rag-rrr-controlled-generation: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-eval-orchestration-ragas-grouse-deepeval: backlog
+  6-2-quality-cost-dashboard: backlog
+  6-3-strategy-version-comparison: backlog
+  6-4-eval-reproducibility-refresh-guard: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-run-creation-start: backlog
+  7-2-execution-state-tracking: backlog
+  7-3-failed-execution-to-issue: backlog
+  7-4-issue-lifecycle-regression-link: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-webhook-event-delivery: backlog
+  8-2-notification-preferences-unread: backlog
+  8-3-integration-retry-reliability: backlog
+  8-4-compliance-checklist-evidence-export: backlog
+  8-5-subscription-quota-governance: backlog
+  epic-8-retrospective: optional

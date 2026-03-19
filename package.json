@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@langchain/langgraph": "^1.2.2",
+    "@sentry/nextjs": "^10.44.0",
     "chromadb": "^3.3.3",
     "exceljs": "^4.4.0",
     "isomorphic-dompurify": "^3.3.0",

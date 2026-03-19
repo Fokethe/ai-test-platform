@@ -1,0 +1,202 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "AI测试平台" [ref=e6] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e8]
+          - generic [ref=e11]: AI测试平台
+        - button [ref=e12]:
+          - img
+      - navigation [ref=e13]:
+        - link "工作台" [ref=e14] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e16]
+          - generic [ref=e21]: 工作台
+        - link "项目管理" [ref=e22] [cursor=pointer]:
+          - /url: /projects
+          - img [ref=e23]
+          - generic [ref=e25]: 项目管理
+        - link "需求管理" [ref=e26] [cursor=pointer]:
+          - /url: /requirements
+          - img [ref=e27]
+          - generic [ref=e30]: 需求管理
+        - link "测试设计" [ref=e31] [cursor=pointer]:
+          - /url: /tests
+          - img [ref=e32]
+          - generic [ref=e34]: 测试设计
+        - link "测试执行" [ref=e35] [cursor=pointer]:
+          - /url: /executions
+          - img [ref=e36]
+          - generic [ref=e38]: 测试执行
+        - link "缺陷管理" [ref=e39] [cursor=pointer]:
+          - /url: /issues
+          - img [ref=e40]
+          - generic [ref=e49]: 缺陷管理
+        - link "报告中心" [ref=e50] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e51]
+          - generic [ref=e53]: 报告中心
+        - link "知识库" [ref=e54] [cursor=pointer]:
+          - /url: /knowledge
+          - img [ref=e55]
+          - generic [ref=e57]: 知识库
+        - link "设置" [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e60]
+          - generic [ref=e63]: 设置
+      - button "U" [ref=e65]:
+        - generic [ref=e67]: U
+        - generic:
+          - paragraph
+          - paragraph
+    - main [ref=e68]:
+      - generic [ref=e69]:
+        - button "搜索... ⌘K" [ref=e71]:
+          - img [ref=e72]
+          - generic [ref=e75]: 搜索...
+          - generic [ref=e76]: ⌘K
+        - button "消息通知" [ref=e78]:
+          - img
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - heading "欢迎使用 AI 测试平台" [level=1] [ref=e82]
+          - paragraph [ref=e83]: 通过智能对话快速创建测试用例、执行测试任务、分析测试报告
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - img [ref=e88]
+            - textbox "试试输入：生成登录功能的测试用例" [ref=e91]
+            - button "发送" [disabled]
+          - generic [ref=e92]:
+            - generic [ref=e93]: "快速指令:"
+            - button "生成用例" [ref=e94]
+            - button "查询结果" [ref=e95]
+            - button "分析覆盖" [ref=e96]
+        - generic [ref=e97]:
+          - heading "快速开始" [level=2] [ref=e99]
+          - generic [ref=e100]:
+            - link "新建需求 从需求文档开始，AI自动生成测试要点 开始使用" [ref=e101] [cursor=pointer]:
+              - /url: /requirements/new
+              - generic [ref=e102]:
+                - img [ref=e104]
+                - heading "新建需求" [level=3] [ref=e107]
+                - paragraph [ref=e108]: 从需求文档开始，AI自动生成测试要点
+                - generic [ref=e109]:
+                  - text: 开始使用
+                  - img [ref=e110]
+            - link "生成用例 基于需求智能生成完整测试用例 开始使用" [ref=e112] [cursor=pointer]:
+              - /url: /tests?tab=ai
+              - generic [ref=e113]:
+                - img [ref=e115]
+                - heading "生成用例" [level=3] [ref=e117]
+                - paragraph [ref=e118]: 基于需求智能生成完整测试用例
+                - generic [ref=e119]:
+                  - text: 开始使用
+                  - img [ref=e120]
+            - link "执行测试 一键执行测试套件，实时查看进度 开始使用" [ref=e122] [cursor=pointer]:
+              - /url: /executions
+              - generic [ref=e123]:
+                - img [ref=e125]
+                - heading "执行测试" [level=3] [ref=e127]
+                - paragraph [ref=e128]: 一键执行测试套件，实时查看进度
+                - generic [ref=e129]:
+                  - text: 开始使用
+                  - img [ref=e130]
+            - link "查看报告 多维度分析测试结果和质量趋势 开始使用" [ref=e132] [cursor=pointer]:
+              - /url: /reports
+              - generic [ref=e133]:
+                - img [ref=e135]
+                - heading "查看报告" [level=3] [ref=e137]
+                - paragraph [ref=e138]: 多维度分析测试结果和质量趋势
+                - generic [ref=e139]:
+                  - text: 开始使用
+                  - img [ref=e140]
+        - generic [ref=e142]:
+          - heading "数据概览" [level=2] [ref=e144]
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - img [ref=e149]
+                - generic [ref=e151]:
+                  - img [ref=e152]
+                  - generic [ref=e155]: +12%
+              - generic [ref=e156]:
+                - paragraph [ref=e157]: 总用例数
+                - paragraph [ref=e158]: "128"
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - img [ref=e162]
+                - generic [ref=e164]:
+                  - img [ref=e165]
+                  - generic [ref=e168]: "+5"
+              - generic [ref=e169]:
+                - paragraph [ref=e170]: 今日执行
+                - paragraph [ref=e171]: "24"
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - img [ref=e175]
+                - generic [ref=e178]:
+                  - img [ref=e179]
+                  - generic [ref=e182]: +2.3%
+              - generic [ref=e183]:
+                - paragraph [ref=e184]: 通过率
+                - paragraph [ref=e185]: 96.5%
+            - generic [ref=e186]:
+              - img [ref=e189]
+              - generic [ref=e191]:
+                - paragraph [ref=e192]: 待处理缺陷
+                - paragraph [ref=e193]: "3"
+        - generic [ref=e194]:
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - heading "最近动态" [level=3] [ref=e198]
+              - link "查看全部" [ref=e199] [cursor=pointer]:
+                - /url: "#"
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - img [ref=e203]
+                - generic [ref=e205]:
+                  - paragraph [ref=e206]: 执行了 "用户登录" 测试套件
+                  - paragraph [ref=e207]: 5分钟前
+              - generic [ref=e208]:
+                - img [ref=e210]
+                - generic [ref=e211]:
+                  - paragraph [ref=e212]: 创建了新的测试需求 "订单管理"
+                  - paragraph [ref=e213]: 1小时前
+              - generic [ref=e214]:
+                - img [ref=e216]
+                - generic [ref=e219]:
+                  - paragraph [ref=e220]: AI生成了12个测试用例
+                  - paragraph [ref=e221]: 2小时前
+              - generic [ref=e222]:
+                - img [ref=e224]
+                - generic [ref=e226]:
+                  - paragraph [ref=e227]: 发现3个新的缺陷
+                  - paragraph [ref=e228]: 3小时前
+          - generic [ref=e230]:
+            - heading "快捷链接" [level=3] [ref=e232]
+            - generic [ref=e233]:
+              - link "项目管理" [ref=e234] [cursor=pointer]:
+                - /url: /projects
+                - generic [ref=e235]: 项目管理
+                - img [ref=e236]
+              - link "知识库" [ref=e238] [cursor=pointer]:
+                - /url: /knowledge
+                - generic [ref=e239]: 知识库
+                - img [ref=e240]
+              - link "缺陷管理" [ref=e242] [cursor=pointer]:
+                - /url: /issues
+                - generic [ref=e243]: 缺陷管理
+                - img [ref=e244]
+              - link "系统设置" [ref=e246] [cursor=pointer]:
+                - /url: /settings
+                - generic [ref=e247]: 系统设置
+                - img [ref=e248]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e255] [cursor=pointer]:
+    - img [ref=e256]
+  - alert [ref=e259]
+```
