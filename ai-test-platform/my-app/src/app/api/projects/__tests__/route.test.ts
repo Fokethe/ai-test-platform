@@ -12,8 +12,12 @@ jest.mock('@/lib/prisma', () => ({
       count: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
+      findFirst: jest.fn(),
     },
     workspaceMember: {
+      findFirst: jest.fn(),
+    },
+    workspace: {
       findFirst: jest.fn(),
     },
   },
@@ -31,19 +35,7 @@ describe('GET /api/projects', () => {
     expect(response.status).toBe(401);
   });
 
-  it('returns 403 when workspaceId is not accessible', async () => {
-    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
-    (prisma.workspaceMember.findFirst as jest.Mock).mockResolvedValue(null);
-
-    const response = await GET(
-      new Request('http://localhost/api/projects?workspaceId=ws-1&page=1&pageSize=20') as never
-    );
-
-    expect(response.status).toBe(403);
-    expect(prisma.project.findMany).not.toHaveBeenCalled();
-  });
-
-  it('filters projects by workspace membership', async () => {
+  it('scopes projects by project membership', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
     (prisma.project.count as jest.Mock).mockResolvedValue(1);
     (prisma.project.findMany as jest.Mock).mockResolvedValue([
@@ -58,9 +50,8 @@ describe('GET /api/projects', () => {
         workspace: {
           id: 'ws-1',
           name: 'Workspace 1',
-          _count: { members: 3 },
         },
-        _count: { systems: 2, tests: 4, runs: 1, issues: 0 },
+        _count: { systems: 2, tests: 4, runs: 1, issues: 0, members: 3 },
       },
     ]);
 
@@ -71,13 +62,15 @@ describe('GET /api/projects', () => {
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          workspace: {
-            members: {
-              some: {
-                userId: 'user-1',
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              members: {
+                some: {
+                  userId: 'user-1',
+                },
               },
-            },
-          },
+            }),
+          ]),
         }),
       })
     );
@@ -87,6 +80,25 @@ describe('GET /api/projects', () => {
         systemCount: 2,
         testCount: 4,
         memberCount: 3,
+      })
+    );
+  });
+
+  it('applies workspaceId filter without forcing workspace membership', async () => {
+    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
+    (prisma.project.count as jest.Mock).mockResolvedValue(0);
+    (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
+
+    const response = await GET(
+      new Request('http://localhost/api/projects?workspaceId=ws-2&page=1&pageSize=20') as never
+    );
+
+    expect(response.status).toBe(200);
+    expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: 'ws-2',
+        }),
       })
     );
   });
@@ -100,6 +112,7 @@ describe('POST /api/projects', () => {
   it('returns 403 when user cannot manage workspace', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
     (prisma.workspaceMember.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.workspace.findFirst as jest.Mock).mockResolvedValue(null);
 
     const response = await POST(
       new Request('http://localhost/api/projects', {
@@ -116,7 +129,7 @@ describe('POST /api/projects', () => {
     expect(prisma.project.create).not.toHaveBeenCalled();
   });
 
-  it('creates project when workspace manager is authorized', async () => {
+  it('creates project and owner membership when workspace manager is authorized', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
     (prisma.workspaceMember.findFirst as jest.Mock).mockResolvedValue({ id: 'member-1' });
     (prisma.project.create as jest.Mock).mockResolvedValue({
@@ -139,7 +152,20 @@ describe('POST /api/projects', () => {
     const data = await response.json();
 
     expect(response.status).toBe(201);
-    expect(prisma.project.create).toHaveBeenCalled();
+    expect(prisma.project.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workspaceId: 'ws-1',
+          members: {
+            create: expect.objectContaining({
+              userId: 'user-1',
+              role: 'OWNER',
+              accessType: 'OWNED',
+            }),
+          },
+        }),
+      })
+    );
     expect(data.data.id).toBe('proj-1');
   });
 });

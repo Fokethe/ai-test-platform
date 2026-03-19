@@ -1,28 +1,48 @@
-/**
- * Workspaces API - 轻量级实现
- * TDD 第2轮：最小实现（绿阶段）
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { listResponse, createdResponse, errorResponse, errors, buildMeta } from '@/lib/api-response';
+import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { buildQueryParams, parseJsonBody } from '@/lib/api-handler';
+import { buildMeta, createdResponse, errorResponse, errors, listResponse } from '@/lib/api-response';
+import { buildPersonalWorkspaceName, ensurePersonalWorkspace } from '@/lib/personal-workspace';
+import { prisma } from '@/lib/prisma';
 
-// GET /api/workspaces - 获取工作空间列表
+const createWorkspaceSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  isPersonal: z.boolean().optional(),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-    const search = searchParams.get('search');
+    await ensurePersonalWorkspace(session.user.id, {
+      nameHint: session.user.name,
+      email: session.user.email,
+    });
 
-    // 构建查询条件
-    const where: any = {};
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
+
+    const where: Prisma.WorkspaceWhereInput = {
+      OR: [
+        {
+          members: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+        {
+          ownerId: session.user.id,
+        },
+      ],
+    };
 
     if (search) {
       where.name = {
@@ -31,71 +51,79 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // 查询用户有权限的工作空间
-    const memberships = await prisma.workspaceMember.findMany({
-      where: { userId: session.user.id },
-      select: { workspaceId: true },
-    });
-
-    const workspaceIds = memberships.map((m) => m.workspaceId);
-
-    if (workspaceIds.length > 0) {
-      where.id = { in: workspaceIds };
-    } else {
-      // 如果没有成员关系，返回空结果
-      return listResponse([], buildMeta(0, page, pageSize));
-    }
-
-    // 查询总数
     const total = await prisma.workspace.count({ where });
-
-    // 查询数据
     const workspaces = await prisma.workspace.findMany({
       where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { updatedAt: 'desc' },
+      skip,
+      take,
+      orderBy: [{ isPersonal: 'desc' }, { updatedAt: 'desc' }],
       include: {
         _count: {
-          select: { projects: true },
+          select: { projects: true, members: true },
         },
       },
     });
 
-    // 格式化响应
-    const formattedWorkspaces = workspaces.map((w) => ({
-      ...w,
-      projectCount: w._count.projects,
+    const formattedWorkspaces = workspaces.map((workspace) => ({
+      ...workspace,
+      projectCount: workspace._count.projects,
+      memberCount: workspace._count.members,
       _count: undefined,
     }));
 
     return listResponse(formattedWorkspaces, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error('Failed to fetch workspaces:', error);
-    return Response.json(errorResponse('获取工作空间列表失败'), { status: 500 });
+    return errorResponse('Failed to fetch workspaces', 500);
   }
 }
 
-// POST /api/workspaces - 创建工作空间
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+      return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { name, description } = body;
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
+    }
+
+    const validationResult = createWorkspaceSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`Input validation failed: ${errorMessages}`);
+    }
+
+    const { description, isPersonal = false } = validationResult.data;
+    const name =
+      validationResult.data.name ??
+      (isPersonal ? buildPersonalWorkspaceName(session.user.name, session.user.email) : '');
 
     if (!name) {
-      return errors.badRequest('工作空间名称不能为空');
+      return errors.badRequest('Workspace name is required');
     }
 
-    // 创建工作空间
+    if (isPersonal) {
+      const existingPersonalWorkspace = await prisma.workspace.findFirst({
+        where: {
+          ownerId: session.user.id,
+          isPersonal: true,
+        },
+        select: { id: true },
+      });
+      if (existingPersonalWorkspace) {
+        return errors.conflict('Personal workspace already exists');
+      }
+    }
+
     const workspace = await prisma.workspace.create({
       data: {
         name,
         description,
+        ownerId: session.user.id,
+        isPersonal,
         members: {
           create: {
             userId: session.user.id,
@@ -105,20 +133,19 @@ export async function POST(request: NextRequest) {
       },
       include: {
         _count: {
-          select: { projects: true },
+          select: { projects: true, members: true },
         },
       },
     });
 
-    const formattedWorkspace = {
+    return createdResponse({
       ...workspace,
       projectCount: workspace._count.projects,
+      memberCount: workspace._count.members,
       _count: undefined,
-    };
-
-    return createdResponse(formattedWorkspace);
+    });
   } catch (error) {
     console.error('Failed to create workspace:', error);
-    return Response.json(errorResponse('创建工作空间失败'), { status: 500 });
+    return errorResponse('Failed to create workspace', 500);
   }
 }

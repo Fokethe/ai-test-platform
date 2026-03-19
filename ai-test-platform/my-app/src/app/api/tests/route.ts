@@ -1,150 +1,260 @@
-/**
- * Unified Tests API
- * 合并 TestCase + TestSuite
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import {
-  listResponse,
+  buildMeta,
   createdResponse,
   errorResponse,
   errors,
-  buildMeta,
+  listResponse,
 } from '@/lib/api-response';
-import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { buildQueryParams, parseJsonBody } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
+import { hasProjectAccess } from '@/lib/project-access';
+import { prisma } from '@/lib/prisma';
 
-// GET /api/tests - 列表
+type TestType = 'CASE' | 'SUITE' | 'FOLDER';
+
+const ALLOWED_SORT_FIELDS = new Set(['createdAt', 'updatedAt', 'name', 'priority']);
+
+function normalizeText(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+}
+
+function normalizeType(value: unknown): TestType | null {
+  if (value === 'CASE' || value === 'SUITE' || value === 'FOLDER') {
+    return value;
+  }
+  return null;
+}
+
+function parseTagsInput(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function buildAccessibleTestsScope(userId: string): Prisma.TestWhereInput {
+  return {
+    project: {
+      OR: [
+        { members: { some: { userId } } },
+        { workspace: { members: { some: { userId } } } },
+        { workspace: { ownerId: userId } },
+      ],
+    },
+  };
+}
+
 export async function GET(request: NextRequest) {
-  // 认证检查
   const session = await auth();
   if (!session?.user?.id) {
-    return errorResponse('未授权访问', 401);
+    return errors.unauthorized();
   }
-  
+
   try {
     const { searchParams } = new URL(request.url);
-    
-    const type = searchParams.get('type') as 'CASE' | 'SUITE' | 'FOLDER' | null;
-    const projectId = searchParams.get('projectId');
-    const parentId = searchParams.get('parentId');
-    const search = searchParams.get('search');
-    const tags = searchParams.get('tags');
+    const type = normalizeType(searchParams.get('type'));
+    const projectId = normalizeText(searchParams.get('projectId'));
+    const parentIdParam = searchParams.get('parentId');
+    const search = normalizeText(searchParams.get('search'));
+    const status = normalizeText(searchParams.get('status'));
+    const priority = normalizeText(searchParams.get('priority'));
+    const source = normalizeText(searchParams.get('source'));
+    const tagsFilter = parseTagsInput(searchParams.get('tags'));
+    const sort = normalizeText(searchParams.get('sort'));
+    const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
     const { page, pageSize, skip, take } = buildQueryParams(searchParams);
-    
-    // 构建查询条件
-    const where: Prisma.TestWhereInput = {};
-    
+
+    const andFilters: Prisma.TestWhereInput[] = [buildAccessibleTestsScope(session.user.id)];
+
     if (type) {
-      where.type = type;
+      andFilters.push({ type });
     }
-    
     if (projectId) {
-      where.projectId = projectId;
+      andFilters.push({ projectId });
     }
-    
-    if (parentId !== undefined) {
-      where.parentId = parentId || null;
+    if (parentIdParam !== null) {
+      andFilters.push({ parentId: parentIdParam || null });
     }
-    
+    if (status) {
+      andFilters.push({ status });
+    }
+    if (priority) {
+      andFilters.push({ priority });
+    }
+    if (source) {
+      andFilters.push({ source });
+    }
     if (search) {
-      where.name = {
-        contains: search,
-      };
+      andFilters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
-    
-    if (tags) {
-      // JSON 数组搜索
-      where.tags = {
-        contains: tags,
-      };
+    if (tagsFilter.length > 0) {
+      andFilters.push({
+        OR: tagsFilter.map((tag) => ({
+          tags: { contains: tag },
+        })),
+      });
     }
-    
-    // 查询总数
+
+    const where: Prisma.TestWhereInput = { AND: andFilters };
     const total = await prisma.test.count({ where });
-    
-    // 查询数据
+
+    const orderBy: Prisma.TestOrderByWithRelationInput = ALLOWED_SORT_FIELDS.has(sort)
+      ? ({ [sort]: order } as Prisma.TestOrderByWithRelationInput)
+      : { updatedAt: 'desc' };
+
     const tests = await prisma.test.findMany({
       where,
       skip,
       take,
-      orderBy: { updatedAt: 'desc' },
+      orderBy,
       include: {
-        children: {
-          select: { id: true },
+        customFieldValues: {
+          include: {
+            field: {
+              select: { id: true, name: true, type: true },
+            },
+          },
         },
         _count: {
           select: { executions: true },
         },
       },
     });
-    
+
     return listResponse(tests, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error('Failed to fetch tests:', error);
-    return errorResponse('获取测试列表失败');
+    return errorResponse('Failed to fetch tests', 500);
   }
 }
 
-// POST /api/tests - 创建
 export async function POST(request: NextRequest) {
-  // 获取当前用户
   const session = await auth();
-  const userId = session?.user?.id || 'system';
-  
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
   const parseResult = await parseJsonBody<{
-    name: string;
-    description?: string;
-    type?: string;
+    name?: unknown;
+    description?: unknown;
+    type?: unknown;
     content?: unknown;
-    projectId: string;
-    parentId?: string | null;
+    projectId?: unknown;
+    parentId?: unknown;
     tags?: unknown;
-    priority?: string;
-    source?: string;
+    priority?: unknown;
+    source?: unknown;
+    requirementId?: unknown;
+    aiPrompt?: unknown;
+    aiModel?: unknown;
   }>(request);
-  
+
   if (!parseResult.success) {
     return parseResult.error;
   }
-  
-  const {
-    name,
-    description,
-    type: testType = 'CASE',
-    content,
-    projectId,
-    parentId,
-    tags,
-    priority = 'MEDIUM',
-    source = 'MANUAL',
-  } = parseResult.data;
-  
+
+  const name = normalizeText(parseResult.data.name);
+  const projectId = normalizeText(parseResult.data.projectId);
+  let requirementId = normalizeText(parseResult.data.requirementId);
+  const description = normalizeText(parseResult.data.description) || null;
+  const type = normalizeType(parseResult.data.type) || 'CASE';
+  const parentId =
+    typeof parseResult.data.parentId === 'string' ? parseResult.data.parentId.trim() || null : null;
+  const priority = normalizeText(parseResult.data.priority) || 'MEDIUM';
+  const source = normalizeText(parseResult.data.source) || 'MANUAL';
+  const tags = parseTagsInput(parseResult.data.tags);
+
   if (!name || !projectId) {
-    return errors.badRequest('名称和项目ID不能为空');
+    return errors.badRequest('name and projectId are required');
   }
-  
+  const canAccessProject = await hasProjectAccess(session.user.id, projectId);
+  if (!canAccessProject) {
+    return errors.forbidden();
+  }
+
+  if (!requirementId) {
+    const fallbackRequirement = await prisma.requirement.findFirst({
+      where: { page: { system: { projectId } } },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    if (!fallbackRequirement) {
+      return errors.badRequest('requirementId is required');
+    }
+
+    requirementId = fallbackRequirement.id;
+  } else {
+    const requirement = await prisma.requirement.findFirst({
+      where: { id: requirementId, page: { system: { projectId } } },
+      select: { id: true },
+    });
+    if (!requirement) {
+      return errors.badRequest('requirementId is invalid for this project');
+    }
+  }
+
+  if (parentId) {
+    const parent = await prisma.test.findFirst({
+      where: { id: parentId, projectId },
+      select: { id: true },
+    });
+    if (!parent) {
+      return errors.badRequest('parentId is invalid for this project');
+    }
+  }
+
+  const contentValue =
+    parseResult.data.content === undefined || parseResult.data.content === null
+      ? null
+      : typeof parseResult.data.content === 'string'
+      ? parseResult.data.content
+      : JSON.stringify(parseResult.data.content);
+
   try {
     const test = await prisma.test.create({
       data: {
         name,
         description,
-        type: testType as Prisma.TestCreateInput['type'],
-        content: content ? (typeof content === 'object' ? JSON.stringify(content) : String(content)) : null,
+        type,
+        content: contentValue,
         projectId,
         parentId,
-        tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
+        tags: tags.length > 0 ? JSON.stringify(tags) : null,
         priority,
         source,
-        createdBy: userId,
+        requirementId,
+        createdBy: session.user.id,
+        aiPrompt:
+          typeof parseResult.data.aiPrompt === 'string' ? parseResult.data.aiPrompt : null,
+        aiModel: typeof parseResult.data.aiModel === 'string' ? parseResult.data.aiModel : null,
       },
     });
-    
+
     return createdResponse(test);
   } catch (error) {
     console.error('Failed to create test:', error);
-    return errorResponse('创建测试失败');
+    return errorResponse('Failed to create test', 500);
   }
 }

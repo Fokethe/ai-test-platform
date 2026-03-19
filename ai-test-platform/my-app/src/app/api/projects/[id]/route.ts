@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { parseJsonBody } from '@/lib/api-handler';
 import { prisma } from '@/lib/prisma';
 import { errors, errorResponse, successResponse } from '@/lib/api-response';
-import { hasWorkspaceAccess, MANAGE_ROLES } from '@/lib/project-access';
+import { hasProjectAccess, PROJECT_MANAGE_ROLES } from '@/lib/project-access';
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -12,7 +12,7 @@ const updateProjectSchema = z.object({
   status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
 });
 
-async function getProjectWorkspace(projectId: string) {
+async function getProjectBase(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },
     select: { id: true, workspaceId: true },
@@ -30,12 +30,12 @@ export async function GET(
       return errors.unauthorized();
     }
 
-    const projectBase = await getProjectWorkspace(id);
+    const projectBase = await getProjectBase(id);
     if (!projectBase) {
       return errors.notFound('项目');
     }
 
-    const canAccessProject = await hasWorkspaceAccess(session.user.id, projectBase.workspaceId);
+    const canAccessProject = await hasProjectAccess(session.user.id, id);
     if (!canAccessProject) {
       return errors.forbidden();
     }
@@ -47,9 +47,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            _count: {
-              select: { members: true },
-            },
           },
         },
         tests: {
@@ -69,7 +66,7 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
         },
         _count: {
-          select: { tests: true, runs: true, issues: true, systems: true },
+          select: { tests: true, runs: true, issues: true, systems: true, members: true },
         },
       },
     });
@@ -84,7 +81,7 @@ export async function GET(
       runCount: project._count.runs,
       issueCount: project._count.issues,
       systemCount: project._count.systems,
-      memberCount: project.workspace._count.members,
+      memberCount: project._count.members,
       _count: undefined,
     });
   } catch (error) {
@@ -115,15 +112,15 @@ export async function PUT(
       return errors.badRequest(`输入验证失败: ${errorMessages}`);
     }
 
-    const existing = await getProjectWorkspace(id);
+    const existing = await getProjectBase(id);
     if (!existing) {
       return errors.notFound('项目');
     }
 
-    const canManageProject = await hasWorkspaceAccess(
+    const canManageProject = await hasProjectAccess(
       session.user.id,
-      existing.workspaceId,
-      MANAGE_ROLES
+      id,
+      PROJECT_MANAGE_ROLES
     );
     if (!canManageProject) {
       return errors.forbidden();
@@ -158,15 +155,15 @@ export async function DELETE(
       return errors.unauthorized();
     }
 
-    const existing = await getProjectWorkspace(id);
+    const existing = await getProjectBase(id);
     if (!existing) {
       return errors.notFound('项目');
     }
 
-    const canManageProject = await hasWorkspaceAccess(
+    const canManageProject = await hasProjectAccess(
       session.user.id,
-      existing.workspaceId,
-      MANAGE_ROLES
+      id,
+      PROJECT_MANAGE_ROLES
     );
     if (!canManageProject) {
       return errors.forbidden();

@@ -1,15 +1,23 @@
-/**
- * Workspace Detail API
- * TDD 第2轮：最小实现（绿阶段）
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { itemResponse, errorResponse, errors } from '@/lib/api-response';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { parseJsonBody } from '@/lib/api-handler';
+import { errorResponse, errors, itemResponse, successResponse } from '@/lib/api-response';
+import { MANAGE_ROLES, hasWorkspaceAccess } from '@/lib/project-access';
+import { prisma } from '@/lib/prisma';
 
-// GET /api/workspaces/[id] - 获取工作空间详情
+const updateWorkspaceSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+});
+
+async function getWorkspaceBase(workspaceId: string) {
+  return prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { id: true, isPersonal: true, ownerId: true },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,15 +30,13 @@ export async function GET(
 
     const { id } = await params;
 
-    // 检查权限
-    const membership = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: id,
-        userId: session.user.id,
-      },
-    });
+    const workspaceBase = await getWorkspaceBase(id);
+    if (!workspaceBase) {
+      return errors.notFound('Workspace');
+    }
 
-    if (!membership) {
+    const canAccessWorkspace = await hasWorkspaceAccess(session.user.id, id);
+    if (!canAccessWorkspace) {
       return errors.forbidden();
     }
 
@@ -50,6 +56,7 @@ export async function GET(
           },
         },
         members: {
+          orderBy: { createdAt: 'asc' },
           select: {
             id: true,
             role: true,
@@ -60,17 +67,16 @@ export async function GET(
     });
 
     if (!workspace) {
-      return errors.notFound('工作空间');
+      return errors.notFound('Workspace');
     }
 
     return itemResponse(workspace);
   } catch (error) {
     console.error('Failed to fetch workspace:', error);
-    return errorResponse('获取工作空间详情失败', 500);
+    return errorResponse('Failed to fetch workspace', 500);
   }
 }
 
-// PUT /api/workspaces/[id] - 更新工作空间
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -82,43 +88,52 @@ export async function PUT(
     }
 
     const { id } = await params;
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return errors.badRequest('无效的 JSON 请求体');
+
+    const parseResult = await parseJsonBody<unknown>(request);
+    if (!parseResult.success) {
+      return parseResult.error;
     }
-    const { name, description } = body;
 
-    // 检查权限（只有 OWNER 和 ADMIN 可以修改）
-    const membership = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: id,
-        userId: session.user.id,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
+    const validationResult = updateWorkspaceSchema.safeParse(parseResult.data);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join('; ');
+      return errors.badRequest(`Input validation failed: ${errorMessages}`);
+    }
 
-    if (!membership) {
+    const workspaceBase = await getWorkspaceBase(id);
+    if (!workspaceBase) {
+      return errors.notFound('Workspace');
+    }
+
+    const canManageWorkspace = await hasWorkspaceAccess(
+      session.user.id,
+      id,
+      MANAGE_ROLES
+    );
+    if (!canManageWorkspace) {
+      return errors.forbidden();
+    }
+
+    if (
+      workspaceBase.isPersonal &&
+      workspaceBase.ownerId &&
+      workspaceBase.ownerId !== session.user.id
+    ) {
       return errors.forbidden();
     }
 
     const workspace = await prisma.workspace.update({
       where: { id },
-      data: {
-        name,
-        description,
-      },
+      data: validationResult.data,
     });
 
     return itemResponse(workspace);
   } catch (error) {
     console.error('Failed to update workspace:', error);
-    return Response.json(errorResponse('更新工作空间失败'), { status: 500 });
+    return errorResponse('Failed to update workspace', 500);
   }
 }
 
-// DELETE /api/workspaces/[id] - 删除工作空间
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -130,36 +145,34 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const workspaceBase = await getWorkspaceBase(id);
+    if (!workspaceBase) {
+      return errors.notFound('Workspace');
+    }
 
-    // 检查权限（只有 OWNER 可以删除）
-    const membership = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: id,
-        userId: session.user.id,
-        role: 'OWNER',
-      },
-    });
-
-    if (!membership) {
+    const canDeleteWorkspace = await hasWorkspaceAccess(session.user.id, id, ['OWNER']);
+    if (!canDeleteWorkspace) {
       return errors.forbidden();
     }
 
-    // 检查是否有项目（防止误删）
+    if (workspaceBase.isPersonal) {
+      return errors.badRequest('Personal workspace cannot be deleted');
+    }
+
     const projectCount = await prisma.project.count({
       where: { workspaceId: id },
     });
-
     if (projectCount > 0) {
-      return errors.badRequest('工作空间下还有项目，无法删除');
+      return errors.badRequest('Workspace still has projects and cannot be deleted');
     }
 
     await prisma.workspace.delete({
       where: { id },
     });
 
-    return new Response(null, { status: 204 });
+    return successResponse({ deleted: true });
   } catch (error) {
     console.error('Failed to delete workspace:', error);
-    return Response.json(errorResponse('删除工作空间失败'), { status: 500 });
+    return errorResponse('Failed to delete workspace', 500);
   }
 }

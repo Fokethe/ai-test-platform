@@ -1,134 +1,152 @@
-/**
- * Users API Tests
- * 用户管理API测试
- */
-
+import bcrypt from 'bcryptjs';
 import { GET, POST } from '../route';
 import { prisma } from '@/lib/prisma';
-import { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
+import { writeAuditLog } from '@/lib/audit';
 
-// Mock prisma
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(),
+}));
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
-      count: jest.fn(),
-    },
-    workspaceMember: {
-      findMany: jest.fn(),
     },
   },
 }));
 
-// Mock auth
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
 }));
 
-import { auth } from '@/lib/auth';
-
-// 辅助函数：创建 NextRequest
-function createNextRequest(url: string, options: RequestInit = {}): NextRequest {
-  return new Request(url, options) as NextRequest;
-}
+jest.mock('@/lib/audit', () => ({
+  writeAuditLog: jest.fn(),
+}));
 
 describe('Users API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (writeAuditLog as jest.Mock).mockResolvedValue(undefined);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
   });
 
   describe('GET /api/users', () => {
-    it('should return 401 if user is not authenticated', async () => {
+    it('returns 401 when unauthenticated', async () => {
       (auth as jest.Mock).mockResolvedValue(null);
 
-      const response = await GET(new Request('http://localhost/api/users'));
+      const response = await GET(new Request('http://localhost/api/users') as never);
       expect(response.status).toBe(401);
     });
 
-    it('should return list of users for authenticated user', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
+    it('returns 403 for non-admin users', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'user-1', role: 'USER', email: 'user@example.com' },
+      });
 
-      const mockUsers = [
-        { id: '1', name: 'Admin', email: 'admin@example.com', role: 'ADMIN', status: 'ACTIVE' },
-        { id: '2', name: 'User', email: 'user@example.com', role: 'MEMBER', status: 'ACTIVE' },
-      ];
-      (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
-
-      const response = await GET(new Request('http://localhost/api/users'));
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data.data).toHaveLength(2);
-      expect(data.data[0].name).toBe('Admin');
-    });
-
-    it('should support search query', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-
-      const mockUsers = [{ id: '1', name: 'Admin', email: 'admin@example.com', role: 'ADMIN', status: 'ACTIVE' }];
-      (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
-
-      const response = await GET(new Request('http://localhost/api/users?search=admin'));
-      expect(response.status).toBe(200);
-
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
+      const response = await GET(new Request('http://localhost/api/users') as never);
+      expect(response.status).toBe(403);
+      expect(writeAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({
-            OR: expect.any(Array),
-          }),
+          action: 'FORBIDDEN_USER_MANAGEMENT',
+          targetId: 'list',
         })
       );
     });
-  });
 
-  describe('POST /api/users/invite', () => {
-    it('should return 401 if user is not authenticated', async () => {
-      (auth as jest.Mock).mockResolvedValue(null);
+    it('returns user list for admin', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([
+        { id: 'u-1', email: 'a@example.com', role: 'ADMIN', status: 'ACTIVE' },
+      ]);
 
-      const response = await POST(new Request('http://localhost/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'new@example.com', name: 'New User' }),
-      }));
-      expect(response.status).toBe(401);
-    });
-
-    it('should invite a new user', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-
-      const mockUser = {
-        id: '2',
-        name: 'New User',
-        email: 'new@example.com',
-        role: 'MEMBER',
-        status: 'PENDING',
-      };
-      (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
-
-      const response = await POST(new Request('http://localhost/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'new@example.com', name: 'New User', role: 'MEMBER' }),
-      }));
+      const response = await GET(new Request('http://localhost/api/users') as never);
+      const payload = await response.json();
 
       expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.data.email).toBe('new@example.com');
+      expect(payload.code).toBe(0);
+      expect(payload.data).toHaveLength(1);
+    });
+  });
+
+  describe('POST /api/users', () => {
+    it('returns 403 for non-admin users', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'user-1', role: 'USER', email: 'user@example.com' },
+      });
+
+      const response = await POST(
+        new Request('http://localhost/api/users', {
+          method: 'POST',
+          body: JSON.stringify({ email: 'new@example.com' }),
+        }) as never
+      );
+
+      expect(response.status).toBe(403);
     });
 
-    it('should return 400 if email is missing', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
+    it('returns 400 for invalid email', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
 
-      const response = await POST(new Request('http://localhost/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ name: 'New User' }),
-      }));
+      const response = await POST(
+        new Request('http://localhost/api/users', {
+          method: 'POST',
+          body: JSON.stringify({ email: 'invalid-email' }),
+        }) as never
+      );
 
       expect(response.status).toBe(400);
+    });
+
+    it('creates inactive user with normalized email for admin', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.user.create as jest.Mock).mockResolvedValue({
+        id: 'user-2',
+        name: 'New User',
+        email: 'new@example.com',
+        role: 'USER',
+        status: 'INACTIVE',
+      });
+
+      const response = await POST(
+        new Request('http://localhost/api/users', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: 'New@Example.com',
+            name: 'New User',
+            role: 'USER',
+          }),
+        }) as never
+      );
+      const payload = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(payload.data.email).toBe('new@example.com');
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'new@example.com',
+            role: 'USER',
+            status: 'INACTIVE',
+            password: 'hashed-password',
+          }),
+        })
+      );
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'USER_INVITED',
+          targetId: 'user-2',
+        })
+      );
     });
   });
 });

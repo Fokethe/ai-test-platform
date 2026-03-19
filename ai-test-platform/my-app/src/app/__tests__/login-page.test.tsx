@@ -20,6 +20,15 @@ jest.mock('next-auth/react', () => ({
   signIn: jest.fn(),
 }));
 
+jest.mock('@/components/system-language-provider', () => ({
+  useSystemLanguage: () => ({
+    language: 'zh-CN',
+    setLanguage: jest.fn(),
+    toggleLanguage: jest.fn(),
+    t: (zh: string) => zh,
+  }),
+}));
+
 // Mock sonner toast
 jest.mock('sonner', () => ({
   toast: {

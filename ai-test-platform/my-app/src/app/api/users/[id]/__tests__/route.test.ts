@@ -1,13 +1,21 @@
-/**
- * User Detail API Tests
- * 用户详情API测试
- */
-
+import bcrypt from 'bcryptjs';
 import { GET, PUT, DELETE } from '../route';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { NextRequest } from 'next/server';
+import { writeAuditLog } from '@/lib/audit';
 
-// Mock prisma
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(),
+}));
+
+jest.mock('@/lib/auth', () => ({
+  auth: jest.fn(),
+}));
+
+jest.mock('@/lib/audit', () => ({
+  writeAuditLog: jest.fn(),
+}));
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
@@ -18,153 +26,166 @@ jest.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock auth
-jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
-}));
-
-import { auth } from '@/lib/auth';
-
-// 辅助函数：创建 NextRequest
-function createNextRequest(url: string, options: RequestInit = {}): NextRequest {
-  return new Request(url, options) as NextRequest;
-}
-
 describe('User Detail API', () => {
+  const params = Promise.resolve({ id: 'user-1' });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+    (writeAuditLog as jest.Mock).mockResolvedValue(undefined);
   });
 
-  const mockParams = Promise.resolve({ id: 'user-1' });
-
   describe('GET /api/users/[id]', () => {
-    it('should return 401 if user is not authenticated', async () => {
+    it('returns 401 when unauthenticated', async () => {
       (auth as jest.Mock).mockResolvedValue(null);
 
-      const response = await GET(
-        new Request('http://localhost/api/users/user-1'),
-        { params: mockParams }
-      );
+      const response = await GET(new Request('http://localhost/api/users/user-1') as never, { params });
       expect(response.status).toBe(401);
     });
 
-    it('should return user details', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
+    it('returns 403 when non-admin reads another user', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'user-2', role: 'USER', email: 'u2@example.com' },
+      });
 
-      const mockUser = {
-        id: 'user-1',
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'MEMBER',
-        status: 'ACTIVE',
-      };
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
-
-      const response = await GET(
-        new Request('http://localhost/api/users/user-1'),
-        { params: mockParams }
+      const response = await GET(new Request('http://localhost/api/users/user-1') as never, { params });
+      expect(response.status).toBe(403);
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'FORBIDDEN_USER_READ',
+          targetId: 'user-1',
+        })
       );
-
-      expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.data.name).toBe('Test User');
     });
 
-    it('should return 404 if user not found', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    it('allows self-read for non-admin user', async () => {
+      const selfParams = Promise.resolve({ id: 'user-2' });
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'user-2', role: 'USER', email: 'u2@example.com' },
+      });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-2',
+        email: 'u2@example.com',
+        role: 'USER',
+        status: 'ACTIVE',
+      });
 
-      const response = await GET(
-        new Request('http://localhost/api/users/user-1'),
-        { params: mockParams }
-      );
+      const response = await GET(new Request('http://localhost/api/users/user-2') as never, {
+        params: selfParams,
+      });
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
     });
   });
 
   describe('PUT /api/users/[id]', () => {
-    it('should update user role', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-
-      const mockUser = {
-        id: 'user-1',
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'ADMIN',
-        status: 'ACTIVE',
-      };
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user-1' });
-      (prisma.user.update as jest.Mock).mockResolvedValue(mockUser);
+    it('returns 403 for non-admin users', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'user-2', role: 'USER', email: 'u2@example.com' },
+      });
 
       const response = await PUT(
         new Request('http://localhost/api/users/user-1', {
           method: 'PUT',
           body: JSON.stringify({ role: 'ADMIN' }),
-        }),
-        { params: mockParams }
+        }) as never,
+        { params }
       );
 
-      expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.data.role).toBe('ADMIN');
+      expect(response.status).toBe(403);
     });
 
-    it('should reset user password', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-
-      const mockUser = {
-        id: 'user-1',
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'MEMBER',
-        status: 'ACTIVE',
-      };
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user-1' });
-      (prisma.user.update as jest.Mock).mockResolvedValue(mockUser);
+    it('returns 400 for invalid role', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
 
       const response = await PUT(
         new Request('http://localhost/api/users/user-1', {
           method: 'PUT',
-          body: JSON.stringify({ resetPassword: true }),
-        }),
-        { params: mockParams }
+          body: JSON.stringify({ role: 'MEMBER' }),
+        }) as never,
+        { params }
       );
 
+      expect(response.status).toBe(400);
+    });
+
+    it('updates role and status for admin user', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'u1@example.com',
+        role: 'USER',
+        status: 'INACTIVE',
+        name: 'User 1',
+      });
+      (prisma.user.update as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'u1@example.com',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+      });
+
+      const response = await PUT(
+        new Request('http://localhost/api/users/user-1', {
+          method: 'PUT',
+          body: JSON.stringify({ role: 'ADMIN', status: 'ACTIVE' }),
+        }) as never,
+        { params }
+      );
+      const payload = await response.json();
+
       expect(response.status).toBe(200);
+      expect(payload.data.role).toBe('ADMIN');
+      expect(payload.data.status).toBe('ACTIVE');
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'USER_ADMIN_UPDATED',
+          targetId: 'user-1',
+        })
+      );
     });
   });
 
   describe('DELETE /api/users/[id]', () => {
-    it('should delete user', async () => {
-      const mockSession = { user: { id: '1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
+    it('returns 400 when admin deletes self', async () => {
+      const selfParams = Promise.resolve({ id: 'admin-1' });
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
 
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'user-1' });
-      (prisma.user.delete as jest.Mock).mockResolvedValue({ id: 'user-1' });
-
-      const response = await DELETE(
-        new Request('http://localhost/api/users/user-1'),
-        { params: mockParams }
-      );
-
-      expect(response.status).toBe(200);
-    });
-
-    it('should prevent self-deletion', async () => {
-      const mockSession = { user: { id: 'user-1', email: 'admin@example.com' } };
-      (auth as jest.Mock).mockResolvedValue(mockSession);
-
-      const response = await DELETE(
-        new Request('http://localhost/api/users/user-1'),
-        { params: mockParams }
-      );
+      const response = await DELETE(new Request('http://localhost/api/users/admin-1') as never, {
+        params: selfParams,
+      });
 
       expect(response.status).toBe(400);
+    });
+
+    it('deletes user for admin', async () => {
+      (auth as jest.Mock).mockResolvedValue({
+        user: { id: 'admin-1', role: 'ADMIN', email: 'admin@example.com' },
+      });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        role: 'USER',
+        status: 'ACTIVE',
+      });
+      (prisma.user.delete as jest.Mock).mockResolvedValue({ id: 'user-1' });
+
+      const response = await DELETE(new Request('http://localhost/api/users/user-1') as never, {
+        params,
+      });
+
+      expect(response.status).toBe(200);
+      expect(writeAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'USER_DELETED',
+          targetId: 'user-1',
+        })
+      );
     });
   });
 });

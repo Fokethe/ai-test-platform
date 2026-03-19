@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { toast } from 'sonner';
+import { useSystemLanguage } from '@/components/system-language-provider';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useSystemLanguage();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -19,25 +22,23 @@ export default function RegisterPage() {
     confirmPassword: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
-      toast.error('两次输入的密码不一致');
+      toast.error(t('两次输入的密码不一致', 'Passwords do not match'));
       return;
     }
 
-    // 前端邮箱格式校验
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error('邮箱格式不正确');
+      toast.error(t('邮箱格式不正确', 'Invalid email format'));
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. 注册
       const registerResponse = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,35 +50,30 @@ export default function RegisterPage() {
       });
 
       const registerData = await registerResponse.json();
-
       if (registerData.code !== 0) {
-        toast.error(registerData.message || '注册失败');
-        setLoading(false);
+        toast.error(registerData.message || t('注册失败', 'Registration failed'));
         return;
       }
 
-      // 2. 自动登录
-      const loginResponse = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          email: formData.email,
-          password: formData.password,
-          redirect: 'false',
-          callbackUrl: '/workspaces',
-        }),
+      const loginResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+        callbackUrl: '/workspaces',
       });
 
-      if (loginResponse.ok) {
-        toast.success('注册成功！');
+      if (loginResult?.ok && !loginResult.error) {
+        toast.success(t('注册成功', 'Registration successful'));
         router.push('/workspaces');
         router.refresh();
-      } else {
-        toast.success('注册成功，请登录');
-        router.push('/login');
+        return;
       }
+
+      toast.success(t('注册成功，请登录', 'Registration successful, please sign in'));
+      router.push('/login');
     } catch (error) {
-      toast.error('注册失败，请稍后重试');
+      console.error('Register error:', error);
+      toast.error(t('注册失败，请稍后重试', 'Registration failed, please try again later'));
     } finally {
       setLoading(false);
     }
@@ -86,63 +82,63 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>注册</CardTitle>
-        <CardDescription>创建您的 AI Test Platform 账号</CardDescription>
+        <CardTitle>{t('注册账号', 'Create Account')}</CardTitle>
+        <CardDescription>{t('创建您的 AI 测试平台账号', 'Create your AI Test Platform account')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">姓名</Label>
+            <Label htmlFor="name">{t('姓名', 'Name')}</Label>
             <Input
               id="name"
-              placeholder="您的姓名"
+              placeholder={t('请输入姓名', 'Your name')}
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, name: event.target.value })}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">邮箱</Label>
+            <Label htmlFor="email">{t('邮箱', 'Email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="your@email.com"
+              placeholder="you@example.com"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, email: event.target.value })}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">密码</Label>
+            <Label htmlFor="password">{t('密码', 'Password')}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="至少6位字符"
+              placeholder={t('至少 6 位字符', 'At least 6 characters')}
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, password: event.target.value })}
               required
               minLength={6}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">确认密码</Label>
+            <Label htmlFor="confirmPassword">{t('确认密码', 'Confirm Password')}</Label>
             <Input
               id="confirmPassword"
               type="password"
-              placeholder="再次输入密码"
+              placeholder={t('请再次输入密码', 'Enter password again')}
               value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, confirmPassword: event.target.value })}
               required
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? '注册中...' : '注册'}
+            {loading ? t('注册中...', 'Registering...') : t('注册', 'Register')}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm text-slate-600">
-          已有账号？{' '}
+          {t('已有账号？', 'Already have an account?')}{' '}
           <Link href="/login" className="text-blue-600 hover:underline">
-            立即登录
+            {t('去登录', 'Sign in now')}
           </Link>
         </div>
       </CardContent>

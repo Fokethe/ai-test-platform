@@ -1,130 +1,147 @@
-/**
- * Users API
- * GET /api/users - 获取用户列表
- * POST /api/users - 邀请新用户
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse, errors } from '@/lib/api-response';
+import bcrypt from 'bcryptjs';
 import { auth } from '@/lib/auth';
+import { writeAuditLog } from '@/lib/audit';
+import { errors, successResponse } from '@/lib/api-response';
+import { prisma } from '@/lib/prisma';
 import { generateTempPassword } from '@/lib/security/password';
+import { isUserRole } from '@/lib/rbac';
 
-/**
- * 发送邀请邮件
- * TODO: 集成真实邮件服务（如 SendGrid, Resend）
- */
 async function sendInvitationEmail(email: string, userId: string): Promise<void> {
-  // 当前为模拟实现，打印日志表示邮件已发送
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Email] Invitation sent to ${email} (User ID: ${userId})`);
   }
-  
-  // 实际项目中，这里应该调用邮件服务API
-  // 例如：
-  // await sendgrid.send({
-  //   to: email,
-  //   template: 'invitation',
-  //   data: { userId, inviteUrl: `${process.env.APP_URL}/invite?token=${token}` }
-  // });
 }
 
-// GET - 获取用户列表
+async function ensureAdminAccess(targetId: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { session, response: errors.unauthorized() };
+  }
+
+  if (session.user.role !== 'ADMIN') {
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: 'FORBIDDEN_USER_MANAGEMENT',
+      target: 'User',
+      targetId,
+      metadata: { role: session.user.role },
+    });
+    return { session, response: errors.forbidden() };
+  }
+
+  return { session, response: null as Response | null };
+}
+
 export async function GET(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
-
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-
-    const where: any = {};
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        image: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return successResponse(users);
-  } catch (error) {
-    console.error('Get users error:', error);
-    return errorResponse('获取用户列表失败', 500);
+  const { response } = await ensureAdminAccess('list');
+  if (response) {
+    return response;
   }
+
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get('search')?.trim();
+
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
+
+  const users = await prisma.user.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      image: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return successResponse(users);
 }
 
-// POST - 邀请新用户
 export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
-
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return errors.badRequest('无效的 JSON 请求体');
-    }
-
-    const { email, name, role = 'MEMBER' } = body;
-
-    if (!email) {
-      return errors.badRequest('邮箱地址不能为空');
-    }
-
-    // 检查邮箱是否已存在
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return errors.conflict('该邮箱已被使用');
-    }
-
-    // 创建新用户（状态为 PENDING，等待用户激活）
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name: name || email.split('@')[0],
-        role,
-        status: 'INACTIVE',
-        // 生成随机密码，用户首次登录时需要重置
-        password: generateTempPassword(),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-
-    // 发送邀请邮件
-    await sendInvitationEmail(email, user.id);
-
-    return successResponse(user, '邀请发送成功');
-  } catch (error) {
-    console.error('Invite user error:', error);
-    return errorResponse('邀请用户失败', 500);
+  const { session, response } = await ensureAdminAccess('invite');
+  if (response) {
+    return response;
   }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return errors.badRequest('Invalid JSON payload');
+  }
+
+  const email =
+    typeof (body as { email?: unknown })?.email === 'string'
+      ? (body as { email: string }).email.trim().toLowerCase()
+      : '';
+  const name =
+    typeof (body as { name?: unknown })?.name === 'string'
+      ? (body as { name: string }).name.trim()
+      : '';
+  const roleInput = (body as { role?: unknown })?.role;
+  const role = isUserRole(roleInput) ? roleInput : 'USER';
+
+  if (!email) {
+    return errors.badRequest('Email is required');
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return errors.badRequest('Invalid email format');
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (existingUser) {
+    return errors.conflict('Email already registered');
+  }
+
+  const tempPassword = generateTempPassword();
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name: name || email.split('@')[0],
+      role,
+      status: 'INACTIVE',
+      password: hashedPassword,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  await sendInvitationEmail(email, user.id);
+  await writeAuditLog({
+    actorId: session!.user.id,
+    action: 'USER_INVITED',
+    target: 'User',
+    targetId: user.id,
+    metadata: {
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    },
+  });
+
+  return successResponse(user, 'Invitation sent successfully');
 }

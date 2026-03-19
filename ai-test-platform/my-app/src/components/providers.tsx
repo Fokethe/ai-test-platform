@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './theme-provider';
+import { SystemLanguageProvider } from './system-language-provider';
 import { SWRConfig } from 'swr';
 
 interface ProvidersProps {
@@ -32,10 +33,12 @@ export function Providers({ children }: ProvidersProps) {
       refetchOnWindowFocus={false}
     >
       <ThemeProvider>
-        <SWRConfig value={swrConfig}>
-          {children}
-          <Toaster position="top-center" richColors />
-        </SWRConfig>
+        <SystemLanguageProvider>
+          <SWRConfig value={swrConfig}>
+            {children}
+            <Toaster position="top-center" richColors />
+          </SWRConfig>
+        </SystemLanguageProvider>
       </ThemeProvider>
     </SessionProvider>
   );

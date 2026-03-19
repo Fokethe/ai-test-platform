@@ -1,226 +1,195 @@
-/**
- * AI Requirements Upload Page
- * TDD: Upload functionality for requirements
- */
-
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
+import { Loader2, Upload, FileText, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Loader2, Upload, FileText, X } from 'lucide-react';
 
-interface UploadedFile {
-  file: File;
-  id: string;
+interface UploadState {
+  file: File | null;
+  title: string;
+  description: string;
+  projectId: string;
 }
 
 export default function UploadPage() {
   const router = useRouter();
-  const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [state, setState] = useState<UploadState>({
+    file: null,
+    title: '',
+    description: '',
+    projectId: '',
+  });
   const [isUploading, setIsUploading] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      file,
-      id: Math.random().toString(36).substring(7),
-    }));
-    setFiles(prev => [...prev, ...newFiles]);
+    const file = acceptedFiles[0] ?? null;
+    setState((prev) => ({ ...prev, file }));
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    maxFiles: 1,
     accept: {
       'text/plain': ['.txt'],
       'text/markdown': ['.md'],
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
   });
 
-  const removeFile = (id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
+  const clearFile = () => {
+    setState((prev) => ({ ...prev, file: null }));
   };
 
   const handleUpload = async () => {
-    if (files.length === 0) {
-      toast.error('请选择文件', {
-        description: '请至少上传一个需求文档',
-      });
+    if (!state.projectId.trim()) {
+      toast.error('projectId is required');
       return;
     }
 
-    if (!title.trim()) {
-      toast.error('请输入标题', {
-        description: '请为需求文档输入一个标题',
-      });
+    if (!state.file) {
+      toast.error('Please select a requirement file');
       return;
     }
 
     setIsUploading(true);
-
     try {
       const formData = new FormData();
-      formData.append('title', title);
-      formData.append('description', description);
-      files.forEach(({ file }) => {
-        formData.append('files', file);
-      });
+      formData.append('projectId', state.projectId.trim());
+      if (state.title.trim()) {
+        formData.append('title', state.title.trim());
+      }
+      if (state.description.trim()) {
+        formData.append('description', state.description.trim());
+      }
+      formData.append('file', state.file);
 
       const response = await fetch('/api/requirements/upload', {
         method: 'POST',
         body: formData,
       });
+      const payload = await response.json();
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (!response.ok || payload?.code !== 0 || !payload?.data?.id) {
+        throw new Error(payload?.error?.message || payload?.message || 'Upload failed');
       }
 
-      const data = await response.json();
-
-      toast.success('上传成功', {
-        description: `成功上传 ${files.length} 个文件`,
-      });
-
-      // Navigate to the uploaded requirement
-      router.push(`/ai-generate/requirements/${data.data.id}`);
+      toast.success('Requirement uploaded');
+      router.push(`/ai-generate/requirements/${payload.data.id}`);
     } catch (error) {
-      toast.error('上传失败', {
-        description: '请检查文件格式后重试',
-      });
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto max-w-4xl py-8">
       <Card>
         <CardHeader>
-          <CardTitle>上传需求文档</CardTitle>
+          <CardTitle>Upload Requirement</CardTitle>
           <CardDescription>
-            支持 TXT, MD, PDF, DOCX 格式，最大 10MB
+            Supported formats: TXT, MD, PDF, DOCX. Maximum size: 10MB.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Title Input */}
           <div className="space-y-2">
-            <Label htmlFor="title">标题 *</Label>
+            <Label htmlFor="project-id">Project ID *</Label>
+            <Input
+              id="project-id"
+              value={state.projectId}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, projectId: event.target.value }))
+              }
+              placeholder="Enter projectId"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
-              placeholder="输入需求文档标题"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={state.title}
+              onChange={(event) => setState((prev) => ({ ...prev, title: event.target.value }))}
+              placeholder="Optional custom requirement title"
             />
           </div>
 
-          {/* Description Input */}
           <div className="space-y-2">
-            <Label htmlFor="description">描述</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="输入需求文档描述（可选）"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={state.description}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, description: event.target.value }))
+              }
               rows={3}
+              placeholder="Optional description"
             />
           </div>
 
-          {/* File Dropzone */}
           <div className="space-y-2">
-            <Label>文件上传</Label>
+            <Label>Requirement File *</Label>
             <div
               {...getRootProps()}
-              className={`
-                border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-                transition-colors duration-200
-                ${isDragActive 
-                  ? 'border-primary bg-primary/5' 
+              className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+                isDragActive
+                  ? 'border-primary bg-primary/5'
                   : 'border-gray-300 hover:border-gray-400'
-                }
-              `}
+              }`}
             >
               <input {...getInputProps()} />
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              {isDragActive ? (
-                <p className="text-primary">拖放文件到这里...</p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-gray-600">
-                    拖放文件到这里，或点击选择文件
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    支持 TXT, MD, PDF, DOCX，最大 10MB
-                  </p>
-                </div>
-              )}
+              <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+              <p className="text-sm text-gray-600">
+                {isDragActive ? 'Drop your file here' : 'Drop or click to select a file'}
+              </p>
             </div>
           </div>
 
-          {/* File List */}
-          {files.length > 0 && (
-            <div className="space-y-2">
-              <Label>已选择的文件</Label>
-              <div className="space-y-2">
-                {files.map(({ file, id }) => (
-                  <div
-                    key={id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium">{file.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(id)}
-                      disabled={isUploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+          {state.file ? (
+            <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+              <div className="flex items-center space-x-3">
+                <FileText className="h-5 w-5 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium">{state.file.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {(state.file.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFile}
+                disabled={isUploading}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+          ) : null}
 
-          {/* Upload Button */}
           <div className="flex justify-end space-x-4">
-            <Button
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={isUploading}
-            >
-              取消
+            <Button variant="outline" onClick={() => router.back()} disabled={isUploading}>
+              Cancel
             </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={isUploading || files.length === 0}
-            >
+            <Button onClick={handleUpload} disabled={isUploading || !state.file}>
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  上传中...
+                  Uploading...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  上传
+                  Upload
                 </>
               )}
             </Button>

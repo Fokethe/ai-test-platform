@@ -1,145 +1,91 @@
-/**
- * POST /api/requirements/upload
- * 需求文档上传 API
- * 
- * 功能：
- * 1. 接收文件上传（multipart/form-data）
- * 2. 解析文档内容
- * 3. 提取功能点和测试点
- * 4. 存储到数据库
- */
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { DocumentParser } from '@/lib/ai/agents/document-parser';
 import { RequirementParser } from '@/lib/ai/agents/requirement-parser';
-import { prisma } from '@/lib/prisma';
-import { randomUUID } from 'crypto';
+import { errors, successResponse } from '@/lib/api-response';
+import { auth } from '@/lib/auth';
+import { hasProjectAccess } from '@/lib/project-access';
+import { persistRequirementIngestion } from '@/lib/requirements/ingestion';
+
+function normalizeText(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+}
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  const formData = await request.formData();
+  const file = formData.get('file');
+  const projectId = normalizeText(formData.get('projectId'));
+  const titleInput = normalizeText(formData.get('title'));
+
+  const canReadFile =
+    !!file &&
+    typeof file === 'object' &&
+    typeof (file as { arrayBuffer?: unknown }).arrayBuffer === 'function';
+
+  if (!canReadFile) {
+    return errors.badRequest('file is required');
+  }
+
+  if (!projectId) {
+    return errors.badRequest('projectId is required');
+  }
+
+  const canAccessProject = await hasProjectAccess(session.user.id, projectId);
+  if (!canAccessProject) {
+    return errors.forbidden();
+  }
+
+  const bytes = await (file as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  if (buffer.length === 0) {
+    return errors.badRequest('File content is empty');
+  }
+
+  const documentParser = new DocumentParser();
+  let parsedDocument;
   try {
-    // 解析表单数据
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const projectId = formData.get('projectId') as string | null;
-
-    // 验证参数
-    if (!file) {
-      return NextResponse.json(
-        { success: false, error: '缺少文件' },
-        { status: 400 }
-      );
-    }
-
-    if (!projectId) {
-      return NextResponse.json(
-        { success: false, error: '缺少 projectId' },
-        { status: 400 }
-      );
-    }
-
-    // 读取文件内容
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // 验证文件内容不为空
-    if (buffer.length === 0) {
-      return NextResponse.json(
-        { success: false, error: '文件内容为空' },
-        { status: 400 }
-      );
-    }
-
-    // 解析文档
-    const documentParser = new DocumentParser();
-    let parsedDoc;
-    try {
-      parsedDoc = await documentParser.parse(buffer, file.name);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '文档解析失败';
-      return NextResponse.json(
-        { success: false, error: message },
-        { status: 400 }
-      );
-    }
-
-    // 提取测试点
-    const requirementParser = new RequirementParser();
-    const parsedRequirement = await requirementParser.parse(parsedDoc.content);
-
-    // 生成唯一ID
-    const id = randomUUID();
-
-    // 构建响应数据
-    const result = {
-      id,
-      title: parsedDoc.title,
-      type: parsedDoc.type,
-      filename: parsedDoc.filename,
-      content: parsedDoc.content,
-      rawText: parsedDoc.rawText,
-      size: parsedDoc.size,
-      features: parsedRequirement.features,
-      businessRules: parsedRequirement.businessRules,
-      testPoints: parsedRequirement.testPoints,
-      projectId,
-      createdAt: new Date().toISOString(),
-    };
-
-    // 存储到数据库
-    try {
-      // 创建需求记录
-      const savedRequirement = await prisma.aiRequirement.create({
-        data: {
-          id,
-          title: parsedDoc.title,
-          type: parsedDoc.type,
-          filename: parsedDoc.filename,
-          content: parsedDoc.content,
-          rawText: parsedDoc.rawText,
-          size: parsedDoc.size,
-          features: JSON.stringify(parsedRequirement.features),
-          businessRules: JSON.stringify(parsedRequirement.businessRules),
-          projectId,
-          createdBy: null,
-        },
-      });
-
-      // 存储测试点
-      if (parsedRequirement.testPoints && parsedRequirement.testPoints.length > 0) {
-        await prisma.testPoint.createMany({
-          data: parsedRequirement.testPoints.map((point: any, index: number) => ({
-            id: randomUUID(),
-            name: point.name,
-            description: point.description,
-            priority: point.priority || 'MEDIUM',
-            relatedFeature: point.relatedFeature || '',
-            requirementId: id,
-            order: index,
-            createdAt: new Date(),
-          })),
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...result,
-          dbId: savedRequirement.id,
-        },
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json({
-        success: false,
-        error: '数据库存储失败',
-      }, { status: 500 });
-    }
-
+    const filename =
+      typeof (file as { name?: unknown }).name === 'string'
+        ? ((file as { name: string }).name || 'upload.txt')
+        : 'upload.txt';
+    parsedDocument = await documentParser.parse(buffer, filename);
   } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json(
-      { success: false, error: '上传处理失败' },
-      { status: 500 }
+    return errors.badRequest(error instanceof Error ? error.message : 'Failed to parse document');
+  }
+
+  const requirementParser = new RequirementParser();
+  let parsedRequirement;
+  try {
+    parsedRequirement = await requirementParser.parse(parsedDocument.content);
+  } catch (error) {
+    return errors.badRequest(
+      error instanceof Error ? error.message : 'Failed to parse requirement content'
     );
+  }
+
+  try {
+    const result = await persistRequirementIngestion({
+      projectId,
+      title: titleInput || parsedDocument.title,
+      type: parsedDocument.type,
+      filename: parsedDocument.filename,
+      content: parsedDocument.content,
+      rawText: parsedDocument.rawText,
+      size: parsedDocument.size,
+      parsedRequirement,
+      createdBy: session.user.id,
+    });
+
+    return successResponse(result, 'Requirement uploaded');
+  } catch (error) {
+    console.error('Requirement upload failed:', error);
+    return errors.internalError();
   }
 }

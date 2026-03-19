@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { parseJsonBody } from '@/lib/api-handler';
 import { prisma } from '@/lib/prisma';
 import { errorResponse, errors, successResponse } from '@/lib/api-response';
-import { hasProjectAccess, MANAGE_ROLES } from '@/lib/project-access';
+import { hasProjectAccess, PROJECT_MANAGE_ROLES } from '@/lib/project-access';
 
 const updateSystemSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -93,7 +93,7 @@ export async function PUT(
     const canManageSystem = await hasProjectAccess(
       session.user.id,
       systemBase.projectId,
-      MANAGE_ROLES
+      PROJECT_MANAGE_ROLES
     );
     if (!canManageSystem) {
       return errors.forbidden();
@@ -135,7 +135,7 @@ export async function DELETE(
     const canManageSystem = await hasProjectAccess(
       session.user.id,
       systemBase.projectId,
-      MANAGE_ROLES
+      PROJECT_MANAGE_ROLES
     );
     if (!canManageSystem) {
       return errors.forbidden();

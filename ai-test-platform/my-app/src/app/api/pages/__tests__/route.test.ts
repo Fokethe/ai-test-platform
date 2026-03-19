@@ -1,9 +1,15 @@
 import { DELETE, GET, POST, PUT } from '../route';
 import { auth } from '@/lib/auth';
+import { hasSystemAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
 
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
+}));
+
+jest.mock('@/lib/project-access', () => ({
+  hasSystemAccess: jest.fn(),
+  PROJECT_MANAGE_ROLES: ['OWNER', 'ADMIN'],
 }));
 
 jest.mock('@/lib/prisma', () => ({
@@ -16,9 +22,6 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
-    system: {
-      findFirst: jest.fn(),
-    },
   },
 }));
 
@@ -29,20 +32,19 @@ describe('/api/pages route', () => {
 
   it('GET returns 401 when user is not authenticated', async () => {
     (auth as jest.Mock).mockResolvedValue(null);
-
     const response = await GET(new Request('http://localhost/api/pages') as never);
     expect(response.status).toBe(401);
   });
 
   it('GET returns 403 when querying unauthorized system', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
-    (prisma.system.findFirst as jest.Mock).mockResolvedValue(null);
+    (hasSystemAccess as jest.Mock).mockResolvedValue(false);
 
     const response = await GET(new Request('http://localhost/api/pages?systemId=sys-1') as never);
     expect(response.status).toBe(403);
   });
 
-  it('GET scopes list by workspace membership when systemId not provided', async () => {
+  it('GET scopes list by project membership when systemId is not provided', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
     (prisma.page.count as jest.Mock).mockResolvedValue(1);
     (prisma.page.findMany as jest.Mock).mockResolvedValue([
@@ -61,17 +63,19 @@ describe('/api/pages route', () => {
     expect(response.status).toBe(200);
     expect(prisma.page.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
+        where: {
           system: {
             project: {
-              workspace: {
-                members: {
-                  some: { userId: 'user-1' },
+              OR: expect.arrayContaining([
+                {
+                  members: {
+                    some: { userId: 'user-1' },
+                  },
                 },
-              },
+              ]),
             },
           },
-        }),
+        },
       })
     );
     expect(data.data.list).toHaveLength(1);
@@ -79,7 +83,7 @@ describe('/api/pages route', () => {
 
   it('POST returns 403 when user cannot manage target system', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
-    (prisma.system.findFirst as jest.Mock).mockResolvedValue(null);
+    (hasSystemAccess as jest.Mock).mockResolvedValue(false);
 
     const response = await POST(
       new Request('http://localhost/api/pages', {
@@ -99,10 +103,8 @@ describe('/api/pages route', () => {
 
   it('PUT returns 403 when batch update includes unauthorized pages', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
-    (prisma.page.findMany as jest.Mock).mockResolvedValue([
-      { id: 'page-1', systemId: 'sys-1' },
-    ]);
-    (prisma.system.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.page.findMany as jest.Mock).mockResolvedValue([{ id: 'page-1', systemId: 'sys-1' }]);
+    (hasSystemAccess as jest.Mock).mockResolvedValue(false);
 
     const response = await PUT(
       new Request('http://localhost/api/pages', {

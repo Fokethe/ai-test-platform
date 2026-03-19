@@ -33,13 +33,14 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        const normalizedEmail = credentials?.email?.trim().toLowerCase();
+        if (!normalizedEmail || !credentials?.password) {
           return null;
         }
 
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email: normalizedEmail },
           });
 
           if (!user || !user.password) {

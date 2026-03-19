@@ -1,27 +1,19 @@
-// encoding: utf-8
-/**
- * Projects API
- * 项目管理
- */
-
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
+import { z } from 'zod';
+import { auth } from '@/lib/auth';
+import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 import { prisma } from '@/lib/prisma';
 import { listResponse, createdResponse, errorResponse, errors, buildMeta } from '@/lib/api-response';
-import { Prisma } from '@prisma/client';
-import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
-import { auth } from '@/lib/auth';
-import { z } from 'zod';
 import { hasWorkspaceAccess, MANAGE_ROLES } from '@/lib/project-access';
 
-// Project 创建验证 Schema
 const createProjectSchema = z.object({
-  name: z.string().min(1, '项目名称不能为空').max(100, '项目名称最大100个字符'),
-  description: z.string().max(500, '项目描述最大500个字符').optional(),
-  workspaceId: z.string().min(1, '工作空间ID不能为空'),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  workspaceId: z.string().min(1),
   status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
 });
 
-// GET /api/projects - 获取项目列表
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -35,27 +27,20 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const { page, pageSize, skip, take } = buildQueryParams(searchParams);
 
-    const where: Prisma.ProjectWhereInput = {};
-
-    // Always scope project visibility by workspace membership.
-    where.workspace = {
-      members: {
-        some: {
-          userId: session.user.id,
-        },
-      },
+    const where: Prisma.ProjectWhereInput = {
+      OR: [
+        { members: { some: { userId: session.user.id } } },
+        { workspace: { members: { some: { userId: session.user.id } } } },
+        { workspace: { ownerId: session.user.id } },
+      ],
     };
 
     if (workspaceId) {
-      const canAccessWorkspace = await hasWorkspaceAccess(session.user.id, workspaceId);
-      if (!canAccessWorkspace) {
-        return errors.forbidden();
-      }
       where.workspaceId = workspaceId;
     }
 
     if (status) {
-      where.status = status as Prisma.ProjectWhereInput['status'];
+      where.status = status as Prisma.ProjectStatus;
     }
 
     if (search) {
@@ -66,7 +51,6 @@ export async function GET(request: NextRequest) {
     }
 
     const total = await prisma.project.count({ where });
-
     const projects = await prisma.project.findMany({
       where,
       skip,
@@ -77,24 +61,21 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            _count: {
-              select: { members: true },
-            },
           },
         },
         _count: {
-          select: { systems: true, tests: true, runs: true, issues: true },
+          select: { systems: true, tests: true, runs: true, issues: true, members: true },
         },
       },
     });
 
-    const formattedProjects = projects.map(p => ({
-      ...p,
-      systemCount: p._count.systems,
-      testCount: p._count.tests,
-      runCount: p._count.runs,
-      issueCount: p._count.issues,
-      memberCount: p.workspace._count.members,
+    const formattedProjects = projects.map((project) => ({
+      ...project,
+      systemCount: project._count.systems,
+      testCount: project._count.tests,
+      runCount: project._count.runs,
+      issueCount: project._count.issues,
+      memberCount: project._count.members,
       _count: undefined,
     }));
 
@@ -105,7 +86,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/projects - 创建项目
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -114,24 +94,19 @@ export async function POST(request: NextRequest) {
     }
 
     const parseResult = await parseJsonBody<unknown>(request);
-    
     if (!parseResult.success) {
       return parseResult.error;
     }
 
-    // Zod 验证
     const validationResult = createProjectSchema.safeParse(parseResult.data);
-    
     if (!validationResult.success) {
-      const errorMessages = validationResult.error.issues.map(err => 
-        `${err.path.join('.')}: ${err.message}`
-      ).join('; ');
+      const errorMessages = validationResult.error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join('; ');
       return errors.badRequest(`输入验证失败: ${errorMessages}`);
     }
-    
-    const { name, description, workspaceId } = validationResult.data;
 
-    // 检查用户是否有权限在该工作空间创建项目
+    const { name, description, workspaceId } = validationResult.data;
     const canManageWorkspace = await hasWorkspaceAccess(
       session.user.id,
       workspaceId,
@@ -146,7 +121,15 @@ export async function POST(request: NextRequest) {
         name,
         description,
         workspaceId,
-        status: validationResult.data.status || 'ACTIVE',
+        status: validationResult.data.status ?? 'ACTIVE',
+        members: {
+          create: {
+            userId: session.user.id,
+            role: 'OWNER',
+            accessType: 'OWNED',
+            grantedBy: session.user.id,
+          },
+        },
       },
     });
 

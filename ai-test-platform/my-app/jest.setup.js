@@ -32,7 +32,15 @@ global.Response = class Response {
     this.body = body;
     this.status = init.status || 200;
     this.headers = new Map(Object.entries(init.headers || {}));
-    this._json = typeof body === 'string' ? JSON.parse(body) : body;
+    if (typeof body === 'string') {
+      try {
+        this._json = JSON.parse(body);
+      } catch {
+        this._json = body;
+      }
+    } else {
+      this._json = body;
+    }
   }
 
   static json(data, init = {}) {

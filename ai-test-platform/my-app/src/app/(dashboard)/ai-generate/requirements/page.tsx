@@ -1,125 +1,140 @@
-/**
- * AI Generate Requirements List Page
- * 需求列表页面 - 展示所有需求并支持AI生成测试用例
- */
-
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Plus, Search, FileText, Wand2, ChevronRight } from 'lucide-react';
+import { ChevronRight, FileText, Plus, Search, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+type RequirementListItem = {
+  id: string;
+  title: string;
+  status?: string;
+  description?: string | null;
+  createdAt: string;
+  testPointCount?: number;
+  isConfirmed?: boolean;
+};
+
+type RequirementListResponse = {
+  code: number;
+  data?: {
+    list?: RequirementListItem[];
+  };
+};
+
+const fetcher = async (url: string): Promise<RequirementListResponse> => {
+  const response = await fetch(url);
+  return response.json();
+};
 
 export default function RequirementsListPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
 
-  // 获取需求列表
-  const { data: requirementsData, isLoading } = useSWR('/api/requirements', fetcher);
-  const requirements = Array.isArray(requirementsData?.data) ? requirementsData.data : [];
+  const { data, isLoading } = useSWR('/api/requirements?page=1&pageSize=50', fetcher, {
+    revalidateOnFocus: false,
+  });
 
-  // 过滤需求
-  const filteredRequirements = requirements.filter((req: any) =>
-    req.title?.toLowerCase().includes(search.toLowerCase()) ||
-    req.description?.toLowerCase().includes(search.toLowerCase())
+  const requirements = useMemo(
+    () => (Array.isArray(data?.data?.list) ? data!.data!.list! : []),
+    [data]
   );
 
-  const handleGenerateTestCases = (requirementId: string) => {
-    router.push(`/ai-generate/requirements/${requirementId}`);
-  };
+  const filteredRequirements = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) {
+      return requirements;
+    }
 
-  const handleUploadRequirement = () => {
-    router.push('/ai-generate/requirements/upload');
-  };
+    return requirements.filter(
+      (item) =>
+        item.title?.toLowerCase().includes(keyword) ||
+        (item.description || '').toLowerCase().includes(keyword)
+    );
+  }, [requirements, search]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-slate-400" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">需求管理</h1>
-          <p className="text-slate-500">管理需求并使用AI生成测试用例</p>
+          <h1 className="text-2xl font-bold">Requirements</h1>
+          <p className="text-slate-500">Review requirements and generate test assets with AI.</p>
         </div>
-        <Button onClick={handleUploadRequirement}>
-          <Plus className="w-4 h-4 mr-2" />
-          上传需求文档
+        <Button onClick={() => router.push('/ai-generate/requirements/upload')}>
+          <Plus className="mr-2 h-4 w-4" />
+          Upload Requirement
         </Button>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
         <Input
-          placeholder="搜索需求..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search requirements"
           className="pl-10"
         />
       </div>
 
-      {/* Requirements List */}
       <div className="grid gap-4">
         {filteredRequirements.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center">
-              <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-              <p className="text-slate-500">暂无需求</p>
-              <Button 
-                variant="outline" 
+              <FileText className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+              <p className="text-slate-500">No requirements found.</p>
+              <Button
+                variant="outline"
                 className="mt-4"
-                onClick={handleUploadRequirement}
+                onClick={() => router.push('/ai-generate/requirements/upload')}
               >
-                上传第一个需求
+                Upload your first requirement
               </Button>
             </CardContent>
           </Card>
         ) : (
-          filteredRequirements.map((req: any) => (
-            <Card key={req.id} className="hover:shadow-md transition-shadow">
+          filteredRequirements.map((item) => (
+            <Card key={item.id} className="transition-shadow hover:shadow-md">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-lg">{req.title}</h3>
-                      <Badge variant={req.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                        {req.status === 'ACTIVE' ? '活跃' : '草稿'}
+                    <div className="mb-2 flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">{item.title}</h3>
+                      <Badge variant={item.isConfirmed ? 'default' : 'secondary'}>
+                        {item.isConfirmed ? 'Confirmed' : 'Draft'}
                       </Badge>
+                      {typeof item.testPointCount === 'number' ? (
+                        <Badge variant="outline">{item.testPointCount} test points</Badge>
+                      ) : null}
                     </div>
-                    <p className="text-slate-500 text-sm mb-2 line-clamp-2">
-                      {req.description}
+                    <p className="mb-2 line-clamp-2 text-sm text-slate-500">
+                      {item.description || 'No description'}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-slate-400">
-                      <span>创建于: {new Date(req.createdAt).toLocaleDateString('zh-CN')}</span>
-                      {req.testCases?.length > 0 && (
-                        <span>已生成 {req.testCases.length} 个测试用例</span>
-                      )}
-                    </div>
+                    <p className="text-xs text-slate-400">
+                      Created at {new Date(item.createdAt).toLocaleDateString('zh-CN')}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="ml-4 flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleGenerateTestCases(req.id)}
+                      onClick={() => router.push(`/ai-generate/requirements/${item.id}`)}
                     >
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      AI生成
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Open
                     </Button>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
                 </div>
               </CardContent>

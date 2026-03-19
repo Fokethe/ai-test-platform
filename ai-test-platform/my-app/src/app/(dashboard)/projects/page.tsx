@@ -77,7 +77,13 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
+      const query = new URLSearchParams();
+      if (workspaceIdFromUrl) {
+        query.set('workspaceId', workspaceIdFromUrl);
+      }
+
+      const endpoint = query.size > 0 ? `/api/projects?${query.toString()}` : '/api/projects';
+      const response = await fetch(endpoint);
       const data = await response.json();
       if (data.code === 0) {
         const items = Array.isArray(data.data?.list) ? data.data.list : [];
@@ -108,7 +114,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     fetchProjects();
     fetchWorkspaces();
-  }, []);
+  }, [workspaceIdFromUrl]);
 
   useEffect(() => {
     if (workspaceIdFromUrl) {

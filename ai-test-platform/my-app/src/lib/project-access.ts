@@ -1,13 +1,19 @@
-import { WorkspaceRole } from '@prisma/client';
+import { ProjectMemberRole, WorkspaceRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
-type RoleFilter = {
+type WorkspaceRoleFilter = {
   role?: {
     in: WorkspaceRole[];
   };
 };
 
-function buildRoleFilter(roles?: WorkspaceRole[]): RoleFilter {
+type ProjectRoleFilter = {
+  role?: {
+    in: ProjectMemberRole[];
+  };
+};
+
+function buildWorkspaceRoleFilter(roles?: WorkspaceRole[]): WorkspaceRoleFilter {
   if (!roles || roles.length === 0) {
     return {};
   }
@@ -16,6 +22,15 @@ function buildRoleFilter(roles?: WorkspaceRole[]): RoleFilter {
 }
 
 export const MANAGE_ROLES: WorkspaceRole[] = ['OWNER', 'ADMIN'];
+export const PROJECT_MANAGE_ROLES: ProjectMemberRole[] = ['OWNER', 'ADMIN'];
+
+function buildProjectRoleFilter(roles?: ProjectMemberRole[]): ProjectRoleFilter {
+  if (!roles || roles.length === 0) {
+    return {};
+  }
+
+  return { role: { in: roles } };
+}
 
 export async function hasWorkspaceAccess(
   userId: string,
@@ -26,30 +41,63 @@ export async function hasWorkspaceAccess(
     where: {
       userId,
       workspaceId,
-      ...buildRoleFilter(roles),
+      ...buildWorkspaceRoleFilter(roles),
     },
     select: { id: true },
   });
 
-  return !!membership;
+  if (membership) {
+    return true;
+  }
+
+  const ownedWorkspace = await prisma.workspace.findFirst({
+    where: {
+      id: workspaceId,
+      ownerId: userId,
+    },
+    select: { id: true },
+  });
+
+  return !!ownedWorkspace;
 }
 
 export async function hasProjectAccess(
   userId: string,
   projectId: string,
-  roles?: WorkspaceRole[]
+  roles?: ProjectMemberRole[]
 ): Promise<boolean> {
+  const workspaceRoleFilter = roles?.length
+    ? buildWorkspaceRoleFilter(roles.map((role) => role as WorkspaceRole))
+    : {};
+
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
-      workspace: {
-        members: {
-          some: {
-            userId,
-            ...buildRoleFilter(roles),
+      OR: [
+        {
+          members: {
+            some: {
+              userId,
+              ...buildProjectRoleFilter(roles),
+            },
           },
         },
-      },
+        {
+          workspace: {
+            members: {
+              some: {
+                userId,
+                ...workspaceRoleFilter,
+              },
+            },
+          },
+        },
+        {
+          workspace: {
+            ownerId: userId,
+          },
+        },
+      ],
     },
     select: { id: true },
   });
@@ -60,20 +108,41 @@ export async function hasProjectAccess(
 export async function hasSystemAccess(
   userId: string,
   systemId: string,
-  roles?: WorkspaceRole[]
+  roles?: ProjectMemberRole[]
 ): Promise<boolean> {
+  const workspaceRoleFilter = roles?.length
+    ? buildWorkspaceRoleFilter(roles.map((role) => role as WorkspaceRole))
+    : {};
+
   const system = await prisma.system.findFirst({
     where: {
       id: systemId,
       project: {
-        workspace: {
-          members: {
-            some: {
-              userId,
-              ...buildRoleFilter(roles),
+        OR: [
+          {
+            members: {
+              some: {
+                userId,
+                ...buildProjectRoleFilter(roles),
+              },
             },
           },
-        },
+          {
+            workspace: {
+              members: {
+                some: {
+                  userId,
+                  ...workspaceRoleFilter,
+                },
+              },
+            },
+          },
+          {
+            workspace: {
+              ownerId: userId,
+            },
+          },
+        ],
       },
     },
     select: { id: true },
@@ -85,21 +154,42 @@ export async function hasSystemAccess(
 export async function hasPageAccess(
   userId: string,
   pageId: string,
-  roles?: WorkspaceRole[]
+  roles?: ProjectMemberRole[]
 ): Promise<boolean> {
+  const workspaceRoleFilter = roles?.length
+    ? buildWorkspaceRoleFilter(roles.map((role) => role as WorkspaceRole))
+    : {};
+
   const page = await prisma.page.findFirst({
     where: {
       id: pageId,
       system: {
         project: {
-          workspace: {
-            members: {
-              some: {
-                userId,
-                ...buildRoleFilter(roles),
+          OR: [
+            {
+              members: {
+                some: {
+                  userId,
+                  ...buildProjectRoleFilter(roles),
+                },
               },
             },
-          },
+            {
+              workspace: {
+                members: {
+                  some: {
+                    userId,
+                    ...workspaceRoleFilter,
+                  },
+                },
+              },
+            },
+            {
+              workspace: {
+                ownerId: userId,
+              },
+            },
+          ],
         },
       },
     },

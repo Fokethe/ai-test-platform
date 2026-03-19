@@ -129,7 +129,7 @@ export default function WorkspaceDetailPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">项目</h2>
           <Button asChild>
-            <Link href={`/projects/new?workspaceId=${id}`}>
+            <Link href={`/projects?workspaceId=${id}`}>
               <Plus className="w-4 h-4 mr-2" />
               新建项目
             </Link>
@@ -143,7 +143,7 @@ export default function WorkspaceDetailPage() {
               <p className="text-slate-500">还没有项目</p>
               <p className="text-sm text-slate-400 mt-1">创建您的第一个项目</p>
               <Button className="mt-4" asChild>
-                <Link href={`/projects/new?workspaceId=${id}`}>
+                <Link href={`/projects?workspaceId=${id}`}>
                   <Plus className="w-4 h-4 mr-2" />
                   新建项目
                 </Link>

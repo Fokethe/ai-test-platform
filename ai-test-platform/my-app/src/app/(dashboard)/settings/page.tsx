@@ -1,71 +1,69 @@
-/**
- * Settings Page - Bento Grid风格
- * 统一设置中心入口
- */
-
 'use client';
 
-import {
-  User,
-  Bot,
-  Users,
-  Activity,
-  Settings,
-  ChevronRight,
-} from 'lucide-react';
 import Link from 'next/link';
-import { BentoCard, BentoGrid } from '@/components/bento';
-import { BentoHeader } from '@/components/bento';
-
-const settingsNav = [
-  {
-    id: 'profile',
-    label: '个人设置',
-    description: '管理个人信息和账户偏好',
-    icon: User,
-    href: '/settings/profile',
-    color: 'bg-blue-500',
-  },
-  {
-    id: 'ai',
-    label: 'AI 设置',
-    description: '配置AI模型参数和API密钥',
-    icon: Bot,
-    href: '/settings/ai',
-    color: 'bg-purple-500',
-  },
-  {
-    id: 'users',
-    label: '用户管理',
-    description: '管理系统用户和权限',
-    icon: Users,
-    href: '/settings/users',
-    color: 'bg-green-500',
-  },
-  {
-    id: 'activity',
-    label: '活动日志',
-    description: '查看系统活动和操作记录',
-    icon: Activity,
-    href: '/settings/activity',
-    color: 'bg-orange-500',
-  },
-  {
-    id: 'system',
-    label: '系统配置',
-    description: '系统级参数和全局设置',
-    icon: Settings,
-    href: '/settings/system',
-    color: 'bg-[var(--electric)]',
-  },
-];
+import { Activity, Bot, ChevronRight, Settings, ShieldCheck, User, Users } from 'lucide-react';
+import { BentoCard, BentoGrid, BentoHeader } from '@/components/bento';
+import { useSystemLanguage } from '@/components/system-language-provider';
 
 export default function SettingsPage() {
+  const { t } = useSystemLanguage();
+
+  const settingsNav = [
+    {
+      id: 'profile',
+      label: t('\u4e2a\u4eba\u8bbe\u7f6e', 'Profile'),
+      description: t('\u7ba1\u7406\u4f60\u7684\u4e2a\u4eba\u8d26\u53f7\u504f\u597d\u3002', 'Manage your personal account preferences.'),
+      icon: User,
+      href: '/settings/profile',
+      color: 'bg-blue-500',
+    },
+    {
+      id: 'ai',
+      label: t('AI \u8bbe\u7f6e', 'AI Settings'),
+      description: t('\u914d\u7f6e\u6a21\u578b\u9009\u9879\u4e0e AI \u63d0\u4f9b\u5546\u3002', 'Configure model options and AI providers.'),
+      icon: Bot,
+      href: '/settings/ai',
+      color: 'bg-purple-500',
+    },
+    {
+      id: 'users',
+      label: t('\u7528\u6237\u7ba1\u7406', 'User Management'),
+      description: t('\u7ba1\u7406\u7528\u6237\u72b6\u6001\u3001\u89d2\u8272\u4e0e\u8d26\u53f7\u5b89\u5168\u3002', 'Manage user status, roles, and account safety.'),
+      icon: Users,
+      href: '/settings/users',
+      color: 'bg-green-500',
+    },
+    {
+      id: 'roles',
+      label: t('\u89d2\u8272\u4e0e\u83dc\u5355', 'Role & Menu'),
+      description: t('\u914d\u7f6e\u4e0d\u540c\u89d2\u8272\u7684\u83dc\u5355\u53ef\u89c1\u6027\u4e0e\u7ba1\u7406\u6743\u9650\u3002', 'Control role-based menu visibility and admin access.'),
+      icon: ShieldCheck,
+      href: '/settings/roles',
+      color: 'bg-indigo-500',
+    },
+    {
+      id: 'activity',
+      label: t('\u6d3b\u52a8\u65e5\u5fd7', 'Activity Logs'),
+      description: t('\u67e5\u770b\u5173\u952e\u64cd\u4f5c\u548c\u6cbb\u7406\u5ba1\u8ba1\u8f68\u8ff9\u3002', 'Inspect key operations and governance traces.'),
+      icon: Activity,
+      href: '/settings/activity',
+      color: 'bg-orange-500',
+    },
+    {
+      id: 'system',
+      label: t('\u7cfb\u7edf\u914d\u7f6e', 'System'),
+      description: t('\u7ba1\u7406\u5e73\u53f0\u7ea7\u5168\u5c40\u53c2\u6570\u4e0e\u914d\u7f6e\u3002', 'Manage global platform-level settings.'),
+      icon: Settings,
+      href: '/settings/system',
+      color: 'bg-[var(--electric)]',
+    },
+  ];
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <BentoHeader
-        title="设置中心"
-        description="管理您的账户和系统配置"
+        title={t('\u8bbe\u7f6e\u4e2d\u5fc3', 'Settings')}
+        description={t('\u7edf\u4e00\u7ba1\u7406\u8d26\u53f7\u3001\u5b89\u5168\u4e0e\u6cbb\u7406\u914d\u7f6e\u3002', 'Centralized account, security, and governance configuration.')}
       />
 
       <BentoGrid cols={3}>
@@ -86,33 +84,12 @@ export default function SettingsPage() {
                 <h3 className="mt-4 font-semibold text-lg text-slate-900 group-hover:text-[var(--electric)] transition-colors">
                   {item.label}
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {item.description}
-                </p>
+                <p className="mt-1 text-sm text-slate-500">{item.description}</p>
               </BentoCard>
             </Link>
           );
         })}
       </BentoGrid>
-
-      {/* 快捷操作 */}
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">快捷操作</h2>
-        <BentoGrid cols={2}>
-          <BentoCard className="p-6 border-dashed">
-            <h3 className="font-medium text-slate-700">需要帮助？</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              查看使用文档或联系管理员获取支持
-            </p>
-          </BentoCard>
-          <BentoCard className="p-6 border-dashed">
-            <h3 className="font-medium text-slate-700">系统状态</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              所有系统运行正常
-            </p>
-          </BentoCard>
-        </BentoGrid>
-      </div>
     </div>
   );
 }

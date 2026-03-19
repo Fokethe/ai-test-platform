@@ -1,23 +1,13 @@
-/**
- * User Management Page
- * 用户管理页面
- */
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Search, MoreHorizontal, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useCallback, useEffect, useState } from 'react';
+import { MoreHorizontal, Plus, Search, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { useSystemLanguage } from '@/components/system-language-provider';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -27,154 +17,160 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
 
-const roleLabels: Record<string, string> = {
-  ADMIN: '管理员',
-  MEMBER: '成员',
-  VIEWER: '访客',
-};
-
-const roleColors: Record<string, string> = {
-  ADMIN: 'bg-red-100 text-red-800',
-  MEMBER: 'bg-blue-100 text-blue-800',
-  VIEWER: 'bg-slate-100 text-slate-800',
-};
-
-interface User {
+interface UserRow {
   id: string;
   name: string;
   email: string;
-  role: string;
-  status: string;
-  image?: string;
+  role: 'ADMIN' | 'USER' | 'GUEST';
+  status: 'ACTIVE' | 'INACTIVE';
 }
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('MEMBER');
+const roleText: Record<UserRow['role'], { zh: string; en: string }> = {
+  ADMIN: { zh: '\u7ba1\u7406\u5458', en: 'Admin' },
+  USER: { zh: '\u6210\u5458', en: 'User' },
+  GUEST: { zh: '\u8bbf\u5ba2', en: 'Guest' },
+};
+
+const statusText: Record<UserRow['status'], { zh: string; en: string }> = {
+  ACTIVE: { zh: '\u5df2\u542f\u7528', en: 'Active' },
+  INACTIVE: { zh: '\u5df2\u7981\u7528', en: 'Inactive' },
+};
+
+export default function UserManagementPage() {
+  const { language, t } = useSystemLanguage();
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRow['role']>('USER');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // 获取用户列表
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const query = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '';
-      const res = await fetch(`/api/users${query}`);
-      const data = await res.json();
-      if (data.code === 0) {
-        setUsers(data.data);
+      const query = search ? `?search=${encodeURIComponent(search)}` : '';
+      const response = await fetch(`/api/users${query}`, { cache: 'no-store' });
+      const payload = await response.json();
+      if (payload.code === 0) {
+        setUsers(payload.data);
       } else {
-        toast.error(data.message || '获取用户列表失败');
+        toast.error(payload.error?.message || payload.message || t('\u83b7\u53d6\u7528\u6237\u5931\u8d25', 'Failed to load users'));
       }
-    } catch (error) {
-      toast.error('获取用户列表失败');
+    } catch {
+      toast.error(t('\u83b7\u53d6\u7528\u6237\u5931\u8d25', 'Failed to load users'));
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [search, t]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // 邀请用户
-  const handleInvite = async () => {
-    if (!inviteEmail) {
-      toast.error('请输入邮箱地址');
+  const inviteUser = async () => {
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error(t('\u8bf7\u8f93\u5165\u90ae\u7bb1', 'Email is required'));
       return;
     }
+
     setActionLoading('invite');
     try {
-      const res = await fetch('/api/users', {
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({ email, role: inviteRole }),
       });
-      const data = await res.json();
-      if (data.code === 0) {
-        toast.success(`邀请已发送至 ${inviteEmail}`);
+      const payload = await response.json();
+      if (payload.code === 0) {
+        toast.success(t('\u9080\u8bf7\u5df2\u53d1\u9001', 'Invitation sent'));
         setInviteEmail('');
-        setInviteDialogOpen(false);
+        setInviteRole('USER');
+        setInviteOpen(false);
         fetchUsers();
       } else {
-        toast.error(data.message || '邀请失败');
+        toast.error(payload.error?.message || payload.message || t('\u9080\u8bf7\u5931\u8d25', 'Failed to invite user'));
       }
-    } catch (error) {
-      toast.error('邀请失败');
+    } catch {
+      toast.error(t('\u9080\u8bf7\u5931\u8d25', 'Failed to invite user'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  // 更新用户角色
-  const handleUpdateRole = async (userId: string, newRole: string) => {
-    setActionLoading(userId);
+  const updateUser = async (id: string, patch: Partial<Pick<UserRow, 'role' | 'status'>>) => {
+    setActionLoading(id);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify(patch),
       });
-      const data = await res.json();
-      if (data.code === 0) {
-        toast.success('角色已更新');
+      const payload = await response.json();
+      if (payload.code === 0) {
+        toast.success(t('\u7528\u6237\u5df2\u66f4\u65b0', 'User updated'));
         fetchUsers();
       } else {
-        toast.error(data.message || '更新失败');
+        toast.error(payload.error?.message || payload.message || t('\u66f4\u65b0\u5931\u8d25', 'Failed to update user'));
       }
-    } catch (error) {
-      toast.error('更新失败');
+    } catch {
+      toast.error(t('\u66f4\u65b0\u5931\u8d25', 'Failed to update user'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  // 重置密码
-  const handleResetPassword = async (userId: string) => {
-    setActionLoading(userId);
+  const resetPassword = async (id: string) => {
+    setActionLoading(id);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resetPassword: true }),
       });
-      const data = await res.json();
-      if (data.code === 0) {
-        toast.success('密码重置邮件已发送');
+      const payload = await response.json();
+      if (payload.code === 0) {
+        toast.success(t('\u5bc6\u7801\u91cd\u7f6e\u90ae\u4ef6\u5df2\u53d1\u9001', 'Password reset email sent'));
       } else {
-        toast.error(data.message || '重置失败');
+        toast.error(payload.error?.message || payload.message || t('\u91cd\u7f6e\u5931\u8d25', 'Failed to reset password'));
       }
-    } catch (error) {
-      toast.error('重置失败');
+    } catch {
+      toast.error(t('\u91cd\u7f6e\u5931\u8d25', 'Failed to reset password'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  // 删除用户
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('确定要删除此用户吗？此操作不可撤销。')) return;
-    setActionLoading(userId);
+  const deleteUser = async (id: string) => {
+    if (!confirm(t('\u786e\u5b9a\u5220\u9664\u8be5\u7528\u6237\u5417\uff1f\u6b64\u64cd\u4f5c\u4e0d\u53ef\u64a4\u9500\u3002', 'Delete this user? This action cannot be undone.'))) {
+      return;
+    }
+
+    setActionLoading(id);
     try {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (data.code === 0) {
-        toast.success('用户已删除');
+      const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      const payload = await response.json();
+      if (payload.code === 0) {
+        toast.success(t('\u7528\u6237\u5df2\u5220\u9664', 'User deleted'));
         fetchUsers();
       } else {
-        toast.error(data.message || '删除失败');
+        toast.error(payload.error?.message || payload.message || t('\u5220\u9664\u5931\u8d25', 'Failed to delete user'));
       }
-    } catch (error) {
-      toast.error('删除失败');
+    } catch {
+      toast.error(t('\u5220\u9664\u5931\u8d25', 'Failed to delete user'));
     } finally {
       setActionLoading(null);
     }
@@ -182,137 +178,152 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6" />
-            用户管理
+            {t('\u7528\u6237\u7ba1\u7406', 'User Management')}
           </h1>
-          <p className="text-slate-500 mt-1">管理团队成员和权限</p>
+          <p className="text-slate-500 mt-1">
+            {t('\u7ba1\u7406\u89d2\u8272\u3001\u8d26\u53f7\u72b6\u6001\u4e0e\u5b89\u5168\u64cd\u4f5c\u3002', 'Manage roles, account status, and access safety.')}
+          </p>
         </div>
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              邀请用户
+              {t('\u9080\u8bf7\u7528\u6237', 'Invite User')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>邀请用户</DialogTitle>
+              <DialogTitle>{t('\u9080\u8bf7\u7528\u6237', 'Invite User')}</DialogTitle>
               <DialogDescription>
-                输入邮箱地址邀请新成员加入团队
+                {t('\u521b\u5efa\u7981\u7528\u6001\u8d26\u53f7\u5e76\u53d1\u9001\u9080\u8bf7\u90ae\u4ef6\u3002', 'Create an inactive account and send invitation email.')}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>邮箱地址</Label>
+                <Label htmlFor="invite-email">{t('\u90ae\u7bb1', 'Email')}</Label>
                 <Input
+                  id="invite-email"
                   placeholder="user@example.com"
                   value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onChange={(event) => setInviteEmail(event.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>角色</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
+                <Label>{t('\u89d2\u8272', 'Role')}</Label>
+                <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as UserRow['role'])}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择角色" />
+                    <SelectValue placeholder={t('\u9009\u62e9\u89d2\u8272', 'Select role')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MEMBER">成员</SelectItem>
-                    <SelectItem value="VIEWER">访客</SelectItem>
-                    <SelectItem value="ADMIN">管理员</SelectItem>
+                    <SelectItem value="ADMIN">{t('\u7ba1\u7406\u5458', 'Admin')}</SelectItem>
+                    <SelectItem value="USER">{t('\u6210\u5458', 'User')}</SelectItem>
+                    <SelectItem value="GUEST">{t('\u8bbf\u5ba2', 'Guest')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-                取消
+              <Button variant="outline" onClick={() => setInviteOpen(false)}>
+                {t('\u53d6\u6d88', 'Cancel')}
               </Button>
-              <Button onClick={handleInvite} disabled={actionLoading === 'invite'}>
-                {actionLoading === 'invite' ? '发送中...' : '发送邀请'}
+              <Button onClick={inviteUser} disabled={actionLoading === 'invite'}>
+                {actionLoading === 'invite' ? t('\u53d1\u9001\u4e2d...', 'Sending...') : t('\u53d1\u9001\u9080\u8bf7', 'Send Invite')}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Search */}
       <Card>
         <CardContent className="pt-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="搜索用户..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('\u6309\u59d3\u540d\u6216\u90ae\u7bb1\u641c\u7d22', 'Search users by name or email')}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
               className="pl-10"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* User List */}
       <Card>
         <CardHeader>
-          <CardTitle>团队成员 ({users.length})</CardTitle>
+          <CardTitle>{t('\u7528\u6237\u5217\u8868', 'Users')} ({users.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar>
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-sm text-slate-500">{user.email}</p>
+          {loading ? (
+            <div className="text-sm text-slate-500">{t('\u52a0\u8f7d\u4e2d...', 'Loading users...')}</div>
+          ) : (
+            <div className="space-y-3">
+              {users.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 rounded-lg border bg-white">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar>
+                      <AvatarFallback>{(user.name || user.email)[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{user.name || user.email}</p>
+                      <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary">
+                      {language === 'zh-CN' ? roleText[user.role].zh : roleText[user.role].en}
+                    </Badge>
+                    <Badge variant={user.status === 'ACTIVE' ? 'default' : 'outline'}>
+                      {language === 'zh-CN' ? statusText[user.status].zh : statusText[user.status].en}
+                    </Badge>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" disabled={actionLoading === user.id}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel>{t('\u89d2\u8272', 'Role')}</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => updateUser(user.id, { role: 'ADMIN' })}>
+                          {t('\u8bbe\u4e3a\u7ba1\u7406\u5458', 'Set as Admin')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateUser(user.id, { role: 'USER' })}>
+                          {t('\u8bbe\u4e3a\u6210\u5458', 'Set as User')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateUser(user.id, { role: 'GUEST' })}>
+                          {t('\u8bbe\u4e3a\u8bbf\u5ba2', 'Set as Guest')}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>{t('\u8d26\u53f7\u72b6\u6001', 'Status')}</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => updateUser(user.id, { status: 'ACTIVE' })}>
+                          {t('\u542f\u7528', 'Activate')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => updateUser(user.id, { status: 'INACTIVE' })}>
+                          {t('\u7981\u7528', 'Deactivate')}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => resetPassword(user.id)}>
+                          {t('\u91cd\u7f6e\u5bc6\u7801', 'Reset Password')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => deleteUser(user.id)}>
+                          {t('\u5220\u9664\u7528\u6237', 'Delete User')}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Badge className={roleColors[user.role]}>
-                    {roleLabels[user.role]}
-                  </Badge>
-                  <Badge variant={user.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                    {user.status === 'ACTIVE' ? '活跃' : '未激活'}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" disabled={actionLoading === user.id}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleUpdateRole(user.id, user.role === 'ADMIN' ? 'MEMBER' : 'ADMIN')}>
-                        {user.role === 'ADMIN' ? '降级为成员' : '提升为管理员'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleResetPassword(user.id)}>
-                        重置密码
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600"
-                        onClick={() => handleDeleteUser(user.id)}
-                      >
-                        删除用户
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-            {users.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                没有找到匹配的用户
-              </div>
-            )}
-          </div>
+              ))}
+
+              {!loading && users.length === 0 ? (
+                <div className="text-sm text-slate-500 py-8 text-center">{t('\u672a\u627e\u5230\u7528\u6237', 'No users found.')}</div>
+              ) : null}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

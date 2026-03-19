@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { parseJsonBody } from '@/lib/api-handler';
 import { prisma } from '@/lib/prisma';
 import { errorResponse, errors, successResponse } from '@/lib/api-response';
-import { hasSystemAccess, MANAGE_ROLES } from '@/lib/project-access';
+import { hasSystemAccess, PROJECT_MANAGE_ROLES } from '@/lib/project-access';
 
 const updatePageSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -77,7 +77,11 @@ export async function PUT(
       return errors.notFound('页面');
     }
 
-    const canManagePage = await hasSystemAccess(session.user.id, existing.systemId, MANAGE_ROLES);
+    const canManagePage = await hasSystemAccess(
+      session.user.id,
+      existing.systemId,
+      PROJECT_MANAGE_ROLES
+    );
     if (!canManagePage) {
       return errors.forbidden();
     }
@@ -113,7 +117,11 @@ export async function DELETE(
       return errors.notFound('页面');
     }
 
-    const canManagePage = await hasSystemAccess(session.user.id, existing.systemId, MANAGE_ROLES);
+    const canManagePage = await hasSystemAccess(
+      session.user.id,
+      existing.systemId,
+      PROJECT_MANAGE_ROLES
+    );
     if (!canManagePage) {
       return errors.forbidden();
     }

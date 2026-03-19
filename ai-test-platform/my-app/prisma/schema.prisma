@@ -70,6 +70,8 @@ model User {
   accounts         Account[]
   sessions         Session[]
   workspaceMembers WorkspaceMember[]
+  ownedWorkspaces  Workspace[] @relation("WorkspaceOwner")
+  projectMembers   ProjectMember[]
   apiKeys          ApiKey[]
   settings         UserSettings?
   notifications    Notification[]
@@ -84,6 +86,20 @@ model User {
   assignedIssues   Issue[] @relation("IssueAssignee")
 
   @@map("users")
+}
+
+model RoleMenuPermission {
+  id        String   @id @default(cuid())
+  role      UserRole
+  menuKey   String   @map("menu_key")
+  enabled   Boolean  @default(true)
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([role, menuKey])
+  @@index([menuKey])
+  @@map("role_menu_permissions")
 }
 
 model UserSettings {
@@ -136,12 +152,16 @@ model Workspace {
   id          String   @id @default(cuid())
   name        String
   description String?
+  ownerId     String?  @map("owner_id")
+  isPersonal  Boolean  @default(false) @map("is_personal")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  owner    User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   members  WorkspaceMember[]
   projects Project[]
 
+  @@index([ownerId, isPersonal])
   @@map("workspaces")
 }
 
@@ -178,6 +198,7 @@ model Project {
   workspaceId String        @map("workspace_id")
 
   workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members       ProjectMember[]
   systems       System[]
   testSuites    TestSuite[]
   bugs          Bug[]
@@ -190,8 +211,380 @@ model Project {
   assets        Asset[]
   integrations  Integration[]
   customFields  CustomField[]
+  ragStrategyConfigs RagStrategyConfig[]
+  ragRoutingRuleSets RagRoutingRuleSet[]
+  ragPromptTemplateVersions RagPromptTemplateVersion[]
+  ragIndexBuilds RagIndexBuild[]
+  ragVectorIndexEntries RagVectorIndexEntry[]
+  ragGraphIndexNodes RagGraphIndexNode[]
+  ragEmbeddingStrategyConfigs RagEmbeddingStrategyConfig[]
+  ragHierarchicalIndexJobs RagHierarchicalIndexJob[]
+  ragEvalDatasetVersions RagEvalDatasetVersion[]
+  ragEvalRuns RagEvalRun[]
+  ragEvalRefreshGuardEvents RagEvalRefreshGuardEvent[]
 
   @@map("projects")
+}
+
+model RagStrategyConfig {
+  id            String   @id @default(cuid())
+  projectId     String?  @map("project_id")
+  multiQuery    Boolean  @default(false) @map("multi_query")
+  hyde          Boolean  @default(true)
+  decomposition Boolean  @default(false)
+  fusion        Boolean  @default(false)
+  version       Int      @default(1)
+  isActive      Boolean  @default(true) @map("is_active")
+  updatedBy     String?  @map("updated_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, isActive])
+  @@map("rag_strategy_configs")
+}
+
+model RagRoutingRuleSet {
+  id        String   @id @default(cuid())
+  projectId String?  @map("project_id")
+  version   Int      @default(1)
+  isActive  Boolean  @default(true) @map("is_active")
+  rulesJson String   @map("rules_json")
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, isActive])
+  @@map("rag_routing_rule_sets")
+}
+
+model RagPromptTemplateVersion {
+  id        String   @id @default(cuid())
+  projectId String?  @map("project_id")
+  scenario  String
+  name      String
+  template  String
+  keywords  String   @default("[]")
+  version   Int      @default(1)
+  isActive  Boolean  @default(true) @map("is_active")
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, scenario, version])
+  @@index([projectId, scenario, isActive])
+  @@map("rag_prompt_template_versions")
+}
+
+enum RagIndexSourceType {
+  KNOWLEDGE_ENTRY
+  AI_REQUIREMENT
+}
+
+model RagIndexBuild {
+  id           String             @id @default(cuid())
+  sourceType   RagIndexSourceType @map("source_type")
+  sourceId     String             @map("source_id")
+  projectId    String?            @map("project_id")
+  version      Int                @default(1)
+  isActive     Boolean            @default(true) @map("is_active")
+  strategyJson String             @map("strategy_json")
+  qualityScore Float?             @map("quality_score")
+  unitCount    Int                @default(0) @map("unit_count")
+  createdBy    String?            @map("created_by")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  units   RagIndexUnit[]
+  vectorEntries RagVectorIndexEntry[]
+  graphNodes RagGraphIndexNode[]
+
+  @@unique([sourceType, sourceId, version])
+  @@index([sourceType, sourceId, isActive])
+  @@index([projectId, createdAt])
+  @@map("rag_index_builds")
+}
+
+model RagIndexUnit {
+  id          String   @id @default(cuid())
+  buildId     String   @map("build_id")
+  unitKey     String   @unique @map("unit_key")
+  unitIndex   Int      @map("unit_index")
+  content     String
+  tokenCount  Int      @default(0) @map("token_count")
+  startOffset Int?     @map("start_offset")
+  endOffset   Int?     @map("end_offset")
+  metadata    String?  // JSON
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  build RagIndexBuild @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([buildId, unitIndex])
+  @@map("rag_index_units")
+}
+
+enum RagRepresentationType {
+  ORIGINAL
+  SUMMARY
+}
+
+model RagVectorIndexEntry {
+  id                 String                @id @default(cuid())
+  buildId            String                @map("build_id")
+  sourceType         RagIndexSourceType    @map("source_type")
+  sourceId           String                @map("source_id")
+  sourceUnitKey      String                @map("source_unit_key")
+  representationType RagRepresentationType @map("representation_type")
+  vectorKey          String                @unique @map("vector_key")
+  embeddingDim       Int                   @map("embedding_dim")
+  strategyName       String                @map("strategy_name")
+  content            String
+  summary            String?
+  metadata           String?               // JSON
+  createdAt          DateTime              @default(now()) @map("created_at")
+
+  build   RagIndexBuild @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  project Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?     @map("project_id")
+
+  @@index([buildId, representationType])
+  @@index([sourceType, sourceId, representationType])
+  @@index([projectId, createdAt])
+  @@map("rag_vector_index_entries")
+}
+
+model RagGraphIndexNode {
+  id                 String                @id @default(cuid())
+  buildId            String                @map("build_id")
+  sourceType         RagIndexSourceType    @map("source_type")
+  sourceId           String                @map("source_id")
+  sourceUnitKey      String                @map("source_unit_key")
+  representationType RagRepresentationType @map("representation_type")
+  nodeKey            String                @unique @map("node_key")
+  title              String
+  content            String
+  summary            String?
+  linksJson          String?               @map("links_json")
+  metadata           String?               // JSON
+  createdAt          DateTime              @default(now()) @map("created_at")
+
+  build   RagIndexBuild @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  project Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?     @map("project_id")
+
+  @@index([buildId, representationType])
+  @@index([sourceType, sourceId, representationType])
+  @@index([projectId, createdAt])
+  @@map("rag_graph_index_nodes")
+}
+
+model RagEmbeddingStrategyConfig {
+  id             String   @id @default(cuid())
+  projectId      String?  @map("project_id")
+  strategyName   String   @map("strategy_name")
+  dimension      Int
+  fallbackTo     String   @default("default-hash") @map("fallback_to")
+  version        Int      @default(1)
+  isActive       Boolean  @default(true) @map("is_active")
+  updatedBy      String?  @map("updated_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, isActive])
+  @@map("rag_embedding_strategy_configs")
+}
+
+enum RagIndexJobStatus {
+  PENDING
+  RUNNING
+  FAILED
+  COMPLETED
+}
+
+model RagHierarchicalIndexJob {
+  id                  String           @id @default(cuid())
+  sourceType          RagIndexSourceType @map("source_type")
+  sourceId            String           @map("source_id")
+  projectId           String?          @map("project_id")
+  status              RagIndexJobStatus @default(PENDING)
+  stage               String           @default("init")
+  recoveredFromJobId  String?          @map("recovered_from_job_id")
+  startedAt           DateTime         @default(now()) @map("started_at")
+  finishedAt          DateTime?        @map("finished_at")
+  lastError           String?          @map("last_error")
+  createdBy           String?          @map("created_by")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  project     Project?                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checkpoints RagIndexCheckpoint[]
+  nodes       RagHierarchicalIndexNode[]
+
+  @@index([sourceType, sourceId, status])
+  @@index([projectId, createdAt])
+  @@map("rag_hierarchical_index_jobs")
+}
+
+model RagIndexCheckpoint {
+  id         String   @id @default(cuid())
+  jobId      String   @map("job_id")
+  stage      String
+  cursor     Int      @default(0)
+  payloadJson String  @map("payload_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  job RagHierarchicalIndexJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, createdAt])
+  @@map("rag_index_checkpoints")
+}
+
+model RagHierarchicalIndexNode {
+  id          String   @id @default(cuid())
+  jobId       String   @map("job_id")
+  parentId    String?  @map("parent_id")
+  level       Int
+  nodeKey     String   @unique @map("node_key")
+  clusterKey  String   @map("cluster_key")
+  summary     String
+  unitRefsJson String  @map("unit_refs_json")
+  metadata    String?  // JSON
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  job RagHierarchicalIndexJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, level])
+  @@index([jobId, parentId])
+  @@map("rag_hierarchical_index_nodes")
+}
+
+enum RagEvalRunStatus {
+  PENDING
+  RUNNING
+  RETRYING
+  COMPLETED
+  FAILED
+}
+
+enum RagEvalGuardType {
+  DASHBOARD_REFRESH
+  EVAL_RETRY
+}
+
+enum RagEvalGuardStatus {
+  HEALTHY
+  DEGRADED
+  ALERT
+}
+
+model RagEvalDatasetVersion {
+  id             String   @id @default(cuid())
+  projectId      String?  @map("project_id")
+  name           String
+  datasetVersion String   @map("dataset_version")
+  itemCount      Int      @default(0) @map("item_count")
+  checksum       String
+  sampleJson     String   @map("sample_json")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdBy      String?  @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs    RagEvalRun[]
+
+  @@unique([projectId, name, datasetVersion])
+  @@index([projectId, name, isActive])
+  @@map("rag_eval_dataset_versions")
+}
+
+model RagEvalRun {
+  id               String           @id @default(cuid())
+  projectId        String?          @map("project_id")
+  strategyVersion  Int              @map("strategy_version")
+  datasetVersionId String           @map("dataset_version_id")
+  status           RagEvalRunStatus @default(PENDING)
+  frameworksJson   String           @map("frameworks_json")
+  resultVersion    Int              @default(1) @map("result_version")
+  reproducibilityKey String         @map("reproducibility_key")
+  metricsJson      String?          @map("metrics_json")
+  reportJson       String?          @map("report_json")
+  totalCost        Float            @default(0) @map("total_cost")
+  retryCount       Int              @default(0) @map("retry_count")
+  recoveredFromRunId String?        @map("recovered_from_run_id")
+  startedAt        DateTime         @default(now()) @map("started_at")
+  finishedAt       DateTime?        @map("finished_at")
+  lastError        String?          @map("last_error")
+  createdBy        String?          @map("created_by")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  project Project?               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  datasetVersion RagEvalDatasetVersion @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, strategyVersion, datasetVersionId, resultVersion])
+  @@index([projectId, strategyVersion, datasetVersionId, status])
+  @@index([projectId, createdAt])
+  @@map("rag_eval_runs")
+}
+
+model RagEvalRefreshGuardEvent {
+  id               String             @id @default(cuid())
+  projectId        String?            @map("project_id")
+  guardType        RagEvalGuardType   @map("guard_type")
+  status           RagEvalGuardStatus
+  observedLatencyMs Int               @map("observed_latency_ms")
+  thresholdMs      Int                @map("threshold_ms")
+  detailJson       String?            @map("detail_json")
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, guardType, createdAt])
+  @@map("rag_eval_refresh_guard_events")
+}
+
+model ProjectMember {
+  id         String            @id @default(cuid())
+  role       ProjectMemberRole @default(MEMBER)
+  accessType ProjectAccessType @default(SHARED) @map("access_type")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+  projectId  String            @map("project_id")
+  userId     String            @map("user_id")
+  grantedBy  String?           @map("granted_by")
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId, role])
+  @@map("project_members")
+}
+
+enum ProjectMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ProjectAccessType {
+  OWNED
+  SHARED
+  LOANED
+  TRANSFERRED
 }
 
 enum ProjectStatus {
@@ -635,8 +1028,11 @@ model AiRequirement {
   businessRules String   @map("business_rules") // JSON array
   
   // 关联
-  projectId     String   @map("project_id")
-  createdBy     String?  @map("created_by")
+  projectId     String    @map("project_id")
+  createdBy     String?   @map("created_by")
+  version       Int       @default(1)
+  confirmedAt   DateTime? @map("confirmed_at")
+  confirmedBy   String?   @map("confirmed_by")
   
   // 时间
   createdAt     DateTime @default(now()) @map("created_at")

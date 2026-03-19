@@ -1,9 +1,15 @@
 import { DELETE, GET, PUT } from '../route';
 import { auth } from '@/lib/auth';
+import { hasSystemAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
 
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
+}));
+
+jest.mock('@/lib/project-access', () => ({
+  hasSystemAccess: jest.fn(),
+  PROJECT_MANAGE_ROLES: ['OWNER', 'ADMIN'],
 }));
 
 jest.mock('@/lib/prisma', () => ({
@@ -12,9 +18,6 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-    },
-    system: {
-      findFirst: jest.fn(),
     },
   },
 }));
@@ -40,7 +43,7 @@ describe('/api/pages/[id] route', () => {
       id: 'page-1',
       systemId: 'sys-1',
     });
-    (prisma.system.findFirst as jest.Mock).mockResolvedValue(null);
+    (hasSystemAccess as jest.Mock).mockResolvedValue(false);
 
     const response = await PUT(
       new Request('http://localhost/api/pages/page-1', {
@@ -56,12 +59,12 @@ describe('/api/pages/[id] route', () => {
   });
 
   it('DELETE removes page when user is manager', async () => {
-    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
+    (auth as jest.Mock).mockResolvedValue({ user: { id: 'owner-1' } });
     (prisma.page.findUnique as jest.Mock).mockResolvedValue({
       id: 'page-1',
       systemId: 'sys-1',
     });
-    (prisma.system.findFirst as jest.Mock).mockResolvedValue({ id: 'sys-1' });
+    (hasSystemAccess as jest.Mock).mockResolvedValue(true);
 
     const response = await DELETE(
       new Request('http://localhost/api/pages/page-1', { method: 'DELETE' }) as never,

@@ -11,7 +11,7 @@ import {
   errors,
   listResponse,
 } from '@/lib/api-response';
-import { hasProjectAccess, MANAGE_ROLES } from '@/lib/project-access';
+import { hasProjectAccess, PROJECT_MANAGE_ROLES } from '@/lib/project-access';
 
 const createSystemSchema = z.object({
   name: z.string().min(1).max(100),
@@ -39,13 +39,29 @@ export async function GET(request: NextRequest) {
       where.projectId = projectId;
     } else {
       where.project = {
-        workspace: {
-          members: {
-            some: {
-              userId: session.user.id,
+        OR: [
+          {
+            members: {
+              some: {
+                userId: session.user.id,
+              },
             },
           },
-        },
+          {
+            workspace: {
+              members: {
+                some: {
+                  userId: session.user.id,
+                },
+              },
+            },
+          },
+          {
+            workspace: {
+              ownerId: session.user.id,
+            },
+          },
+        ],
       };
     }
 
@@ -97,7 +113,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, baseUrl, projectId } = validationResult.data;
-    const canManageProject = await hasProjectAccess(session.user.id, projectId, MANAGE_ROLES);
+    const canManageProject = await hasProjectAccess(
+      session.user.id,
+      projectId,
+      PROJECT_MANAGE_ROLES
+    );
     if (!canManageProject) {
       return errors.forbidden();
     }

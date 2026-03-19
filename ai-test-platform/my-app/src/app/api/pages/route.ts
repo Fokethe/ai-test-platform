@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
 import { prisma } from '@/lib/prisma';
@@ -12,7 +12,7 @@ import {
   listResponse,
   successResponse,
 } from '@/lib/api-response';
-import { hasSystemAccess, MANAGE_ROLES } from '@/lib/project-access';
+import { hasSystemAccess, PROJECT_MANAGE_ROLES } from '@/lib/project-access';
 
 const createPageSchema = z.object({
   name: z.string().min(1).max(100),
@@ -54,13 +54,25 @@ export async function GET(request: NextRequest) {
     } else {
       where.system = {
         project: {
-          workspace: {
-            members: {
-              some: {
-                userId: session.user.id,
+          OR: [
+            {
+              members: {
+                some: { userId: session.user.id },
               },
             },
-          },
+            {
+              workspace: {
+                members: {
+                  some: { userId: session.user.id },
+                },
+              },
+            },
+            {
+              workspace: {
+                ownerId: session.user.id,
+              },
+            },
+          ],
         },
       };
     }
@@ -111,7 +123,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, path, systemId } = validationResult.data;
-    const canManageSystem = await hasSystemAccess(session.user.id, systemId, MANAGE_ROLES);
+    const canManageSystem = await hasSystemAccess(
+      session.user.id,
+      systemId,
+      PROJECT_MANAGE_ROLES
+    );
     if (!canManageSystem) {
       return errors.forbidden();
     }
@@ -157,7 +173,11 @@ export async function PUT(request: NextRequest) {
 
     const systemIds = [...new Set(targetPages.map((page) => page.systemId))];
     for (const systemId of systemIds) {
-      const canManageSystem = await hasSystemAccess(session.user.id, systemId, MANAGE_ROLES);
+      const canManageSystem = await hasSystemAccess(
+        session.user.id,
+        systemId,
+        PROJECT_MANAGE_ROLES
+      );
       if (!canManageSystem) {
         return errors.forbidden();
       }
@@ -196,7 +216,11 @@ export async function DELETE(request: NextRequest) {
       return errors.notFound('页面');
     }
 
-    const canManageSystem = await hasSystemAccess(session.user.id, targetPage.systemId, MANAGE_ROLES);
+    const canManageSystem = await hasSystemAccess(
+      session.user.id,
+      targetPage.systemId,
+      PROJECT_MANAGE_ROLES
+    );
     if (!canManageSystem) {
       return errors.forbidden();
     }
