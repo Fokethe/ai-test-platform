@@ -5,6 +5,11 @@ node_modules/
 
 # Testing
 coverage/
+playwright-report/
+test-results/
+*.webm
+*.png
+*.zip
 
 # Build outputs
 .next/

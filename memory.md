@@ -213,3 +213,35 @@
 - [ ] 更多图表可视化
 - [ ] 移动端适配优化
 - [ ] 性能监控和优化
+
+## 最近会话记录 (2026-03-18)
+
+### 用户咨询
+- 主题: 如何检验自己当前使用的是什么模型
+- 处理方式: 提供通用排查路径，包括查看界面模型选择器、检查 API 请求中的 `model` 字段、查看本地/服务端配置项与运行日志。
+- 说明: 当前对话环境本身未直接暴露底层模型名，若平台 UI 或请求日志未显示，则需要到配置或调用链中核对。
+
+### 用户咨询
+- 主题: `/bmad-help` 有哪些角色和工作流
+- 处理方式: 读取 `._bmad/_config/bmad-help.csv` 与 `bmad-help` workflow 规则，按模块统计角色与工作流数量，并整理为可读清单（含模块、阶段、必选项说明）。
+- 关键结论:
+  - 模块总数: 7（`bmb` / `bmm` / `cis` / `core` / `gds` / `tea` / `wds`）
+  - 角色总数: 24
+  - 工作流总数: 112
+  - 当前配置沟通语言: 简体中文（来自各模块 `config.yaml`）
+
+### 用户咨询
+- 主题: 如何让 BMAD 生成内容显示为中文
+- 处理方式: 检查各模块 `config.yaml` 中的 `communication_language`、`document_output_language`，并排查会导致英文输出的其它配置。
+- 关键结论:
+  - 大多数模块已经配置为 `communication_language: 简体中文` 与 `document_output_language: 简体中文`
+  - `/bmad-help` 里看到的工作流名称仍是英文，主要因为 `_bmad/_config/bmad-help.csv` 的 `name/description` 元数据本身就是英文
+  - `wds` 模块另有 `product_languages: [en]`，会影响 WDS 产物中的产品语言，若要中文需改成 `zh-CN` 或 `简体中文`
+
+### 用户咨询
+- 主题: 截图中的 `Thinking` / 英文思考提示如何处理
+- 处理方式: 检查 `C:\Users\Administrator\.codex\config.toml`，确认当前仅配置了模型、reasoning 强度和 provider，并没有语言本地化项。
+- 关键结论:
+  - 截图中的英文更像是 **客户端/插件 UI 或模型 reasoning 展示层**，不是 `_bmad` 项目配置导致的
+  - 当前 `model_reasoning_effort = "xhigh"`，会更容易出现较长的思考过程展示
+  - 若要减少这类英文显示，可优先：切换 VS Code 中文界面、降低 reasoning 强度、关闭/隐藏 thinking（如果客户端支持）

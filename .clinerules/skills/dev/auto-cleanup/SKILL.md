@@ -28,7 +28,12 @@
    - 文件名包含 $null, undefined 等
    - 文件名包含括号 ( , ) , [ , ]
 5. **空测试文件**: 0 bytes 或内容极少的 *.test.ts 文件
-6. **重复/临时代码文件**:
+6. **测试过程文件** ⭐ V2.5 新增:
+   - Playwright 截图: `*.png` (test-results/ 和 playwright-report/ 中的过程截图)
+   - Playwright 视频: `*.webm` (测试录制视频)
+   - Playwright 报告压缩包: `*.zip` (报告数据包)
+   - Jest 过程截图和视频
+7. **重复/临时代码文件**:
    - 与主项目目录重复的部分实现 (根目录 src/, my-app/ 等)
    - JSON 格式伪装成 TS 的文件
    - 代码截断的不完整文件
@@ -105,6 +110,9 @@ const duplicateDirMapping = [
   { root: 'prisma/', target: 'ai-test-platform/prisma/' },
   { root: 'tools/', target: 'ai-test-platform/tools/' },
   { root: '__tests__/', target: 'ai-test-platform/__tests__/' },
+  // ⭐ V2.5 新增：_root 后缀的重复目录
+  { root: 'my-app_root/', target: 'ai-test-platform/my-app/' },
+  { root: 'src_root/', target: 'ai-test-platform/src/' },
 ]
 ```
 
@@ -172,6 +180,9 @@ const overflowDirPatterns = [
   'db/',              // 根目录db vs ai-test-platform/db
   'tools/',           // 根目录tools vs ai-test-platform/tools
   '__tests__/',       // 根目录测试 vs ai-test-platform/__tests__
+  // ⭐ V2.5 新增：_root 后缀的重复目录
+  'my-app_root/',     // my-app_root vs ai-test-platform/my-app
+  'src_root/',        // src_root vs ai-test-platform/src
 ]
 
 // 2. 临时命令残留目录
@@ -325,8 +336,43 @@ const overflowFiles = rootItems.filter(item => {
   ]
   return !normalItems.includes(item) && 
          (item.endsWith('.ts') || item.endsWith('.js') || 
-          item.endsWith('.txt') || item.endsWith('.json'))
+          item.endsWith('.txt') || item.endsWith('.json') ||
+          // ⭐ V2.5 新增：测试过程文件
+          item.endsWith('.png') || item.endsWith('.webm') || 
+          item.endsWith('.zip'))
 })
+
+// ⭐ V2.5 新增：扫描测试过程文件（Playwright/Jest）
+const testArtifactsPatterns = [
+  // Playwright 报告目录
+  'playwright-report/',
+  'test-results/',
+  // Jest 截图/视频（如果在项目根目录）
+  '__snapshots__/*.png',
+  '*.test.png',
+  '*.spec.png'
+]
+
+// 扫描测试过程文件函数
+function scanTestArtifacts(dir: string): string[] {
+  const artifacts: string[] = []
+  
+  // 扫描 playwright-report 目录
+  const playwrightReportDir = path.join(dir, 'playwright-report')
+  if (fs.existsSync(playwrightReportDir)) {
+    const files = glob.sync('**/*.{png,webm,zip}', { cwd: playwrightReportDir })
+    artifacts.push(...files.map(f => path.join('playwright-report', f)))
+  }
+  
+  // 扫描 test-results 目录
+  const testResultsDir = path.join(dir, 'test-results')
+  if (fs.existsSync(testResultsDir)) {
+    const files = glob.sync('**/*.{png,webm,zip}', { cwd: testResultsDir })
+    artifacts.push(...files.map(f => path.join('test-results', f)))
+  }
+  
+  return artifacts
+}
 
 // 检查外溢目录
 const overflowDirs = rootItems.filter(item => {
@@ -373,6 +419,10 @@ if (overflowFiles.length > 0 || overflowDirs.length > 0) {
 ├─ 删除临时文件: {n} 个
 ├─ 删除临时目录: {n} 个 ⭐ V2.5
 ├─ 删除空目录: {n} 个 ⭐ V2.5
+├─ 删除测试过程文件: {n} 个 ⭐ V2.5 新增
+│   ├─ Playwright 截图: {n} 个 (png)
+│   ├─ Playwright 视频: {n} 个 (webm)
+│   └─ 报告压缩包: {n} 个 (zip)
 ├─ 移动分类文件: {n} 个
 ├─ 处理根目录外溢文件: {n} 个
 ├─ 处理根目录外溢目录: {n} 个 ⭐ V2.5
@@ -385,6 +435,11 @@ if (overflowFiles.length > 0 || overflowDirs.length > 0) {
 ├─ 外溢代码文件:
 │   ├─ gen-benchmark.cjs → ai-test-platform/scripts/
 │   ├─ temp-create.js → 删除
+│   └─ ...
+├─ 外溢测试过程文件: ⭐ V2.5 新增
+│   ├─ test-results/*.png → 删除
+│   ├─ test-results/*.webm → 删除
+│   ├─ playwright-report/data/*.zip → 删除
 │   └─ ...
 ├─ 外溢临时目录: ⭐ V2.5
 │   ├─ -Force/ → 删除 (PowerShell残留)
@@ -454,4 +509,4 @@ chore: 自动清理项目文件 V2.5
 - [ ] 最后更新时间
 
 ================================================================================
-*Skill版本: 2.5 | 最后更新: 2026-03-12 | 核心增强: 文件夹深度清理 + 智能合并*
+*Skill版本: 2.5 | 最后更新: 2026-03-19 | 核心增强: 文件夹深度清理 + 智能合并 + 测试过程文件清理*

@@ -6,6 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { safeParseDbField } from '@/lib/utils/safe-json-parser';
+import {
+  handleApiError,
+  NotFoundError,
+  DatabaseConnectionError,
+  checkDatabaseConnection,
+} from '@/lib/api-error-handler';
 
 export async function GET(
   request: NextRequest,
@@ -14,16 +20,19 @@ export async function GET(
   try {
     const { id } = await params;
 
+    // 检查数据库连接
+    const isDbConnected = await checkDatabaseConnection();
+    if (!isDbConnected) {
+      throw new DatabaseConnectionError('数据库连接失败，请稍后重试');
+    }
+
     const requirement = await prisma.aiRequirement.findUnique({
       where: { id },
       include: { testPoints: true },
     });
 
     if (!requirement) {
-      return NextResponse.json(
-        { success: false, error: '需求不存在' },
-        { status: 404 }
-      );
+      throw new NotFoundError('需求');
     }
 
     // 解析 JSON 字段（安全解析，防止服务器崩溃）
@@ -38,10 +47,6 @@ export async function GET(
       data: result,
     });
   } catch (error) {
-    console.error('Get requirement error:', error);
-    return NextResponse.json(
-      { success: false, error: '获取需求失败' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

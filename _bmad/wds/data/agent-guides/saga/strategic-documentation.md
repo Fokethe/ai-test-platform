@@ -56,8 +56,8 @@ phases:
   # ... other phases
 
 languages:
-  specification_language: "en"
-  product_languages: ["en", "se"]
+  specification_language: "zh-CN"
+  product_languages: ["zh-CN"]
 
 design_system:
   enabled: true
