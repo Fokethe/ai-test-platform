@@ -1214,6 +1214,7 @@ model Run {
   // 关系
   project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   issues      Issue[]
+  lifecycleEvents IssueLifecycleEvent[]
   
   @@index([projectId, status])
   @@index([status, createdAt])
@@ -1264,6 +1265,9 @@ model Execution {
   // 关系
   run         Run             @relation(fields: [runId], references: [id], onDelete: Cascade)
   test        Test            @relation(fields: [testId], references: [id], onDelete: Cascade)
+  issues      Issue[]
+  statusEvents ExecutionStatusEvent[]
+  lifecycleEvents IssueLifecycleEvent[]
   
   @@index([runId, status])
   @@index([testId])
@@ -1277,6 +1281,23 @@ enum NewExecutionStatus {
   FAILED
   SKIPPED
   ERROR
+}
+
+model ExecutionStatusEvent {
+  id             String            @id @default(cuid())
+  executionId    String            @map("execution_id")
+  fromStatus     NewExecutionStatus? @map("from_status")
+  toStatus       NewExecutionStatus @map("to_status")
+  idempotencyKey String?           @map("idempotency_key")
+  note           String?
+  actorId        String?           @map("actor_id")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  execution Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, idempotencyKey])
+  @@index([executionId, createdAt])
+  @@map("execution_status_events")
 }
 
 // Issue: 取代 Bug，支持多种类型
@@ -1294,6 +1315,7 @@ model Issue {
   projectId   String      @map("project_id")
   testId      String?     @map("test_id")
   runId       String?     @map("run_id")
+  executionId String?     @map("execution_id")
   
   // 人员
   reporterId  String      @map("reporter_id")
@@ -1311,12 +1333,15 @@ model Issue {
   project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   test        Test?       @relation(fields: [testId], references: [id], onDelete: SetNull)
   run         Run?        @relation(fields: [runId], references: [id], onDelete: SetNull)
+  execution   Execution?  @relation(fields: [executionId], references: [id], onDelete: SetNull)
   reporter    User        @relation("IssueReporter", fields: [reporterId], references: [id])
   assignee    User?       @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  lifecycleEvents IssueLifecycleEvent[]
   
   @@index([projectId, status])
   @@index([status, severity])
   @@index([assigneeId, status])
+  @@index([executionId])
   @@map("issues")
 }
 
@@ -1332,6 +1357,34 @@ enum IssueStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+enum RegressionResult {
+  PASSED
+  FAILED
+  SKIPPED
+}
+
+model IssueLifecycleEvent {
+  id                    String           @id @default(cuid())
+  issueId               String           @map("issue_id")
+  fromStatus            IssueStatus?     @map("from_status")
+  toStatus              IssueStatus      @map("to_status")
+  actorId               String?          @map("actor_id")
+  note                  String?
+  regressionRunId       String?          @map("regression_run_id")
+  regressionExecutionId String?          @map("regression_execution_id")
+  regressionResult      RegressionResult? @map("regression_result")
+  createdAt             DateTime         @default(now()) @map("created_at")
+
+  issue     Issue      @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  run       Run?       @relation(fields: [regressionRunId], references: [id], onDelete: SetNull)
+  execution Execution? @relation(fields: [regressionExecutionId], references: [id], onDelete: SetNull)
+
+  @@index([issueId, createdAt])
+  @@index([regressionRunId])
+  @@index([regressionExecutionId])
+  @@map("issue_lifecycle_events")
 }
 
 // Asset: 合并 KnowledgeEntry + Page

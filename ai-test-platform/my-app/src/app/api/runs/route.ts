@@ -1,144 +1,255 @@
-/**
- * Unified Tests API
- * 合并 TestCase + TestSuite
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import {
-  listResponse,
-  createdResponse,
-  errorResponse,
-  errors,
-  buildMeta,
-} from '@/lib/api-response';
-import { parseJsonBody, buildQueryParams } from '@/lib/api-handler';
+import { z } from 'zod';
+import { Prisma, RunType } from '@prisma/client';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { createdResponse, errors, successResponse } from '@/lib/api-response';
+import { hasProjectAccess } from '@/lib/project-access';
+import { writeAuditLog } from '@/lib/audit';
 
-// GET /api/tests - 列表
+const createRunSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(500).optional(),
+  projectId: z.string().min(1),
+  type: z.enum(['MANUAL', 'SCHEDULED', 'WEBHOOK', 'API']).optional(),
+  testIds: z.array(z.string().min(1)).max(500).optional(),
+  startNow: z.boolean().optional(),
+  cron: z.string().optional(),
+});
+
+function parsePageParams(searchParams: URLSearchParams) {
+  const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') || 20)));
+  return {
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  };
+}
+
+async function resolveAccessibleProjectIds(userId: string) {
+  const projects = await prisma.project.findMany({
+    where: {
+      OR: [
+        {
+          members: {
+            some: { userId },
+          },
+        },
+        {
+          workspace: {
+            members: {
+              some: { userId },
+            },
+          },
+        },
+        {
+          workspace: {
+            ownerId: userId,
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+
+  return projects.map((project) => project.id);
+}
+
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    
-    const type = searchParams.get('type') as 'CASE' | 'SUITE' | 'FOLDER' | null;
-    const projectId = searchParams.get('projectId');
-    const parentId = searchParams.get('parentId');
-    const search = searchParams.get('search');
-    const tags = searchParams.get('tags');
-    const { page, pageSize, skip, take } = buildQueryParams(searchParams);
-    
-    // 构建查询条件
-    const where: Prisma.TestWhereInput = {};
-    
-    if (type) {
-      where.type = type;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  const { searchParams } = new URL(request.url);
+  const projectId = searchParams.get('projectId')?.trim() || undefined;
+  const type = searchParams.get('type') as RunType | null;
+  const status = searchParams.get('status') || undefined;
+  const search = searchParams.get('search')?.trim() || undefined;
+  const { page, pageSize, skip, take } = parsePageParams(searchParams);
+
+  if (projectId) {
+    const canAccess = await hasProjectAccess(session.user.id, projectId);
+    if (!canAccess) {
+      return errors.forbidden();
     }
-    
-    if (projectId) {
-      where.projectId = projectId;
-    }
-    
-    if (parentId !== undefined) {
-      where.parentId = parentId || null;
-    }
-    
-    if (search) {
-      where.name = {
-        contains: search,
-      };
-    }
-    
-    if (tags) {
-      // JSON 数组搜索
-      where.tags = {
-        contains: tags,
-      };
-    }
-    
-    // 查询总数
-    const total = await prisma.test.count({ where });
-    
-    // 查询数据
-    const tests = await prisma.test.findMany({
+  }
+
+  const accessibleProjectIds = projectId
+    ? [projectId]
+    : await resolveAccessibleProjectIds(session.user.id);
+
+  const where: Prisma.RunWhereInput = {
+    OR: [
+      {
+        createdBy: session.user.id,
+      },
+      ...(accessibleProjectIds.length > 0
+        ? [
+            {
+              projectId: {
+                in: accessibleProjectIds,
+              },
+            } as Prisma.RunWhereInput,
+          ]
+        : []),
+    ],
+  };
+
+  if (projectId) {
+    where.projectId = projectId;
+  }
+  if (type) {
+    where.type = type;
+  }
+  if (status) {
+    where.status = status as Prisma.RunWhereInput['status'];
+  }
+  if (search) {
+    where.name = {
+      contains: search,
+    };
+  }
+
+  const [total, runs] = await Promise.all([
+    prisma.run.count({ where }),
+    prisma.run.findMany({
       where,
       skip,
       take,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }],
       include: {
-        children: {
-          select: { id: true },
-        },
-        _count: {
-          select: { executions: true },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-    });
-    
-    return listResponse(tests, buildMeta(total, page, pageSize));
-  } catch (error) {
-    console.error('Failed to fetch tests:', error);
-    return errorResponse('获取测试列表失败');
-  }
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return successResponse({
+    list: runs,
+    pagination: {
+      total,
+      page,
+      pageSize,
+      totalPages,
+      hasMore: page < totalPages,
+    },
+    meta: {
+      total,
+      page,
+      pageSize,
+      totalPages,
+    },
+  });
 }
 
-// POST /api/tests - 创建
 export async function POST(request: NextRequest) {
-  // 获取当前用户
   const session = await auth();
-  const userId = session?.user?.id || 'system';
-  
-  const parseResult = await parseJsonBody<{
-    name: string;
-    description?: string;
-    type?: string;
-    content?: unknown;
-    projectId: string;
-    parentId?: string | null;
-    tags?: unknown;
-    priority?: string;
-    source?: string;
-  }>(request);
-  
-  if (!parseResult.success) {
-    return parseResult.error;
+  if (!session?.user?.id) {
+    return errors.unauthorized();
   }
-  
-  const {
-    name,
-    description,
-    type: testType = 'CASE',
-    content,
-    projectId,
-    parentId,
-    tags,
-    priority = 'MEDIUM',
-    source = 'MANUAL',
-  } = parseResult.data;
-  
-  if (!name || !projectId) {
-    return errors.badRequest('名称和项目ID不能为空');
-  }
-  
+
+  let body: unknown;
   try {
-    const test = await prisma.test.create({
+    body = await request.json();
+  } catch {
+    return errors.badRequest('Invalid JSON payload');
+  }
+
+  const parsed = createRunSchema.safeParse(body);
+  if (!parsed.success) {
+    return errors.badRequest(parsed.error.issues[0]?.message || 'Invalid payload');
+  }
+
+  const canAccess = await hasProjectAccess(session.user.id, parsed.data.projectId);
+  if (!canAccess) {
+    return errors.forbidden();
+  }
+
+  const testIds = Array.from(new Set(parsed.data.testIds || []));
+  const tests =
+    testIds.length > 0
+      ? await prisma.test.findMany({
+          where: {
+            id: { in: testIds },
+            projectId: parsed.data.projectId,
+          },
+          select: { id: true },
+        })
+      : [];
+
+  if (tests.length !== testIds.length) {
+    return errors.badRequest('Some testIds are invalid or out of project scope');
+  }
+
+  const now = new Date();
+  const runType = parsed.data.type || (parsed.data.cron ? 'SCHEDULED' : 'MANUAL');
+  const status = parsed.data.startNow ? 'RUNNING' : 'PENDING';
+  const run = await prisma.$transaction(async (tx) => {
+    const created = await tx.run.create({
       data: {
-        name,
-        description,
-        type: testType as Prisma.TestCreateInput['type'],
-        content: content ? (typeof content === 'object' ? JSON.stringify(content) : String(content)) : null,
-        projectId,
-        parentId,
-        tags: tags ? (typeof tags === 'object' ? JSON.stringify(tags) : String(tags)) : null,
-        priority,
-        source,
-        createdBy: userId,
+        name: parsed.data.name,
+        description: parsed.data.description,
+        projectId: parsed.data.projectId,
+        createdBy: session.user.id,
+        type: runType,
+        cron: parsed.data.cron,
+        scheduleId: runType === 'SCHEDULED' ? `sch-${Date.now()}` : null,
+        status,
+        totalCount: tests.length,
+        passedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        startedAt: parsed.data.startNow ? now : null,
       },
     });
-    
-    return createdResponse(test);
-  } catch (error) {
-    console.error('Failed to create test:', error);
-    return errorResponse('创建测试失败');
+
+    if (tests.length > 0) {
+      await tx.execution.createMany({
+        data: tests.map((test) => ({
+          runId: created.id,
+          testId: test.id,
+          status: 'PENDING',
+        })),
+      });
+    }
+
+    return created;
+  });
+
+  await writeAuditLog({
+    actorId: session.user.id,
+    action: 'RUN_CREATED',
+    target: 'RUN',
+    targetId: run.id,
+    projectId: run.projectId || undefined,
+    metadata: {
+      type: run.type,
+      status: run.status,
+      totalCount: run.totalCount,
+      createdAt: run.createdAt.toISOString(),
+    },
+  });
+
+  if (parsed.data.startNow) {
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: 'RUN_STARTED',
+      target: 'RUN',
+      targetId: run.id,
+      projectId: run.projectId || undefined,
+      metadata: {
+        startedAt: run.startedAt?.toISOString(),
+      },
+    });
   }
+
+  return createdResponse(run);
 }

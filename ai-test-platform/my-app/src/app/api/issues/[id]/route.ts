@@ -1,138 +1,198 @@
-/**
- * Issue Detail API
- * GET /api/issues/[id] - 获取问题详情
- * PUT /api/issues/[id] - 更新问题
- * DELETE /api/issues/[id] - 删除问题
- */
-
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse, notFoundResponse, errors } from '@/lib/api-response';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { errors, successResponse } from '@/lib/api-response';
+import { hasProjectAccess } from '@/lib/project-access';
+import { writeAuditLog } from '@/lib/audit';
 
-// GET - 获取问题详情
+const updateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).nullable().optional(),
+  type: z.enum(['BUG', 'TASK', 'IMPROVEMENT', 'QUESTION']).optional(),
+  severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
+  priority: z.string().max(20).optional(),
+  assigneeId: z.string().nullable().optional(),
+  resolution: z.string().max(200).nullable().optional(),
+});
+
+async function loadIssue(id: string) {
+  return prisma.issue.findUnique({
+    where: { id },
+    include: {
+      reporter: {
+        select: { id: true, name: true, email: true, image: true },
+      },
+      assignee: {
+        select: { id: true, name: true, email: true, image: true },
+      },
+      test: {
+        select: { id: true, name: true, type: true },
+      },
+      run: {
+        select: { id: true, name: true, status: true },
+      },
+      execution: {
+        select: { id: true, status: true, errorMessage: true },
+      },
+      project: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
-
-    const issue = await prisma.issue.findUnique({
-      where: { id },
-      include: {
-        reporter: {
-          select: { id: true, name: true, email: true, image: true },
-        },
-        assignee: {
-          select: { id: true, name: true, email: true, image: true },
-        },
-        test: {
-          select: { id: true, name: true, type: true },
-        },
-        run: {
-          select: { id: true, name: true, status: true },
-        },
-        project: {
-          select: { id: true, name: true },
-        },
-      },
-    });
-
-    if (!issue) {
-      return errors.notFound('问题');
-    }
-
-    return successResponse(issue);
-  } catch (error) {
-    console.error('Get issue error:', error);
-    return errorResponse('获取问题详情失败', 500);
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
   }
+
+  const { id } = await params;
+  const issue = await loadIssue(id);
+  if (!issue) {
+    return errors.notFound('Issue');
+  }
+
+  const canAccess = await hasProjectAccess(session.user.id, issue.projectId);
+  if (!canAccess) {
+    return errors.forbidden();
+  }
+
+  return successResponse(issue);
 }
 
-// PUT - 更新问题
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  let body: unknown;
   try {
-    const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
+    body = await request.json();
+  } catch {
+    return errors.badRequest('Invalid JSON payload');
+  }
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return errors.badRequest('无效的 JSON 请求体');
-    }
-    const {
-      title,
-      description,
-      type,
-      severity,
-      status,
-      priority,
-      assigneeId,
-      resolution,
-    } = body;
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return errors.badRequest(parsed.error.issues[0]?.message || 'Invalid payload');
+  }
 
-    const existing = await prisma.issue.findUnique({ where: { id } });
-    if (!existing) {
-      return errors.notFound('问题');
-    }
+  const { id } = await params;
+  const existing = await prisma.issue.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      projectId: true,
+      status: true,
+      resolvedAt: true,
+    },
+  });
+  if (!existing) {
+    return errors.notFound('Issue');
+  }
 
-    const updated = await prisma.issue.update({
+  const canAccess = await hasProjectAccess(session.user.id, existing.projectId);
+  if (!canAccess) {
+    return errors.forbidden();
+  }
+
+  const nextStatus = parsed.data.status || existing.status;
+  const updated = await prisma.$transaction(async (tx) => {
+    const issue = await tx.issue.update({
       where: { id },
       data: {
-        title,
-        description,
-        type,
-        severity,
-        status,
-        priority,
-        assigneeId,
-        resolution,
-        resolvedAt: status === 'RESOLVED' || status === 'CLOSED' ? new Date() : existing.resolvedAt,
-        updatedAt: new Date(),
+        title: parsed.data.title,
+        description: parsed.data.description,
+        type: parsed.data.type,
+        severity: parsed.data.severity,
+        status: parsed.data.status,
+        priority: parsed.data.priority,
+        assigneeId: parsed.data.assigneeId,
+        resolution: parsed.data.resolution,
+        resolvedAt:
+          nextStatus === 'RESOLVED' || nextStatus === 'CLOSED'
+            ? new Date()
+            : existing.resolvedAt,
       },
     });
 
-    return successResponse(updated, '更新成功');
-  } catch (error) {
-    console.error('Update issue error:', error);
-    return errorResponse('更新失败', 500);
-  }
+    if (parsed.data.status && parsed.data.status !== existing.status) {
+      await tx.issueLifecycleEvent.create({
+        data: {
+          issueId: id,
+          fromStatus: existing.status,
+          toStatus: parsed.data.status,
+          actorId: session.user.id,
+          note: 'updated_via_issue_put',
+        },
+      });
+    }
+
+    return issue;
+  });
+
+  await writeAuditLog({
+    actorId: session.user.id,
+    action: 'ISSUE_UPDATED',
+    target: 'ISSUE',
+    targetId: id,
+    projectId: existing.projectId,
+    metadata: {
+      fromStatus: existing.status,
+      toStatus: parsed.data.status,
+    },
+  });
+
+  return successResponse(updated, 'Issue updated');
 }
 
-// DELETE - 删除问题
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return errors.unauthorized();
-    }
-
-    const existing = await prisma.issue.findUnique({ where: { id } });
-    if (!existing) {
-      return errors.notFound('问题');
-    }
-
-    await prisma.issue.delete({ where: { id } });
-
-    return successResponse(null, '已删除');
-  } catch (error) {
-    console.error('Delete issue error:', error);
-    return errorResponse('删除失败', 500);
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
   }
+
+  const { id } = await params;
+  const existing = await prisma.issue.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      projectId: true,
+    },
+  });
+  if (!existing) {
+    return errors.notFound('Issue');
+  }
+
+  const canAccess = await hasProjectAccess(session.user.id, existing.projectId);
+  if (!canAccess) {
+    return errors.forbidden();
+  }
+
+  await prisma.issue.delete({
+    where: { id },
+  });
+
+  await writeAuditLog({
+    actorId: session.user.id,
+    action: 'ISSUE_DELETED',
+    target: 'ISSUE',
+    targetId: id,
+    projectId: existing.projectId,
+  });
+
+  return successResponse(null, 'Issue deleted');
 }

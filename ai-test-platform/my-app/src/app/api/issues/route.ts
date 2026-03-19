@@ -1,19 +1,23 @@
 /**
  * Unified Issues API
- * 取代 Bug API
  */
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { listResponse, createdResponse, errorResponse, errors, buildMeta } from "@/lib/api-response";
-import { Prisma } from "@prisma/client";
+import {
+  buildMeta,
+  createdResponse,
+  errorResponse,
+  errors,
+  listResponse,
+} from "@/lib/api-response";
 import { parseJsonBody, buildQueryParams } from "@/lib/api-handler";
 import { getPermissionManager } from "@/lib/knowledge/permission-manager";
 
 // GET /api/issues
 export async function GET(request: NextRequest) {
   try {
-    // 添加权限验证
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
@@ -26,23 +30,22 @@ export async function GET(request: NextRequest) {
     const severity = searchParams.get("severity");
     const assigneeId = searchParams.get("assigneeId");
     const { page, pageSize, skip, take } = buildQueryParams(searchParams);
-    
-    // 验证项目权限
+
     if (projectId) {
       const pm = getPermissionManager();
       const access = await pm.checkProjectAccess({ userId: session.user.id, projectId });
       if (!access.allowed) {
-        return errors.forbidden(access.reason || "无项目访问权限");
+        return errors.forbidden();
       }
     }
-    
+
     const where: Prisma.IssueWhereInput = {};
     if (projectId) where.projectId = projectId;
     if (type) where.type = type as Prisma.IssueWhereInput["type"];
     if (status) where.status = status as Prisma.IssueWhereInput["status"];
     if (severity) where.severity = severity as Prisma.IssueWhereInput["severity"];
     if (assigneeId) where.assigneeId = assigneeId;
-    
+
     const total = await prisma.issue.count({ where });
     const issues = await prisma.issue.findMany({
       where,
@@ -55,18 +58,17 @@ export async function GET(request: NextRequest) {
         test: { select: { id: true, name: true } },
       },
     });
-    
+
     return listResponse(issues, buildMeta(total, page, pageSize));
   } catch (error) {
     console.error("Failed to fetch issues:", error);
-    return errorResponse("获取问题列表失败");
+    return errorResponse("Failed to fetch issues");
   }
 }
 
 // POST /api/issues
 export async function POST(request: NextRequest) {
   try {
-    // 添加权限验证
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
@@ -82,11 +84,11 @@ export async function POST(request: NextRequest) {
       testId?: string;
       runId?: string;
     }>(request);
-    
+
     if (!parseResult.success) {
       return parseResult.error;
     }
-    
+
     const {
       title,
       description,
@@ -97,23 +99,21 @@ export async function POST(request: NextRequest) {
       testId,
       runId,
     } = parseResult.data;
-    
+
     if (!title || !projectId) {
-      return errors.badRequest("标题和项目ID不能为空");
+      return errors.badRequest("title and projectId are required");
     }
-    
-    // 验证项目权限
+
     const pm = getPermissionManager();
     const access = await pm.checkProjectAccess({ userId: session.user.id, projectId });
     if (!access.allowed) {
-      return errors.forbidden(access.reason || "无项目访问权限");
+      return errors.forbidden();
     }
-    
-    // 需要编辑权限才能创建问题
+
     if (access.level < 2) {
-      return errors.forbidden("需要编辑权限才能创建问题");
+      return errors.forbidden();
     }
-    
+
     const issue = await prisma.issue.create({
       data: {
         title,
@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
         status: "OPEN",
       },
     });
-    
+
     return createdResponse(issue);
   } catch (error) {
     console.error("Failed to create issue:", error);
-    return errorResponse("创建问题失败");
+    return errorResponse("Failed to create issue");
   }
 }
