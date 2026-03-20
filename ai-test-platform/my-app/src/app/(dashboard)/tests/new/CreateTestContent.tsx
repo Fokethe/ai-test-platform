@@ -11,7 +11,6 @@ import { Beaker, Folder, Plus, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 
@@ -53,8 +52,12 @@ export default function CreateTestContent() {
     };
 
     try {
-      const result = await apiClient.post<{ id: string }>('/api/tests', data);
-      router.push(`/tests/${result.id}`);
+      const result = await apiClient.post<{ data?: { id?: string }; id?: string }>('/tests', data);
+      const testId = result?.data?.id || result?.id;
+      if (!testId) {
+        throw new Error('创建成功但未返回测试 ID');
+      }
+      router.push(`/tests/${testId}`);
     } catch (err: any) {
       setFormError(err.message || '创建失败');
     } finally {

@@ -1,104 +1,138 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIResponse, type Page } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+import { login, TEST_USER } from './auth.setup';
+import { ensureDemoContext, gotoWithRetry } from './support/e2e-fixtures';
 
-/**
- * 质量看板模块 E2E 测试
- * Issue管理、Bug追踪等
- */
+const prisma = new PrismaClient();
+
+type IssueFixture = {
+  projectId: string;
+};
+
+type ApiErrorShape = {
+  error?: { message?: string };
+};
+
+let fixture: IssueFixture;
+
+function ensureId(id: string | undefined, message: string): string {
+  if (!id) {
+    throw new Error(message);
+  }
+  return id;
+}
+
+async function expectApiSuccess<T extends ApiErrorShape>(
+  response: APIResponse,
+  fallbackMessage: string
+): Promise<T> {
+  const payload = (await response.json()) as T;
+  if (!response.ok()) {
+    throw new Error(payload.error?.message || fallbackMessage);
+  }
+  return payload;
+}
+
+async function createIssueViaForm(page: Page, projectId: string): Promise<string> {
+  await page.goto('/quality/issues/new');
+  await expect(page).toHaveURL(/\/quality\/issues\/new(?:\?.*)?$/);
+
+  const form = page.locator('form');
+  await expect(form).toBeVisible();
+  await form.locator('input').first().fill(projectId);
+  await form.locator('input[name="title"]').fill(`Quality Board E2E ${Date.now()}`);
+  await form.locator('textarea[name="description"]').fill('Quality board e2e create issue');
+
+  const createIssueResponsePromise = page.waitForResponse(
+    (response) => response.url().includes('/api/issues') && response.request().method() === 'POST'
+  );
+  await form.locator('button[type="submit"]').first().click();
+  const createIssueResponse = await createIssueResponsePromise;
+  const createIssueJson = await expectApiSuccess<{ data?: { id?: string }; error?: { message?: string } }>(
+    createIssueResponse,
+    'Create issue failed'
+  );
+
+  return ensureId(createIssueJson.data?.id, 'Create issue response missing id');
+}
+
+async function createIssueViaApi(page: Page, projectId: string): Promise<string> {
+  const createIssueResponse = await page.request.post('/api/issues', {
+    data: {
+      title: `Quality Transition E2E ${Date.now()}`,
+      description: 'Quality board transition e2e',
+      type: 'BUG',
+      severity: 'MEDIUM',
+      priority: 'MEDIUM',
+      projectId,
+    },
+  });
+  const createIssueJson = await expectApiSuccess<{ data?: { id?: string }; error?: { message?: string } }>(
+    createIssueResponse,
+    'Pre-create issue failed'
+  );
+
+  return ensureId(createIssueJson.data?.id, 'Pre-create issue response missing id');
+}
+
+async function assertIssueReadable(page: Page, issueId: string): Promise<void> {
+  const detailResponse = await page.request.get(`/api/issues/${issueId}`);
+  const detailJson = (await detailResponse.json()) as { data?: { id?: string } };
+  expect(detailResponse.ok()).toBeTruthy();
+  expect(detailJson?.data?.id).toBe(issueId);
+}
+
+async function transitionIssueStatuses(page: Page, issueId: string): Promise<void> {
+  for (const targetStatus of ['IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const) {
+    const updateResponse = await page.request.put(`/api/issues/${issueId}`, {
+      data: { status: targetStatus },
+    });
+    await expectApiSuccess(updateResponse, `Update issue failed when setting ${targetStatus}`);
+
+    const detailResponse = await page.request.get(`/api/issues/${issueId}`);
+    const detailJson = (await detailResponse.json()) as { data?: { status?: string } };
+    expect(detailJson?.data?.status).toBe(targetStatus);
+  }
+}
 
 test.describe('质量看板模块', () => {
-  
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeAll(async () => {
+    const prepared = await ensureDemoContext(prisma);
+    fixture = { projectId: prepared.projectId };
+  });
+
+  test.afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/signin');
-    await page.fill('input[type="email"]', 'demo@example.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*dashboard.*/);
+    await login(page, TEST_USER.email, TEST_USER.password);
     await page.goto('/quality');
   });
 
-  test.describe('Issue列表', () => {
-    
-    test('应该显示质量看板页面', async ({ page }) => {
-      await expect(page).toHaveTitle(/质量|Quality/);
-      await expect(page.locator('text=质量看板').or(page.locator('text=Quality Board'))).toBeVisible();
-    });
-
-    test('应该显示Issue统计卡片', async ({ page }) => {
-      // 验证统计卡片
-      await expect(page.locator('text=待处理').or(page.locator('text=Open'))).toBeVisible();
-      await expect(page.locator('text=处理中').or(page.locator('text=In Progress'))).toBeVisible();
-      await expect(page.locator('text=已解决').or(page.locator('text=Resolved'))).toBeVisible();
-    });
-
-    test('应该支持按类型筛选', async ({ page }) => {
-      // 验证类型筛选器
-      await expect(page.locator('text=BUG').or(page.locator('text=Bug'))).toBeVisible();
-      await expect(page.locator('text=TASK').or(page.locator('text=Task'))).toBeVisible();
-    });
-
-    test('应该支持按严重程度筛选', async ({ page }) => {
-      // 验证严重程度筛选
-      await expect(page.locator('text=严重').or(page.locator('text=Critical'))).toBeVisible();
-      await expect(page.locator('text=高').or(page.locator('text=High'))).toBeVisible();
-    });
+  test('应显示质量看板页面', async ({ page }) => {
+    await expect(page).toHaveURL(/\/quality(?:\?.*)?$/);
+    await expect(page.locator('a[href="/quality/issues/new"]').first()).toBeVisible();
+    await expect(page.locator('a[href="/quality/issues"]').first()).toBeVisible();
   });
 
-  test.describe('创建Issue', () => {
-    
-    test('应该能打开创建Issue表单', async ({ page }) => {
-      // 点击创建按钮
-      await page.click('button:has-text("新建")').catch(() => 
-        page.click('button:has-text("New")').catch(() =>
-          page.click('button:has-text("创建")')
-        )
-      );
-      
-      // 验证表单元素
-      await expect(page.locator('input[name="title"]').or(page.locator('input[placeholder*="标题"]'))).toBeVisible();
-      await expect(page.locator('text=类型').or(page.locator('text=Type'))).toBeVisible();
-      await expect(page.locator('text=严重程度').or(page.locator('text=Severity'))).toBeVisible();
-    });
-
-    test('应该能创建新的Bug', async ({ page }) => {
-      // 打开创建表单
-      await page.click('button:has-text("新建")').catch(() => page.click('button:has-text("New")'));
-      
-      // 等待表单加载
-      await page.waitForSelector('input[name="title"]', { timeout: 5000 });
-      
-      // 填写标题
-      await page.fill('input[name="title"]', 'E2E测试Bug - ' + Date.now());
-      
-      // 选择类型为BUG
-      await page.click('text=BUG').catch(() => page.click('text=Bug'));
-      
-      // 选择严重程度
-      await page.click('text=高').catch(() => page.click('text=High'));
-      
-      // 填写描述
-      const descriptionEditor = page.locator('textarea').first();
-      await descriptionEditor.fill('这是一个E2E测试创建的Bug');
-      
-      // 保存
-      await page.click('button:has-text("保存")').catch(() => page.click('button:has-text("Save")'));
-      
-      // 验证保存成功
-      await expect(page.locator('text=创建成功').or(page.locator('text=Created'))).toBeVisible();
-    });
+  test('应能打开问题列表页面', async ({ page }) => {
+    await page.goto('/quality/issues');
+    await expect(page).toHaveURL(/\/quality\/issues(?:\?.*)?$/);
+    await expect(page.locator('a[href="/quality/issues/new"]').first()).toBeVisible();
   });
 
-  test.describe('Issue详情', () => {
-    
-    test('应该能查看Issue详情', async ({ page }) => {
-      // 查找第一个Issue
-      const firstIssue = page.locator('table tbody tr').first().or(page.locator('[data-testid="issue-item"]').first());
-      
-      if (await firstIssue.isVisible().catch(() => false)) {
-        await firstIssue.click();
-        
-        // 验证详情页面
-        await expect(page.locator('text=详情').or(page.locator('text=Details'))).toBeVisible();
-      }
-    });
+  test('应能创建问题并访问详情页', async ({ page }) => {
+    const issueId = await createIssueViaForm(page, fixture.projectId);
+    await gotoWithRetry(page, `/quality/issues/${issueId}`);
+    await expect(page).toHaveURL(new RegExp(`/quality/issues/${issueId}$`));
+    await assertIssueReadable(page, issueId);
+  });
+
+  test('应支持详情页状态流转', async ({ page }) => {
+    const issueId = await createIssueViaApi(page, fixture.projectId);
+    await transitionIssueStatuses(page, issueId);
   });
 });

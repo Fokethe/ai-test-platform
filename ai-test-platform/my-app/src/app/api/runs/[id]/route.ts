@@ -1,74 +1,107 @@
-/**
- * Run Detail API
- * GET /api/runs/[id] - 获取执行详情
- * PUT /api/runs/[id] - 更新执行
- * DELETE /api/runs/[id] - 删除执行
- */
-
-import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { successResponse, errorResponse, notFoundResponse, errors } from '@/lib/api-response';
+﻿import { NextRequest } from 'next/server';
+import { RunStatus } from '@prisma/client';
+import { errorResponse, errors, successResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
+import { hasProjectAccess } from '@/lib/project-access';
+import { prisma } from '@/lib/prisma';
 
-// GET - 获取执行详情
+const ALLOWED_RUN_STATUSES: RunStatus[] = ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'];
+
+async function ensureRunAccess(userId: string, runId: string) {
+  const run = await prisma.run.findUnique({
+    where: { id: runId },
+    select: {
+      id: true,
+      projectId: true,
+      createdBy: true,
+      startedAt: true,
+    },
+  });
+
+  if (!run) {
+    return { run: null, response: errors.notFound('run') };
+  }
+
+  if (run.projectId) {
+    const canAccessProject = await hasProjectAccess(userId, run.projectId);
+    if (!canAccessProject) {
+      return { run: null, response: errors.forbidden() };
+    }
+  } else if (run.createdBy !== userId) {
+    return { run: null, response: errors.forbidden() };
+  }
+
+  return { run, response: null };
+}
+
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+
+    const access = await ensureRunAccess(session.user.id, id);
+    if (access.response) {
+      return access.response;
     }
 
     const run = await prisma.run.findUnique({
       where: { id },
       include: {
         project: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         executions: {
           orderBy: { createdAt: 'asc' },
           include: {
             test: {
-              select: { id: true, name: true, type: true }
-            }
-          }
+              select: { id: true, name: true, type: true },
+            },
+          },
         },
         issues: {
-          select: { id: true, title: true, severity: true, status: true }
-        }
-      }
+          select: {
+            id: true,
+            title: true,
+            severity: true,
+            status: true,
+            assigneeId: true,
+          },
+        },
+      },
     });
 
     if (!run) {
-      return errors.notFound('执行');
+      return errors.notFound('run');
     }
 
-    // 计算统计
-    const executions = run.executions || [];
+    const executions = run.executions ?? [];
     const stats = {
       total: executions.length,
-      passed: executions.filter(e => e.status === 'PASSED').length,
-      failed: executions.filter(e => e.status === 'FAILED').length,
-      skipped: executions.filter(e => e.status === 'SKIPPED').length,
-      running: executions.filter(e => e.status === 'RUNNING').length,
-      pending: executions.filter(e => e.status === 'PENDING').length,
+      passed: executions.filter((item) => item.status === 'PASSED').length,
+      failed: executions.filter((item) => item.status === 'FAILED' || item.status === 'ERROR').length,
+      skipped: executions.filter((item) => item.status === 'SKIPPED').length,
+      running: executions.filter((item) => item.status === 'RUNNING').length,
+      pending: executions.filter((item) => item.status === 'PENDING').length,
+      error: executions.filter((item) => item.status === 'ERROR').length,
     };
 
     return successResponse({
       ...run,
       stats,
-      passRate: stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0
+      passRate: stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0,
     });
   } catch (error) {
     console.error('Get run error:', error);
-    return errorResponse('获取执行详情失败', 500);
+    return errorResponse('Failed to fetch run detail', 500);
   }
 }
 
-// PUT - 更新执行（主要用于取消）
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -76,61 +109,93 @@ export async function PUT(
   try {
     const { id } = await params;
     const session = await auth();
-    if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+    if (!session?.user?.id) {
+      return errors.unauthorized();
     }
 
-    let body;
+    const access = await ensureRunAccess(session.user.id, id);
+    if (access.response) {
+      return access.response;
+    }
+
+    let body: { status?: unknown; name?: unknown; description?: unknown };
     try {
       body = await request.json();
     } catch {
-      return errors.badRequest('无效的 JSON 请求体');
+      return errors.badRequest('Invalid JSON body');
     }
-    const { status, name } = body;
 
-    const existing = await prisma.run.findUnique({ where: { id } });
-    if (!existing) {
-      return errors.notFound('执行');
+    const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+    const description = typeof body.description === 'string' ? body.description.trim() : undefined;
+    const status =
+      typeof body.status === 'string' && ALLOWED_RUN_STATUSES.includes(body.status as RunStatus)
+        ? (body.status as RunStatus)
+        : undefined;
+
+    if (typeof body.status === 'string' && !status) {
+      return errors.badRequest('Invalid run status');
+    }
+
+    const now = new Date();
+    const nextData: {
+      name?: string;
+      description?: string;
+      status?: RunStatus;
+      startedAt?: Date;
+      completedAt?: Date | null;
+    } = {};
+
+    if (name !== undefined) {
+      nextData.name = name;
+    }
+    if (description !== undefined) {
+      nextData.description = description;
+    }
+    if (status) {
+      nextData.status = status;
+      if (status === 'RUNNING' && !access.run?.startedAt) {
+        nextData.startedAt = now;
+      }
+      if (status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED') {
+        nextData.completedAt = now;
+      }
+      if (status === 'PENDING' || status === 'RUNNING') {
+        nextData.completedAt = null;
+      }
     }
 
     const updated = await prisma.run.update({
       where: { id },
-      data: {
-        status,
-        name,
-        ...(status === 'CANCELLED' ? { completedAt: new Date() } : {})
-      }
+      data: nextData,
     });
 
-    return successResponse(updated, '更新成功');
+    return successResponse(updated, 'Run updated');
   } catch (error) {
     console.error('Update run error:', error);
-    return errorResponse('更新失败', 500);
+    return errorResponse('Failed to update run', 500);
   }
 }
 
-// DELETE - 删除执行
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
     const session = await auth();
-    if (!session?.user) {
-      return Response.json(errorResponse('未授权', 401), { status: 401 });
+    if (!session?.user?.id) {
+      return errors.unauthorized();
     }
 
-    const existing = await prisma.run.findUnique({ where: { id } });
-    if (!existing) {
-      return errors.notFound('执行');
+    const access = await ensureRunAccess(session.user.id, id);
+    if (access.response) {
+      return access.response;
     }
 
     await prisma.run.delete({ where: { id } });
-
-    return successResponse(null, '已删除');
+    return successResponse(null, 'Run deleted');
   } catch (error) {
     console.error('Delete run error:', error);
-    return errorResponse('删除失败', 500);
+    return errorResponse('Failed to delete run', 500);
   }
 }

@@ -1,95 +1,88 @@
 import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+import { login, TEST_USER } from './auth.setup';
+import { ensureTestFixture } from './support/e2e-fixtures';
 
-/**
- * 执行中心模块 E2E 测试
- * 测试执行历史、定时任务等
- */
+const prisma = new PrismaClient();
+
+type RunFixture = {
+  projectId: string;
+  testId: string;
+};
+
+let fixture: RunFixture;
 
 test.describe('执行中心模块', () => {
-  
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeAll(async () => {
+    const prepared = await ensureTestFixture(prisma, {
+      testName: 'Execution E2E Test',
+    });
+    fixture = { projectId: prepared.projectId, testId: prepared.testId };
+  });
+
+  test.afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/signin');
-    await page.fill('input[type="email"]', 'demo@example.com');
-    await page.fill('input[type="password"]', 'password123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*dashboard.*/);
+    await login(page, TEST_USER.email, TEST_USER.password);
     await page.goto('/runs');
   });
 
-  test.describe('执行历史列表', () => {
-    
-    test('应该显示执行历史页面', async ({ page }) => {
-      await expect(page).toHaveTitle(/执行|Runs/);
-      await expect(page.locator('text=执行中心').or(page.locator('text=Execution Center'))).toBeVisible();
-    });
-
-    test('应该显示执行记录列表', async ({ page }) => {
-      // 验证列表容器存在
-      const listContainer = page.locator('table').or(page.locator('[data-testid="runs-list"]'));
-      await expect(listContainer).toBeVisible();
-    });
-
-    test('应该显示执行状态筛选', async ({ page }) => {
-      // 验证状态筛选器
-      await expect(page.locator('text=成功').or(page.locator('text=Passed'))).toBeVisible();
-      await expect(page.locator('text=失败').or(page.locator('text=Failed'))).toBeVisible();
-      await expect(page.locator('text=运行中').or(page.locator('text=Running'))).toBeVisible();
-    });
-
-    test('应该能查看执行详情', async ({ page }) => {
-      // 查找第一行记录
-      const firstRow = page.locator('table tbody tr').first();
-      if (await firstRow.isVisible().catch(() => false)) {
-        // 点击详情链接或行
-        await firstRow.click();
-        
-        // 验证详情页面元素
-        await expect(page.locator('text=执行详情').or(page.locator('text=Run Details'))).toBeVisible();
-      }
-    });
+  test('应显示执行中心页面', async ({ page }) => {
+    await expect(page).toHaveURL(/\/runs(?:\?.*)?$/);
+    await expect(page.locator('a[href="/runs/new"]').first()).toBeVisible();
+    await expect(page.locator('[role="tab"]').first()).toBeVisible();
   });
 
-  test.describe('新建执行', () => {
-    
-    test('应该能打开新建执行页面', async ({ page }) => {
-      // 点击新建按钮
-      await page.click('button:has-text("新建")').catch(() => 
-        page.click('button:has-text("New")')
-      );
-      
-      // 验证页面跳转
-      await expect(page).toHaveURL(/.*runs\/new.*/);
-      
-      // 验证表单元素
-      await expect(page.locator('text=选择测试套件').or(page.locator('text=Select Test Suite'))).toBeVisible();
-    });
-
-    test('应该能选择执行环境', async ({ page }) => {
-      await page.goto('/runs/new');
-      
-      // 验证环境选择
-      await expect(page.locator('text=云端执行').or(page.locator('text=Cloud'))).toBeVisible();
-      await expect(page.locator('text=本地执行').or(page.locator('text=Local'))).toBeVisible();
-    });
+  test('应能打开新建执行页面', async ({ page }) => {
+    await page.locator('a[href="/runs/new"]').first().click();
+    await expect(page).toHaveURL(/\/runs\/new$/);
+    await expect(page.locator('form')).toBeVisible();
+    await expect(page.locator('textarea')).toBeVisible();
   });
 
-  test.describe('定时任务', () => {
-    
-    test('应该显示定时任务页面', async ({ page }) => {
-      // 导航到定时任务
-      await page.goto('/runs/schedule');
-      
-      await expect(page.locator('text=定时任务').or(page.locator('text=Scheduled Jobs'))).toBeVisible();
-    });
+  test('应能创建运行并获取详情接口', async ({ page }) => {
+    await page.goto('/runs/new');
+    await expect(page).toHaveURL(/\/runs\/new$/);
 
-    test('应该能创建定时任务', async ({ page }) => {
-      await page.goto('/runs/schedule');
-      
-      // 点击创建按钮
-      await page.click('button:has-text("创建")').catch(() => page.click('button:has-text("New")'));
-      
-      // 验证Cron表达式输入
-      await expect(page.locator('input[placeholder*="Cron"]').or(page.locator('text=Cron'))).toBeVisible();
-    });
+    const form = page.locator('form');
+    await form.locator('input').first().fill(fixture.projectId);
+    await form.locator('input').nth(1).fill(`Execution Center E2E ${Date.now()}`);
+    await form.locator('textarea').first().fill(fixture.testId);
+
+    const createRunResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/runs') && response.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: /Start Run/i }).click();
+    const createRunResponse = await createRunResponsePromise;
+    const createRunJson = (await createRunResponse.json()) as {
+      data?: { id?: string };
+      error?: { message?: string };
+    };
+
+    if (!createRunResponse.ok()) {
+      throw new Error(createRunJson?.error?.message || 'Create run failed');
+    }
+
+    const runId = createRunJson?.data?.id;
+    if (!runId) {
+      throw new Error('Create run response missing id');
+    }
+
+    await expect.poll(async () => {
+      const detailResponse = await page.request.get(`/api/runs/${runId}`);
+      return detailResponse.ok();
+    }).toBe(true);
+  });
+
+  test('应能打开定时任务新建页面', async ({ page }) => {
+    await page.goto('/runs/scheduled/new');
+    await expect(page).toHaveURL(/\/runs\/scheduled\/new$/);
+    await expect(page.locator('form')).toBeVisible();
+    await expect(page.locator('input').nth(2)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Create Scheduled Task/i })).toBeVisible();
   });
 });

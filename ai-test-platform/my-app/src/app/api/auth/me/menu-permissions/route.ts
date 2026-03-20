@@ -10,13 +10,26 @@ export async function GET() {
   }
 
   const role = normalizeRole(session.user.role);
-  const rows = await prisma.roleMenuPermission.findMany({
-    where: { role },
-    select: {
-      menuKey: true,
-      enabled: true,
-    },
-  });
+  const roleMenuPermissionModel = (
+    prisma as typeof prisma & {
+      roleMenuPermission?: {
+        findMany: (args: {
+          where: { role: string };
+          select: { menuKey: true; enabled: true };
+        }) => Promise<Array<{ menuKey: string; enabled: boolean }>>;
+      };
+    }
+  ).roleMenuPermission;
+
+  const rows = roleMenuPermissionModel
+    ? await roleMenuPermissionModel.findMany({
+        where: { role },
+        select: {
+          menuKey: true,
+          enabled: true,
+        },
+      })
+    : [];
 
   return successResponse({
     role,
