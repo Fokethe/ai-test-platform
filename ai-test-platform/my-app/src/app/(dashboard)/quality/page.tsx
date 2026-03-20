@@ -1,82 +1,112 @@
 /**
- * Quality Dashboard - Bento Grid风格重构版
- * 合并 Bug + 报告
+ * Quality Dashboard - 质量看板
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   Shield,
-  Bug,
   FileText,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Plus,
-  MoreHorizontal,
-  Loader2,
+  type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Link from 'next/link';
-import { BentoCard, BentoGrid, BentoItem } from '@/components/bento';
-import { BentoHeader } from '@/components/bento';
+import { BentoCard, BentoGrid, BentoItem, BentoHeader } from '@/components/bento';
+import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`API错误: ${res.status}`);
-  }
-  const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('API返回非JSON数据');
-  }
-  return res.json();
-};
+type IssueSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
 interface Issue {
   id: string;
   title: string;
   description?: string;
-  type: 'BUG' | 'TASK' | 'IMPROVEMENT';
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  priority: string;
-  reporter: { id: string; name: string; email: string };
-  assignee?: { id: string; name: string; email: string };
+  severity: IssueSeverity;
+  status: IssueStatus;
+  reporter: { id: string; name: string };
+  assignee?: { id: string; name: string };
   createdAt: string;
 }
 
-export default function QualityDashboardPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+interface IssuesResponse {
+  data?: {
+    list?: Issue[];
+  };
+}
 
-  const { data: issuesData, isLoading: issuesLoading } = useSWR(
-    '/api/issues?pageSize=10',
-    fetcher,
-    { refreshInterval: 30000 }
-  );
+type TrendColor = 'red' | 'green' | 'blue';
 
-  const issues: Issue[] = issuesData?.data || [];
+const ISSUE_SEVERITY_LABELS: Record<IssueSeverity, string> = {
+  CRITICAL: '紧急',
+  HIGH: '高',
+  MEDIUM: '中',
+  LOW: '低',
+};
 
-  const stats = {
-    open: issues.filter((i) => i.status === 'OPEN').length,
-    resolved: issues.filter((i) => i.status === 'RESOLVED').length,
-    critical: issues.filter((i) => i.severity === 'CRITICAL').length,
+const ISSUE_STATUS_LABELS: Record<IssueStatus, string> = {
+  OPEN: '开放',
+  IN_PROGRESS: '处理中',
+  RESOLVED: '已解决',
+  CLOSED: '已关闭',
+};
+
+const SEVERITY_BADGE_CLASSES: Record<IssueSeverity, string> = {
+  CRITICAL: 'bg-red-100 text-red-700 border-red-200',
+  HIGH: 'bg-orange-100 text-orange-700 border-orange-200',
+  MEDIUM: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  LOW: 'bg-slate-100 text-slate-700 border-slate-200',
+};
+
+const STATUS_BADGE_CLASSES: Record<IssueStatus, string> = {
+  OPEN: 'bg-blue-100 text-blue-700 border-blue-200',
+  IN_PROGRESS: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  RESOLVED: 'bg-green-100 text-green-700 border-green-200',
+  CLOSED: 'bg-slate-100 text-slate-700 border-slate-200',
+};
+
+const REPORTS = [
+  { id: 1, title: '本周测试报告', date: '2026-02-25', passRate: 94, total: 156 },
+  { id: 2, title: '月度质量总结', date: '2026-02-01', passRate: 91, total: 623 },
+  { id: 3, title: '回归测试报告', date: '2026-02-20', passRate: 98, total: 89 },
+];
+
+function toIssueList(response: IssuesResponse | undefined): Issue[] {
+  if (!Array.isArray(response?.data?.list)) {
+    return [];
+  }
+  return response.data.list;
+}
+
+function getIssueStats(issues: Issue[]) {
+  return {
+    open: issues.filter((issue) => issue.status === 'OPEN').length,
+    resolved: issues.filter((issue) => issue.status === 'RESOLVED').length,
+    critical: issues.filter((issue) => issue.severity === 'CRITICAL').length,
     avgFixTime: '2.3天',
   };
+}
 
-  const qualityScore = Math.round(
-    ((stats.resolved + 1) / (issues.length + 1)) * 100
-  );
+export default function QualityDashboardPage() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
+  const { data, isLoading } = useSWR<IssuesResponse>('/api/issues?pageSize=10', fetcher, {
+    refreshInterval: 30000,
+  });
+
+  const issues = useMemo(() => toIssueList(data), [data]);
+  const stats = useMemo(() => getIssueStats(issues), [issues]);
+  const qualityScore = Math.round(((stats.resolved + 1) / (issues.length + 1)) * 100);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
       <BentoHeader
         title="质量看板"
         description="跟踪问题、查看质量报告"
@@ -86,11 +116,7 @@ export default function QualityDashboardPage() {
         actionHref="/quality/issues/new"
       />
 
-      {/* Quality Score Card */}
-      <BentoCard 
-        variant="featured" 
-        className="relative overflow-hidden"
-      >
+      <BentoCard variant="featured" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--electric)] to-purple-600" />
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-30" />
         <div className="relative p-6 text-white">
@@ -98,9 +124,7 @@ export default function QualityDashboardPage() {
             <div>
               <p className="text-blue-100">质量评分</p>
               <p className="text-5xl font-bold mt-1">{qualityScore}</p>
-              <p className="text-sm text-blue-100 mt-2">
-                基于 {issues.length} 个问题计算
-              </p>
+              <p className="text-sm text-blue-100 mt-2">基于 {issues.length} 个问题计算</p>
             </div>
             <div className="text-right">
               <div className="flex items-center gap-2 text-2xl font-semibold">
@@ -113,7 +137,6 @@ export default function QualityDashboardPage() {
         </div>
       </BentoCard>
 
-      {/* Stats */}
       <BentoGrid cols={4}>
         <QualityMetricCard
           title="开放问题"
@@ -145,16 +168,15 @@ export default function QualityDashboardPage() {
         />
       </BentoGrid>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'reports')}>
         <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-slate-800">
-          <TabsTrigger 
+          <TabsTrigger
             value="overview"
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900"
           >
             概览
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="reports"
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900"
           >
@@ -164,7 +186,6 @@ export default function QualityDashboardPage() {
 
         <TabsContent value="overview" className="mt-6">
           <BentoGrid cols={12}>
-            {/* Issues List */}
             <BentoItem colSpan={8}>
               <BentoCard variant="bordered" className="h-full">
                 <div className="p-4 border-b border-slate-100 dark:border-slate-800">
@@ -176,15 +197,15 @@ export default function QualityDashboardPage() {
                   </div>
                 </div>
 
-                {issuesLoading ? (
+                {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin h-10 w-10 border-3 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" />
+                    <div className="animate-spin h-10 w-10 border-2 border-[var(--electric)]/20 border-t-[var(--electric)] rounded-full" />
                   </div>
                 ) : issues.length === 0 ? (
                   <div className="p-12 text-center">
                     <Shield className="w-12 h-12 mx-auto mb-4 text-slate-300" />
                     <p className="text-slate-500">暂无问题</p>
-                    <p className="text-sm text-slate-400 mt-1">系统运行良好！</p>
+                    <p className="text-sm text-slate-400 mt-1">系统运行良好</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -196,7 +217,6 @@ export default function QualityDashboardPage() {
               </BentoCard>
             </BentoItem>
 
-            {/* Issue Distribution */}
             <BentoItem colSpan={4}>
               <BentoCard variant="bordered" className="h-full p-4">
                 <h2 className="text-lg font-semibold mb-4">问题分布</h2>
@@ -223,11 +243,11 @@ function QualityMetricCard({
 }: {
   title: string;
   value: string;
-  icon: any;
+  icon: LucideIcon;
   trend: string;
-  color: 'red' | 'green' | 'blue';
+  color: TrendColor;
 }) {
-  const colorClasses = {
+  const colorClasses: Record<TrendColor, string> = {
     red: 'text-red-600 bg-red-50 border-red-200',
     green: 'text-green-600 bg-green-50 border-green-200',
     blue: 'text-[var(--electric)] bg-[var(--electric)]/10 border-[var(--electric)]/20',
@@ -250,37 +270,20 @@ function QualityMetricCard({
 }
 
 function IssueItem({ issue }: { issue: Issue }) {
-  const severityColors: Record<string, string> = {
-    CRITICAL: 'bg-red-100 text-red-700 border-red-200',
-    HIGH: 'bg-orange-100 text-orange-700 border-orange-200',
-    MEDIUM: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    LOW: 'bg-slate-100 text-slate-700 border-slate-200',
-  };
-
-  const statusColors: Record<string, string> = {
-    OPEN: 'bg-blue-100 text-blue-700 border-blue-200',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    RESOLVED: 'bg-green-100 text-green-700 border-green-200',
-    CLOSED: 'bg-slate-100 text-slate-700 border-slate-200',
-  };
-
-  const statusLabels: Record<string, string> = {
-    OPEN: '开放',
-    IN_PROGRESS: '处理中',
-    RESOLVED: '已解决',
-    CLOSED: '已关闭',
-  };
+  const severityText = ISSUE_SEVERITY_LABELS[issue.severity];
+  const statusText = ISSUE_STATUS_LABELS[issue.status];
+  const assigneeName = issue.assignee?.name ?? '未分配';
 
   return (
     <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge className={`${severityColors[issue.severity] || ''} border`} variant="outline">
-              {issue.severity === 'CRITICAL' ? '紧急' : issue.severity === 'HIGH' ? '高' : issue.severity === 'MEDIUM' ? '中' : '低'}
+            <Badge className={`${SEVERITY_BADGE_CLASSES[issue.severity]} border`} variant="outline">
+              {severityText}
             </Badge>
-            <Badge className={`${statusColors[issue.status] || ''} border`} variant="outline">
-              {statusLabels[issue.status]}
+            <Badge className={`${STATUS_BADGE_CLASSES[issue.status]} border`} variant="outline">
+              {statusText}
             </Badge>
           </div>
           <Link
@@ -290,8 +293,7 @@ function IssueItem({ issue }: { issue: Issue }) {
             {issue.title}
           </Link>
           <p className="text-sm text-slate-500 mt-1">
-            负责人: {issue.assignee?.name || '未分配'} · 
-            报告人: {issue.reporter?.name} · 
+            负责人: {assigneeName} · 报告人: {issue.reporter.name} ·{' '}
             {new Date(issue.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -302,16 +304,16 @@ function IssueItem({ issue }: { issue: Issue }) {
 
 function IssueDistribution({ issues }: { issues: Issue[] }) {
   const bySeverity = {
-    CRITICAL: issues.filter((i) => i.severity === 'CRITICAL').length,
-    HIGH: issues.filter((i) => i.severity === 'HIGH').length,
-    MEDIUM: issues.filter((i) => i.severity === 'MEDIUM').length,
-    LOW: issues.filter((i) => i.severity === 'LOW').length,
+    CRITICAL: issues.filter((issue) => issue.severity === 'CRITICAL').length,
+    HIGH: issues.filter((issue) => issue.severity === 'HIGH').length,
+    MEDIUM: issues.filter((issue) => issue.severity === 'MEDIUM').length,
+    LOW: issues.filter((issue) => issue.severity === 'LOW').length,
   };
 
   const byStatus = {
-    OPEN: issues.filter((i) => i.status === 'OPEN').length,
-    IN_PROGRESS: issues.filter((i) => i.status === 'IN_PROGRESS').length,
-    RESOLVED: issues.filter((i) => i.status === 'RESOLVED').length,
+    OPEN: issues.filter((issue) => issue.status === 'OPEN').length,
+    IN_PROGRESS: issues.filter((issue) => issue.status === 'IN_PROGRESS').length,
+    RESOLVED: issues.filter((issue) => issue.status === 'RESOLVED').length,
   };
 
   return (
@@ -363,12 +365,6 @@ function DistributionBar({
 }
 
 function ReportsPanel() {
-  const reports = [
-    { id: 1, title: '本周测试报告', date: '2026-02-25', passRate: 94, total: 156 },
-    { id: 2, title: '月度质量总结', date: '2026-02-01', passRate: 91, total: 623 },
-    { id: 3, title: '回归测试报告', date: '2026-02-20', passRate: 98, total: 89 },
-  ];
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -380,10 +376,10 @@ function ReportsPanel() {
       </div>
 
       <BentoGrid cols={3}>
-        {reports.map((report) => (
-          <BentoCard 
-            key={report.id} 
-            variant="bordered" 
+        {REPORTS.map((report) => (
+          <BentoCard
+            key={report.id}
+            variant="bordered"
             className="p-4 hover:border-[var(--electric)] transition-colors cursor-pointer"
           >
             <div className="flex items-start justify-between mb-3">

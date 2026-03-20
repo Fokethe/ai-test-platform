@@ -127,6 +127,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/api/runs/${id}`, request.url));
   }
 
+  // /api/executions/status -> /api/runs?status=RUNNING
+  const executionStatusMatch = pathname.match(/^\/api\/executions\/status$/);
+  if (executionStatusMatch) {
+    return NextResponse.rewrite(new URL('/api/runs?status=RUNNING', request.url));
+  }
+
+  // /api/executions/[id] -> /api/runs/[id]
+  const executionDetailMatch = pathname.match(/^\/api\/executions\/(.+)$/);
+  if (executionDetailMatch) {
+    const id = executionDetailMatch[1];
+    return NextResponse.rewrite(new URL(`/api/runs/${id}`, request.url));
+  }
+
   // /api/bugs/[id] -> /api/issues/[id]
   const bugMatch = pathname.match(/^\/api\/bugs\/(.+)$/);
   if (bugMatch) {

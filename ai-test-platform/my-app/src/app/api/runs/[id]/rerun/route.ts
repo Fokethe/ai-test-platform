@@ -1,89 +1,76 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
+import { createdResponse, errorResponse, errors } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { createdResponse, errors } from '@/lib/api-response';
 import { hasProjectAccess } from '@/lib/project-access';
-import { writeAuditLog } from '@/lib/audit';
-
-async function ensureAccess(userId: string, projectId?: string | null) {
-  if (!projectId) {
-    return true;
-  }
-  return hasProjectAccess(userId, projectId);
-}
+import { prisma } from '@/lib/prisma';
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return errors.unauthorized();
-  }
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errors.unauthorized();
+    }
 
-  const { id } = await params;
-  const sourceRun = await prisma.run.findUnique({
-    where: { id },
-    include: {
-      executions: {
-        select: {
-          testId: true,
+    const { id } = await params;
+    const sourceRun = await prisma.run.findUnique({
+      where: { id },
+      include: {
+        executions: {
+          select: { testId: true },
         },
-      },
-    },
-  });
-
-  if (!sourceRun) {
-    return errors.notFound('Run');
-  }
-
-  const canAccess = await ensureAccess(session.user.id, sourceRun.projectId);
-  if (!canAccess) {
-    return errors.forbidden();
-  }
-
-  const now = new Date();
-  const testIds = Array.from(new Set(sourceRun.executions.map((execution) => execution.testId)));
-  const rerun = await prisma.$transaction(async (tx) => {
-    const created = await tx.run.create({
-      data: {
-        name: `${sourceRun.name} (Rerun)`,
-        description: sourceRun.description,
-        type: sourceRun.type,
-        status: 'RUNNING',
-        cron: sourceRun.cron,
-        scheduleId: sourceRun.scheduleId,
-        projectId: sourceRun.projectId,
-        createdBy: session.user.id,
-        totalCount: testIds.length,
-        startedAt: now,
       },
     });
 
-    if (testIds.length > 0) {
-      await tx.execution.createMany({
-        data: testIds.map((testId) => ({
-          runId: created.id,
-          testId,
-          status: 'PENDING',
-        })),
-      });
+    if (!sourceRun) {
+      return errors.notFound('run');
+    }
+    if (!sourceRun.projectId) {
+      return errors.badRequest('Run has no projectId');
     }
 
-    return created;
-  });
+    const canAccessProject = await hasProjectAccess(session.user.id, sourceRun.projectId);
+    if (!canAccessProject) {
+      return errors.forbidden();
+    }
 
-  await writeAuditLog({
-    actorId: session.user.id,
-    action: 'RUN_RERUN_TRIGGERED',
-    target: 'RUN',
-    targetId: rerun.id,
-    projectId: rerun.projectId || undefined,
-    metadata: {
-      sourceRunId: sourceRun.id,
-      totalCount: rerun.totalCount,
-    },
-  });
+    const testIds = Array.from(new Set(sourceRun.executions.map((item) => item.testId)));
+    if (testIds.length === 0) {
+      return errors.badRequest('Run has no executions to rerun');
+    }
 
-  return createdResponse(rerun);
+    const rerun = await prisma.run.create({
+      data: {
+        name: `${sourceRun.name} (Rerun)`,
+        description: sourceRun.description,
+        projectId: sourceRun.projectId,
+        createdBy: session.user.id,
+        type: sourceRun.type,
+        status: 'RUNNING',
+        totalCount: testIds.length,
+        passedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        startedAt: new Date(),
+        executions: {
+          create: testIds.map((testId) => ({
+            testId,
+            status: 'PENDING',
+          })),
+        },
+      },
+      include: {
+        executions: {
+          select: { id: true, testId: true, status: true },
+        },
+      },
+    });
+
+    return createdResponse(rerun);
+  } catch (error) {
+    console.error('Rerun run error:', error);
+    return errorResponse('Failed to create rerun', 500);
+  }
 }

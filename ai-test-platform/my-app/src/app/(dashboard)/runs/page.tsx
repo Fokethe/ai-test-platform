@@ -18,7 +18,6 @@ import {
   MoreHorizontal,
   RotateCcw,
   Trash2,
-  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { BentoCard, BentoGrid, BentoItem } from '@/components/bento';
+import { BentoCard, BentoGrid } from '@/components/bento';
 import { BentoHeader } from '@/components/bento';
 import { BentoSearch } from '@/components/bento';
 
@@ -95,10 +94,10 @@ function RunsContent() {
     swrOptions
   );
 
-  const runs: Run[] = Array.isArray(runsData?.data) ? runsData.data : [];
-  const scheduled: Run[] = Array.isArray(scheduledData?.data) ? scheduledData.data : [];
-  const runsMeta: PaginationMeta = runsData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
-  const scheduledMeta: PaginationMeta = scheduledData?.meta || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const runs: Run[] = Array.isArray(runsData?.data?.list) ? runsData.data.list : [];
+  const scheduled: Run[] = Array.isArray(scheduledData?.data?.list) ? scheduledData.data.list : [];
+  const runsMeta: PaginationMeta = runsData?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+  const scheduledMeta: PaginationMeta = scheduledData?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
 
   const stats = {
     today: runs.filter(r => new Date(r.createdAt).toDateString() === new Date().toDateString()).length,

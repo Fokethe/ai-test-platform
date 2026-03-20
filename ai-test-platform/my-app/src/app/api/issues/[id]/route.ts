@@ -1,95 +1,70 @@
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
+import { IssueStatus, Prisma } from '@prisma/client';
+import { parseJsonBody } from '@/lib/api-handler';
+import { errorResponse, errors, successResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { errors, successResponse } from '@/lib/api-response';
 import { hasProjectAccess } from '@/lib/project-access';
-import { writeAuditLog } from '@/lib/audit';
+import { prisma } from '@/lib/prisma';
 
-const updateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(5000).nullable().optional(),
-  type: z.enum(['BUG', 'TASK', 'IMPROVEMENT', 'QUESTION']).optional(),
-  severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
-  priority: z.string().max(20).optional(),
-  assigneeId: z.string().nullable().optional(),
-  resolution: z.string().max(200).nullable().optional(),
-});
+const ALLOWED_ISSUE_STATUSES: IssueStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
-async function loadIssue(id: string) {
-  return prisma.issue.findUnique({
-    where: { id },
-    include: {
-      reporter: {
-        select: { id: true, name: true, email: true, image: true },
-      },
-      assignee: {
-        select: { id: true, name: true, email: true, image: true },
-      },
-      test: {
-        select: { id: true, name: true, type: true },
-      },
-      run: {
-        select: { id: true, name: true, status: true },
-      },
-      execution: {
-        select: { id: true, status: true, errorMessage: true },
-      },
-      project: {
-        select: { id: true, name: true },
-      },
-    },
-  });
-}
+const ISSUE_STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
+  OPEN: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+  IN_PROGRESS: ['OPEN', 'RESOLVED', 'CLOSED'],
+  RESOLVED: ['IN_PROGRESS', 'CLOSED'],
+  CLOSED: ['IN_PROGRESS'],
+};
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return errors.unauthorized();
-  }
+type UpdateIssueBody = {
+  title?: unknown;
+  description?: unknown;
+  type?: unknown;
+  severity?: unknown;
+  status?: unknown;
+  priority?: unknown;
+  assigneeId?: unknown;
+  resolution?: unknown;
+  runId?: unknown;
+  testId?: unknown;
+};
 
-  const { id } = await params;
-  const issue = await loadIssue(id);
-  if (!issue) {
-    return errors.notFound('Issue');
-  }
+type IssueAccessResult =
+  | {
+      issue: {
+        id: string;
+        projectId: string;
+        status: IssueStatus;
+        resolvedAt: Date | null;
+      };
+      response: null;
+    }
+  | {
+      issue: null;
+      response: ReturnType<typeof errors.notFound> | ReturnType<typeof errors.forbidden>;
+    };
 
-  const canAccess = await hasProjectAccess(session.user.id, issue.projectId);
-  if (!canAccess) {
-    return errors.forbidden();
-  }
+type IssueUpdateData = {
+  title?: string;
+  description?: string | null;
+  type?: string;
+  severity?: string;
+  status?: IssueStatus;
+  priority?: string;
+  assigneeId?: string | null;
+  resolution?: string | null;
+  runId?: string | null;
+  testId?: string | null;
+  resolvedAt?: Date | null;
+  updatedAt: Date;
+};
 
-  return successResponse(issue);
-}
+type IssueUpdatePreparation =
+  | { updateData: IssueUpdateData; response: null }
+  | { updateData: null; response: Response };
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return errors.unauthorized();
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errors.badRequest('Invalid JSON payload');
-  }
-
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
-    return errors.badRequest(parsed.error.issues[0]?.message || 'Invalid payload');
-  }
-
-  const { id } = await params;
-  const existing = await prisma.issue.findUnique({
-    where: { id },
+async function ensureIssueAccess(userId: string, issueId: string): Promise<IssueAccessResult> {
+  const issue = await prisma.issue.findUnique({
+    where: { id: issueId },
     select: {
       id: true,
       projectId: true,
@@ -97,102 +72,247 @@ export async function PUT(
       resolvedAt: true,
     },
   });
-  if (!existing) {
-    return errors.notFound('Issue');
+
+  if (!issue) {
+    return { issue: null, response: errors.notFound('issue') };
   }
 
-  const canAccess = await hasProjectAccess(session.user.id, existing.projectId);
-  if (!canAccess) {
-    return errors.forbidden();
+  const canAccessProject = await hasProjectAccess(userId, issue.projectId);
+  if (!canAccessProject) {
+    return { issue: null, response: errors.forbidden() };
   }
 
-  const nextStatus = parsed.data.status || existing.status;
-  const updated = await prisma.$transaction(async (tx) => {
-    const issue = await tx.issue.update({
+  return { issue, response: null };
+}
+
+function parseRequestedStatus(value: unknown) {
+  if (value === undefined) {
+    return { status: undefined as IssueStatus | undefined, response: null };
+  }
+  if (typeof value !== 'string') {
+    return { status: undefined, response: errors.badRequest('Invalid issue status') };
+  }
+  if (!ALLOWED_ISSUE_STATUSES.includes(value as IssueStatus)) {
+    return { status: undefined, response: errors.badRequest('Invalid issue status') };
+  }
+  return { status: value as IssueStatus, response: null };
+}
+
+function validateStatusTransition(currentStatus: IssueStatus, nextStatus: IssueStatus | undefined) {
+  if (!nextStatus || nextStatus === currentStatus) {
+    return null;
+  }
+  const allowedTransitions = ISSUE_STATUS_TRANSITIONS[currentStatus];
+  if (allowedTransitions.includes(nextStatus)) {
+    return null;
+  }
+  return errors.badRequest(`Invalid status transition: ${currentStatus} -> ${nextStatus}`);
+}
+
+function assignTrimmedString(target: IssueUpdateData, key: 'title' | 'description', value: unknown) {
+  if (typeof value !== 'string') {
+    return;
+  }
+  if (key === 'title') {
+    target.title = value.trim();
+    return;
+  }
+  target.description = value.trim();
+}
+
+function assignNullableDescription(target: IssueUpdateData, value: unknown) {
+  if (value === null) {
+    target.description = null;
+  }
+}
+
+function assignString(target: IssueUpdateData, key: 'type' | 'severity' | 'priority', value: unknown) {
+  if (typeof value === 'string') {
+    target[key] = value;
+  }
+}
+
+function assignNullableString(
+  target: IssueUpdateData,
+  key: 'assigneeId' | 'resolution' | 'runId' | 'testId',
+  value: unknown
+) {
+  if (typeof value === 'string' || value === null) {
+    target[key] = value;
+  }
+}
+
+function applyStatusUpdate(
+  target: IssueUpdateData,
+  nextStatus: IssueStatus | undefined,
+  previousResolvedAt: Date | null
+) {
+  if (!nextStatus) {
+    return;
+  }
+
+  target.status = nextStatus;
+  if (nextStatus === 'RESOLVED' || nextStatus === 'CLOSED') {
+    target.resolvedAt = previousResolvedAt ?? new Date();
+    return;
+  }
+  target.resolvedAt = null;
+}
+
+function buildIssueUpdateData(body: UpdateIssueBody, status: IssueStatus | undefined, resolvedAt: Date | null) {
+  const updateData: IssueUpdateData = {
+    updatedAt: new Date(),
+  };
+
+  assignTrimmedString(updateData, 'title', body.title);
+  assignTrimmedString(updateData, 'description', body.description);
+  assignNullableDescription(updateData, body.description);
+  assignString(updateData, 'type', body.type);
+  assignString(updateData, 'severity', body.severity);
+  assignString(updateData, 'priority', body.priority);
+  assignNullableString(updateData, 'assigneeId', body.assigneeId);
+  assignNullableString(updateData, 'resolution', body.resolution);
+  assignNullableString(updateData, 'runId', body.runId);
+  assignNullableString(updateData, 'testId', body.testId);
+  applyStatusUpdate(updateData, status, resolvedAt);
+
+  return updateData;
+}
+
+async function prepareIssueUpdate(
+  request: NextRequest,
+  userId: string,
+  issueId: string
+): Promise<IssueUpdatePreparation> {
+  const access = await ensureIssueAccess(userId, issueId);
+  if (access.response) {
+    return { updateData: null, response: access.response };
+  }
+  if (!access.issue) {
+    return { updateData: null, response: errors.notFound('issue') };
+  }
+
+  const parseResult = await parseJsonBody<UpdateIssueBody>(request);
+  if (!parseResult.success) {
+    return { updateData: null, response: parseResult.error };
+  }
+
+  const statusResult = parseRequestedStatus(parseResult.data.status);
+  if (statusResult.response) {
+    return { updateData: null, response: statusResult.response };
+  }
+
+  const transitionError = validateStatusTransition(access.issue.status, statusResult.status);
+  if (transitionError) {
+    return { updateData: null, response: transitionError };
+  }
+
+  return {
+    updateData: buildIssueUpdateData(
+      parseResult.data,
+      statusResult.status,
+      access.issue.resolvedAt
+    ),
+    response: null,
+  };
+}
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errors.unauthorized();
+    }
+
+    const access = await ensureIssueAccess(session.user.id, id);
+    if (access.response) {
+      return access.response;
+    }
+
+    const issue = await prisma.issue.findUnique({
       where: { id },
-      data: {
-        title: parsed.data.title,
-        description: parsed.data.description,
-        type: parsed.data.type,
-        severity: parsed.data.severity,
-        status: parsed.data.status,
-        priority: parsed.data.priority,
-        assigneeId: parsed.data.assigneeId,
-        resolution: parsed.data.resolution,
-        resolvedAt:
-          nextStatus === 'RESOLVED' || nextStatus === 'CLOSED'
-            ? new Date()
-            : existing.resolvedAt,
+      include: {
+        reporter: {
+          select: { id: true, name: true, email: true, image: true },
+        },
+        assignee: {
+          select: { id: true, name: true, email: true, image: true },
+        },
+        test: {
+          select: { id: true, name: true, type: true },
+        },
+        run: {
+          select: { id: true, name: true, status: true },
+        },
+        project: {
+          select: { id: true, name: true },
+        },
       },
     });
 
-    if (parsed.data.status && parsed.data.status !== existing.status) {
-      await tx.issueLifecycleEvent.create({
-        data: {
-          issueId: id,
-          fromStatus: existing.status,
-          toStatus: parsed.data.status,
-          actorId: session.user.id,
-          note: 'updated_via_issue_put',
-        },
-      });
+    if (!issue) {
+      return errors.notFound('issue');
     }
 
-    return issue;
-  });
-
-  await writeAuditLog({
-    actorId: session.user.id,
-    action: 'ISSUE_UPDATED',
-    target: 'ISSUE',
-    targetId: id,
-    projectId: existing.projectId,
-    metadata: {
-      fromStatus: existing.status,
-      toStatus: parsed.data.status,
-    },
-  });
-
-  return successResponse(updated, 'Issue updated');
+    return successResponse(issue);
+  } catch (requestError) {
+    console.error('Get issue error:', requestError);
+    return errorResponse('Failed to fetch issue detail', 500);
+  }
 }
 
-export async function DELETE(
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return errors.unauthorized();
+  try {
+    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errors.unauthorized();
+    }
+
+    const preparation = await prepareIssueUpdate(request, session.user.id, id);
+    if (preparation.response || !preparation.updateData) {
+      return preparation.response;
+    }
+
+    const updatedIssue = await prisma.issue.update({
+      where: { id },
+      data: preparation.updateData as Prisma.IssueUncheckedUpdateInput,
+    });
+
+    return successResponse(updatedIssue, 'Issue updated');
+  } catch (requestError) {
+    console.error('Update issue error:', requestError);
+    return errorResponse('Failed to update issue', 500);
   }
+}
 
-  const { id } = await params;
-  const existing = await prisma.issue.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      projectId: true,
-    },
-  });
-  if (!existing) {
-    return errors.notFound('Issue');
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errors.unauthorized();
+    }
+
+    const access = await ensureIssueAccess(session.user.id, id);
+    if (access.response) {
+      return access.response;
+    }
+
+    await prisma.issue.delete({ where: { id } });
+    return successResponse(null, 'Issue deleted');
+  } catch (requestError) {
+    console.error('Delete issue error:', requestError);
+    return errorResponse('Failed to delete issue', 500);
   }
-
-  const canAccess = await hasProjectAccess(session.user.id, existing.projectId);
-  if (!canAccess) {
-    return errors.forbidden();
-  }
-
-  await prisma.issue.delete({
-    where: { id },
-  });
-
-  await writeAuditLog({
-    actorId: session.user.id,
-    action: 'ISSUE_DELETED',
-    target: 'ISSUE',
-    targetId: id,
-    projectId: existing.projectId,
-  });
-
-  return successResponse(null, 'Issue deleted');
 }

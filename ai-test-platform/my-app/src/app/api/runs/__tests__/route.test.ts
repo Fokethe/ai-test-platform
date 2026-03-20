@@ -1,118 +1,181 @@
 import { GET, POST } from '../route';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { hasProjectAccess } from '@/lib/project-access';
-import { writeAuditLog } from '@/lib/audit';
+import { prisma } from '@/lib/prisma';
 
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
-}));
-
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    project: {
-      findMany: jest.fn(),
-    },
-    run: {
-      count: jest.fn(),
-      findMany: jest.fn(),
-    },
-    test: {
-      findMany: jest.fn(),
-    },
-    execution: {
-      createMany: jest.fn(),
-    },
-    $transaction: jest.fn(),
-  },
 }));
 
 jest.mock('@/lib/project-access', () => ({
   hasProjectAccess: jest.fn(),
 }));
 
-jest.mock('@/lib/audit', () => ({
-  writeAuditLog: jest.fn(),
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    run: {
+      count: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    test: {
+      findMany: jest.fn(),
+    },
+  },
 }));
 
-describe('/api/runs route', () => {
+describe('GET /api/runs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('GET returns 401 when no session', async () => {
+  it('returns 401 when session is missing', async () => {
     (auth as jest.Mock).mockResolvedValue(null);
+
     const response = await GET(new Request('http://localhost/api/runs') as never);
     expect(response.status).toBe(401);
   });
 
-  it('GET returns run list for accessible projects', async () => {
+  it('returns 403 when project is not accessible', async () => {
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
-    (prisma.project.findMany as jest.Mock).mockResolvedValue([{ id: 'project-1' }]);
+    (hasProjectAccess as jest.Mock).mockResolvedValue(false);
+
+    const response = await GET(
+      new Request('http://localhost/api/runs?projectId=project-1') as never
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it('returns paginated run list for accessible project', async () => {
+    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
+    (hasProjectAccess as jest.Mock).mockResolvedValue(true);
     (prisma.run.count as jest.Mock).mockResolvedValue(1);
     (prisma.run.findMany as jest.Mock).mockResolvedValue([
       {
         id: 'run-1',
-        name: 'regression run',
+        name: 'Run 1',
         status: 'RUNNING',
         type: 'MANUAL',
+        project: { id: 'project-1', name: 'Project 1' },
       },
     ]);
 
     const response = await GET(
-      new Request('http://localhost/api/runs?page=1&pageSize=20') as never
+      new Request('http://localhost/api/runs?projectId=project-1&page=1&pageSize=20') as never
     );
     const payload = await response.json();
 
     expect(response.status).toBe(200);
     expect(payload.code).toBe(0);
-    expect(payload.data.list).toHaveLength(1);
+    expect(payload.data.list[0].id).toBe('run-1');
+    expect(prisma.run.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ AND: expect.any(Array) }),
+      })
+    );
+  });
+});
+
+describe('POST /api/runs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
   });
 
-  it('POST creates and starts run', async () => {
-    (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
+  it('returns 400 when projectId is missing', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        body: JSON.stringify({ testIds: ['test-1'] }),
+      }) as never
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when testIds is empty', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        body: JSON.stringify({ projectId: 'project-1', testIds: [] }),
+      }) as never
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 403 when project is not accessible', async () => {
+    (hasProjectAccess as jest.Mock).mockResolvedValue(false);
+
+    const response = await POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        body: JSON.stringify({ projectId: 'project-1', testIds: ['test-1'] }),
+      }) as never
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it('returns 400 when nextRunAt is invalid', async () => {
     (hasProjectAccess as jest.Mock).mockResolvedValue(true);
     (prisma.test.findMany as jest.Mock).mockResolvedValue([{ id: 'test-1' }]);
-
-    const tx = {
-      run: {
-        create: jest.fn().mockResolvedValue({
-          id: 'run-1',
-          name: 'nightly',
-          status: 'RUNNING',
-          type: 'MANUAL',
-          projectId: 'project-1',
-          totalCount: 1,
-          startedAt: new Date('2026-03-19T18:00:00.000Z'),
-          createdAt: new Date('2026-03-19T18:00:00.000Z'),
-        }),
-      },
-      execution: {
-        createMany: jest.fn().mockResolvedValue({ count: 1 }),
-      },
-    };
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(tx));
 
     const response = await POST(
       new Request('http://localhost/api/runs', {
         method: 'POST',
         body: JSON.stringify({
-          name: 'nightly',
           projectId: 'project-1',
           testIds: ['test-1'],
-          startNow: true,
+          nextRunAt: 'invalid-date',
+        }),
+      }) as never
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it('creates run with executions for valid payload', async () => {
+    (hasProjectAccess as jest.Mock).mockResolvedValue(true);
+    (prisma.test.findMany as jest.Mock).mockResolvedValue([{ id: 'test-1' }, { id: 'test-2' }]);
+    (prisma.run.create as jest.Mock).mockResolvedValue({
+      id: 'run-1',
+      executions: [
+        { id: 'exec-1', testId: 'test-1', status: 'PENDING' },
+        { id: 'exec-2', testId: 'test-2', status: 'PENDING' },
+      ],
+    });
+
+    const response = await POST(
+      new Request('http://localhost/api/runs', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Nightly run',
+          projectId: 'project-1',
+          testIds: ['test-1', 'test-2'],
+          autoStart: true,
         }),
       }) as never
     );
     const payload = await response.json();
 
     expect(response.status).toBe(201);
-    expect(payload.code).toBe(0);
-    expect(payload.data.status).toBe('RUNNING');
-    expect(tx.execution.createMany).toHaveBeenCalled();
-    expect(writeAuditLog).toHaveBeenCalledWith(
+    expect(payload.data.id).toBe('run-1');
+    expect(prisma.run.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'RUN_CREATED',
+        data: expect.objectContaining({
+          projectId: 'project-1',
+          createdBy: 'user-1',
+          status: 'RUNNING',
+          totalCount: 2,
+          executions: {
+            create: [
+              { testId: 'test-1', status: 'PENDING' },
+              { testId: 'test-2', status: 'PENDING' },
+            ],
+          },
+        }),
       })
     );
   });
