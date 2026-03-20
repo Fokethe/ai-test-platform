@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasProjectAccess } from '@/lib/project-access';
 import { writeAuditLog } from '@/lib/audit';
+import { deliverIntegrationEvent } from '@/lib/integrations/event-delivery';
+import { notifyProjectMembers } from '@/lib/notifications/project-events';
 
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
@@ -23,6 +25,14 @@ jest.mock('@/lib/project-access', () => ({
 
 jest.mock('@/lib/audit', () => ({
   writeAuditLog: jest.fn(),
+}));
+
+jest.mock('@/lib/integrations/event-delivery', () => ({
+  deliverIntegrationEvent: jest.fn(),
+}));
+
+jest.mock('@/lib/notifications/project-events', () => ({
+  notifyProjectMembers: jest.fn(),
 }));
 
 describe('/api/executions/[id]/issue route', () => {
@@ -91,6 +101,18 @@ describe('/api/executions/[id]/issue route', () => {
     expect(writeAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'ISSUE_CREATED_FROM_EXECUTION',
+      })
+    );
+    expect(deliverIntegrationEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'issue.created',
+        projectId: 'project-1',
+      })
+    );
+    expect(notifyProjectMembers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'system',
+        projectId: 'project-1',
       })
     );
   });

@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -42,7 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BentoCard, BentoGrid } from '@/components/bento';
-import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
+import { safeFetcher } from '@/lib/utils/fetcher';
 
 type RunType = 'MANUAL' | 'SCHEDULED' | 'WEBHOOK' | 'API';
 type RunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
@@ -95,6 +96,19 @@ interface BadgeConfig {
   label: string;
   color: string;
 }
+
+const DETAIL_TIMEOUT_MS = 10000;
+
+const RUN_DETAIL_SWR_CONFIG: SWRConfiguration = {
+  refreshInterval: 5000,
+  loadingTimeout: DETAIL_TIMEOUT_MS,
+  errorRetryCount: 2,
+  errorRetryInterval: 2000,
+  shouldRetryOnError: (error) =>
+    error instanceof Error &&
+    (error.message.toLowerCase().includes('timeout') ||
+      error.message.toLowerCase().includes('network')),
+};
 
 const RUN_TYPE_CONFIG: Record<RunType, BadgeConfig> = {
   MANUAL: { icon: Play, label: '手动', color: 'bg-[var(--electric)]/10 text-[var(--electric)]' },
@@ -180,8 +194,8 @@ export default function RunDetailPage() {
 
   const { data, error, isLoading, mutate } = useSWR<RunDetailResponse>(
     id ? `/api/runs/${id}` : null,
-    fetcher,
-    { refreshInterval: 5000 }
+    (url: string) => safeFetcher(url, { timeoutMs: DETAIL_TIMEOUT_MS }),
+    RUN_DETAIL_SWR_CONFIG
   );
 
   const run = data?.data;
@@ -248,7 +262,12 @@ export default function RunDetailPage() {
   }
 
   if (error || !run) {
-    return <RunDetailError onRetry={() => void mutate()} />;
+    return (
+      <RunDetailError
+        onRetry={() => void mutate()}
+        message={error instanceof Error ? error.message : undefined}
+      />
+    );
   }
 
   return (
@@ -301,12 +320,13 @@ function RunDetailLoading() {
   );
 }
 
-function RunDetailError({ onRetry }: { onRetry: () => void }) {
+function RunDetailError({ onRetry, message }: { onRetry: () => void; message?: string }) {
   return (
     <div className="p-6">
       <BentoCard className="p-12 text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <p className="text-red-500 text-lg">加载失败</p>
+        {message ? <p className="text-sm text-slate-500 mt-2">{message}</p> : null}
         <Button variant="outline" className="mt-4" onClick={onRetry}>
           重试
         </Button>

@@ -3,7 +3,7 @@
   "files.encoding": "utf8",
   "files.autoGuessEncoding": true,
   "files.defaultLanguage": "typescript",
-  
+
   // 确保所有文件使用 UTF-8 保存
   "[prisma]": {
     "files.encoding": "utf8",
@@ -21,20 +21,21 @@
   "[markdown]": {
     "files.encoding": "utf8"
   },
-  
+
   // 文件保存时操作
   "editor.formatOnSave": true,
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
-  
+
   // 换行符统一使用 LF（避免 Windows CRLF 导致的问题）
   "files.eol": "\n",
-  
+
   // 搜索时排除的文件
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true,
     "**/.next": true,
     "**/prisma/migrations": true
-  }
+  },
+  "compile-hero.disable-compile-files-on-did-save-code": false
 }

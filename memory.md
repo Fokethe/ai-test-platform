@@ -2,9 +2,59 @@
 
 ## 当前状态
 - **日期**: 2026-03-20
-- **重构阶段**: EPIC7 执行中心与质量看板交付
-- **提交记录**: 待提交 - EPIC7 执行中心与质量看板功能
+- **重构阶段**: EPIC7 执行中心与质量看板交付 + 通知/集成/审查功能
+- **提交记录**: `a055cb04` → 新增通知系统、集成管理、审查工作流
 - **最新验收**: EPIC7 基线测试 ✅ **全部通过**
+
+## 本次提交内容 (2026-03-20)
+
+### 新增功能模块
+- ✅ **通知系统** (`src/lib/notifications/`)
+  - 项目事件通知 (`project-events.ts`)
+  - 支持执行/系统/邀请三种类别
+  - 用户偏好设置检查
+  - 审计日志记录
+
+- ✅ **集成管理** (`src/lib/integrations/`)
+  - 事件投递系统 (`event-delivery.ts`)
+  - Webhook 签名验证 (HMAC-SHA256)
+  - 自动重试机制 (最多3次)
+  - 超时控制 (10秒)
+
+- ✅ **审查工作流** (`src/lib/review/`)
+  - 工作流审查决策 (`workflow-review.ts`)
+  - 支持批准/编辑/重新生成/拒绝四种决策
+  - 最大重试次数限制
+
+### API 路由增强
+- ✅ 通知 API - `/api/notifications`, `/api/notifications/unread`
+- ✅ 集成 API - `/api/integrations`, `/api/integrations/[id]`
+- ✅ 审查 API - `/api/review`, `/api/ai/workflow/review`
+- ✅ 执行中心 API - `/api/executions/[id]/issue`, `/api/executions/[id]/status`
+- ✅ 健康检查 API - `/api/health` 增强
+- ✅ 需求管理 API - `/api/requirements/[id]` 优化
+
+### 页面更新
+- ✅ 审查页面 (`/review/page.tsx`) - 完整审查界面
+- ✅ Run 详情页面增强
+- ✅ 测试详情页面优化
+
+### 测试覆盖
+- ✅ 新增 API 路由单元测试
+- ✅ Jest Node 环境配置优化
+
+### BMAD 配置更新
+- ✅ agent-manifest.csv 更新
+- ✅ bmad-help.csv 更新
+- ✅ CIS 模块配置更新
+
+### PPT Skill (实验性)
+- ✅ 新增 `.clinerules/skills/productivity/pptx-presentation/`
+
+### 提交统计
+- **修改文件**: 26个
+- **新增文件**: 30+个 (库模块、API路由、测试文件)
+- **代码变更**: +1391/-829 行
 
 ## EPIC7 交付内容 (2026-03-20)
 

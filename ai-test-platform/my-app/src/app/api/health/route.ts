@@ -6,15 +6,22 @@ export async function GET() {
     // 检查数据库连接
     await prisma.$queryRaw`SELECT 1`;
 
-    return NextResponse.json({
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      version: "1.0.0",
-      services: {
-        database: "connected",
-        api: "running",
+    return NextResponse.json(
+      {
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        version: "1.0.0",
+        services: {
+          database: "connected",
+          api: "running",
+        },
       },
-    });
+      {
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       {
@@ -22,7 +29,12 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         error: "Database connection failed",
       },
-      { status: 503 }
+      {
+        status: 503,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+        },
+      }
     );
   }
 }

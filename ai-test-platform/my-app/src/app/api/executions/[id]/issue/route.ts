@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { createdResponse, errors } from '@/lib/api-response';
 import { hasProjectAccess } from '@/lib/project-access';
 import { writeAuditLog } from '@/lib/audit';
+import { deliverIntegrationEvent } from '@/lib/integrations/event-delivery';
+import { notifyProjectMembers } from '@/lib/notifications/project-events';
 
 const createIssueSchema = z.object({
   title: z.string().max(200).optional(),
@@ -153,6 +155,40 @@ export async function POST(
       testId: execution.test.id,
     },
   });
+
+  try {
+    await Promise.all([
+      deliverIntegrationEvent({
+        projectId,
+        actorId: session.user.id,
+        event: 'issue.created',
+        payload: {
+          issueId: issue.id,
+          title: issue.title,
+          status: issue.status,
+          severity: issue.severity,
+          runId: execution.run.id,
+          testId: execution.test.id,
+          executionId: execution.id,
+        },
+      }),
+      notifyProjectMembers({
+        projectId,
+        actorId: session.user.id,
+        category: 'system',
+        type: 'SYSTEM',
+        title: '新缺陷已创建',
+        content: `测试 ${execution.test.name} 产生了新的缺陷：${issue.title}`,
+        data: {
+          issueId: issue.id,
+          runId: execution.run.id,
+          executionId: execution.id,
+        },
+      }),
+    ]);
+  } catch (dispatchError) {
+    console.error('Failed to dispatch issue creation signals:', dispatchError);
+  }
 
   return createdResponse(issue);
 }

@@ -1,342 +1,253 @@
-/**
- * TDD Round 7: 用例生成 API 测试
- * 目标: 实现用例生成的 API 端点
- *
- * @jest-environment node
- */
-
 import { POST } from '../route';
 import { prisma } from '@/lib/prisma';
-import { NextRequest } from 'next/server';
+import { ModelManager } from '@/lib/ai/model-manager';
+import { TestCaseGenerator } from '@/lib/ai/agents/testcase-generator';
 
-// 模拟 AI 客户端
-jest.mock('@/lib/ai/client', () => ({
-  generateWithAI: jest.fn(),
+const mockGenerateFromTestPointsWithRAG = jest.fn();
+const mockGenerateFromTestPoint = jest.fn();
+const mockGetUsageStats = jest.fn();
+const mockGetTotalCost = jest.fn();
+
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    aiRequirement: {
+      findUnique: jest.fn(),
+    },
+    test: {
+      findMany: jest.fn(),
+    },
+  },
 }));
 
-import { generateWithAI } from '@/lib/ai/client';
+jest.mock('@/lib/ai/model-manager', () => ({
+  ModelManager: jest.fn().mockImplementation(() => ({
+    getUsageStats: mockGetUsageStats,
+    getTotalCost: mockGetTotalCost,
+  })),
+}));
 
-const mockedGenerateWithAI = generateWithAI as jest.MockedFunction<typeof generateWithAI>;
+jest.mock('@/lib/ai/agents/testcase-generator', () => ({
+  TestCaseGenerator: jest.fn().mockImplementation(() => ({
+    generateFromTestPointsWithRAG: mockGenerateFromTestPointsWithRAG,
+    generateFromTestPoint: mockGenerateFromTestPoint,
+  })),
+}));
 
-// 辅助函数：创建 NextRequest
-function createNextRequest(url: string, options: RequestInit = {}): NextRequest {
-  return new Request(url, options) as NextRequest;
-}
+type MockedPrisma = {
+  aiRequirement: { findUnique: jest.Mock };
+  test: { findMany: jest.Mock };
+};
+
+const requirementFixture = {
+  id: 'req-1',
+  projectId: 'project-1',
+  businessRules: JSON.stringify([{ type: 'format', description: 'Phone must be 11 digits' }]),
+  features: JSON.stringify(['Login', 'SMS verification']),
+  testPoints: [
+    {
+      id: 'tp-1',
+      name: 'Valid phone login',
+      description: 'Login with valid phone and SMS code',
+      priority: 'P0',
+      relatedFeature: 'Login',
+    },
+    {
+      id: 'tp-2',
+      name: 'Invalid phone handling',
+      description: 'Show validation error for invalid phone',
+      priority: 'P1',
+      relatedFeature: 'Login',
+    },
+  ],
+};
+
+const generatedCase = {
+  id: 'TC-tp-1-1',
+  title: 'Valid phone login succeeds',
+  precondition: 'User exists',
+  steps: ['Input phone', 'Input SMS code', 'Submit'],
+  expectedResult: 'Login success',
+  priority: 'P0',
+  testPointId: 'tp-1',
+  relatedFeature: 'Login',
+};
 
 describe('POST /api/requirements/[id]/generate-testcases', () => {
-  let mockRequirement: any;
+  const mockedPrisma = prisma as unknown as MockedPrisma;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
-    // 创建测试数据
-    mockRequirement = await prisma.aiRequirement.create({
-      data: {
-        title: '用户登录需求',
-        type: 'txt',
-        filename: 'login.txt',
-        content: '用户登录功能需求...',
-        rawText: '用户登录功能需求...',
-        size: 100,
-        features: JSON.stringify(['手机号+验证码登录', '密码登录']),
-        businessRules: JSON.stringify([
-          { type: 'format', description: '手机号必须为11位' },
-        ]),
-        projectId: 'test-project',
-        testPoints: {
-          create: [
-            {
-              name: '正确手机号登录',
-              description: '使用正确手机号和验证码登录',
-              priority: 'P0',
-              relatedFeature: '手机号+验证码登录',
-            },
-            {
-              name: '错误手机号处理',
-              description: '输入错误格式手机号的处理',
-              priority: 'P1',
-              relatedFeature: '手机号+验证码登录',
-            },
-          ],
-        },
-      },
-      include: {
-        testPoints: true,
-      },
-    });
+    mockedPrisma.aiRequirement.findUnique.mockResolvedValue(requirementFixture);
+    mockedPrisma.test.findMany.mockResolvedValue([]);
+
+    mockGenerateFromTestPointsWithRAG.mockResolvedValue([generatedCase]);
+    mockGenerateFromTestPoint.mockResolvedValue([generatedCase]);
+    mockGetUsageStats.mockReturnValue({ 'kimi-k2.5': 1 });
+    mockGetTotalCost.mockReturnValue(0.001);
   });
 
-  afterEach(async () => {
-    // 清理测试数据
-    await prisma.aiRequirement.deleteMany({
-      where: { projectId: 'test-project' },
+  it('returns generated test cases for selected test points', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-1'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.code).toBe(0);
+    expect(payload.data.testCases).toHaveLength(1);
+    expect(payload.data.testCases[0]).toMatchObject({
+      title: 'Valid phone login succeeds',
+      testPointId: 'tp-1',
     });
+    expect(payload.data.meta.generatedCount).toBe(1);
   });
 
-  describe('基础功能', () => {
-    it('应该成功生成用例', async () => {
-      const mockAIResponse = {
-        testCases: [
-          {
-            title: '验证正确手机号登录成功',
-            precondition: '用户已注册',
-            steps: ['输入正确手机号', '输入正确验证码', '点击登录'],
-            expectedResult: '登录成功，跳转到首页',
-            priority: 'P0',
-          },
-        ],
-      };
-
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockAIResponse));
-
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [mockRequirement.testPoints[0].id],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(result.code).toBe(0);
-      expect(result.data.testCases).toHaveLength(1);
-      expect(result.data.testCases[0].title).toBe('验证正确手机号登录成功');
-    });
-
-    it('应该支持批量生成多个测试点的用例', async () => {
-      const mockResponse1 = {
-        testCases: [
-          {
-            title: '正确登录用例',
-            precondition: '',
-            steps: ['步骤1'],
-            expectedResult: '成功',
-            priority: 'P0',
-          },
-        ],
-      };
-
-      const mockResponse2 = {
-        testCases: [
-          {
-            title: '错误处理用例',
-            precondition: '',
-            steps: ['步骤1'],
-            expectedResult: '提示错误',
-            priority: 'P1',
-          },
-        ],
-      };
-
-      mockedGenerateWithAI
-        .mockResolvedValueOnce(JSON.stringify(mockResponse1))
-        .mockResolvedValueOnce(JSON.stringify(mockResponse2));
-
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: mockRequirement.testPoints.map((tp: any) => tp.id),
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(result.code).toBe(0);
-      expect(result.data.testCases).toHaveLength(2);
-    });
-  });
-
-  describe('参数验证', () => {
-    it('应该验证需求ID存在', async () => {
-      const request = new Request('http://localhost:3000/api/requirements/non-existent/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: ['tp-1'],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: 'non-existent' }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(404);
-      expect(result.code).toBe(404);
-      expect(result.error.message).toContain('需求不存在');
-    });
-
-    it('应该验证测试点ID列表不为空', async () => {
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(result.code).toBe(400);
-      expect(result.error.message).toContain('测试点ID列表不能为空');
-    });
-
-    it('应该验证测试点属于该需求', async () => {
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: ['non-existent-testpoint'],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(result.code).toBe(400);
-      expect(result.error.message).toContain('测试点不存在');
-    });
-  });
-
-  describe('生成的用例数据', () => {
-    it('生成的用例应该关联到正确的测试点', async () => {
-      const mockAIResponse = {
-        testCases: [
-          {
-            title: '测试用例',
-            precondition: '',
-            steps: ['步骤1'],
-            expectedResult: '结果',
-            priority: 'P0',
-          },
-        ],
-      };
-
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockAIResponse));
-
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [mockRequirement.testPoints[0].id],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(result.data.testCases[0].testPointId).toBe(mockRequirement.testPoints[0].id);
-    });
-
-    it('生成的用例应该包含完整字段', async () => {
-      const mockAIResponse = {
-        testCases: [
-          {
-            title: '完整用例',
-            precondition: '前置条件',
-            steps: ['步骤1', '步骤2'],
-            expectedResult: '预期结果',
-            priority: 'P1',
-          },
-        ],
-      };
-
-      mockedGenerateWithAI.mockResolvedValueOnce(JSON.stringify(mockAIResponse));
-
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [mockRequirement.testPoints[0].id],
-        }),
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(result.data.testCases[0]).toMatchObject({
-        id: expect.any(String),
-        title: '完整用例',
-        precondition: '前置条件',
-        steps: ['步骤1', '步骤2'],
-        expectedResult: '预期结果',
+  it('supports batch generation for multiple test points', async () => {
+    mockGenerateFromTestPointsWithRAG.mockResolvedValue([
+      generatedCase,
+      {
+        ...generatedCase,
+        id: 'TC-tp-2-1',
+        title: 'Invalid phone displays error',
+        testPointId: 'tp-2',
         priority: 'P1',
-        testPointId: expect.any(String),
-      });
-    });
+      },
+    ]);
+
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-1', 'tp-2'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.testCases).toHaveLength(2);
+    expect(payload.data.meta.testPointCount).toBe(2);
   });
 
-  describe('错误处理', () => {
-    it('应该处理 AI 生成失败', async () => {
-      mockedGenerateWithAI.mockRejectedValueOnce(new Error('AI 服务不可用'));
+  it('returns 404 when requirement does not exist', async () => {
+    mockedPrisma.aiRequirement.findUnique.mockResolvedValueOnce(null);
 
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/missing/generate-testcases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [mockRequirement.testPoints[0].id],
-        }),
-      });
+        body: JSON.stringify({ testPointIds: ['tp-1'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'missing' }) }
+    );
+    const payload = await response.json();
 
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(result.code).toBe(500);
-      expect(result.error.message).toContain('生成失败');
-    });
-
-    it('应该处理无效的请求体', async () => {
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: 'invalid json',
-      });
-
-      const response = await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-      const result = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(result.code).toBe(400);
-    });
+    expect(response.status).toBe(404);
+    expect(payload.code).toBe(404);
   });
 
-  describe('业务规则上下文', () => {
-    it('应该将需求的业务规则传递给生成器', async () => {
-      const mockAIResponse = {
-        testCases: [
-          {
-            title: '考虑业务规则的用例',
-            precondition: '',
-            steps: ['步骤1'],
-            expectedResult: '结果',
-            priority: 'P1',
-          },
-        ],
-      };
-
-      mockedGenerateWithAI.mockImplementation(async (prompt: string) => {
-        // 验证提示词中包含业务规则
-        expect(prompt).toContain('手机号必须为11位');
-        return JSON.stringify(mockAIResponse);
-      });
-
-      const request = new Request('http://localhost:3000/api/requirements/test/generate-testcases', {
+  it('returns 400 when testPointIds is empty', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: [mockRequirement.testPoints[0].id],
-        }),
-      });
+        body: JSON.stringify({ testPointIds: [] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
 
-      await POST(request, { params: Promise.resolve({ id: mockRequirement.id }) });
-    });
+    expect(response.status).toBe(400);
+    expect(payload.code).toBe(400);
+  });
+
+  it('returns 400 when test point does not belong to requirement', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-404'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.code).toBe(400);
+  });
+
+  it('returns 400 for invalid JSON body', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'invalid-json',
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.code).toBe(400);
+  });
+
+  it('falls back to non-RAG generation and passes business context', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-1'], useRAG: false }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockGenerateFromTestPoint).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'tp-1' }),
+      expect.objectContaining({
+        businessRules: expect.arrayContaining([
+          expect.objectContaining({ description: 'Phone must be 11 digits' }),
+        ]),
+        features: expect.arrayContaining(['Login', 'SMS verification']),
+      })
+    );
+  });
+
+  it('returns 500 when both RAG and fallback generation fail', async () => {
+    mockGenerateFromTestPointsWithRAG.mockRejectedValueOnce(new Error('RAG unavailable'));
+    mockGenerateFromTestPoint.mockRejectedValueOnce(new Error('AI unavailable'));
+
+    const response = await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-1'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.code).toBe(500);
+  });
+
+  it('initializes model and generator dependencies', async () => {
+    await POST(
+      new Request('http://localhost/api/requirements/req-1/generate-testcases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testPointIds: ['tp-1'] }),
+      }) as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+
+    expect(ModelManager).toHaveBeenCalled();
+    expect(TestCaseGenerator).toHaveBeenCalled();
   });
 });

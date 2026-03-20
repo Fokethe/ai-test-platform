@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasProjectAccess } from '@/lib/project-access';
 import { writeAuditLog } from '@/lib/audit';
+import { deliverIntegrationEvent } from '@/lib/integrations/event-delivery';
+import { notifyProjectMembers } from '@/lib/notifications/project-events';
 
 jest.mock('@/lib/auth', () => ({
   auth: jest.fn(),
@@ -34,6 +36,14 @@ jest.mock('@/lib/audit', () => ({
   writeAuditLog: jest.fn(),
 }));
 
+jest.mock('@/lib/integrations/event-delivery', () => ({
+  deliverIntegrationEvent: jest.fn(),
+}));
+
+jest.mock('@/lib/notifications/project-events', () => ({
+  notifyProjectMembers: jest.fn(),
+}));
+
 describe('/api/executions/[id]/status route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -58,7 +68,13 @@ describe('/api/executions/[id]/status route', () => {
       status: 'RUNNING',
       startedAt: new Date('2026-03-19T18:00:00.000Z'),
       completedAt: null,
-      run: { id: 'run-1', projectId: 'project-1', startedAt: new Date('2026-03-19T18:00:00.000Z') },
+      run: {
+        id: 'run-1',
+        name: 'Run Alpha',
+        projectId: 'project-1',
+        startedAt: new Date('2026-03-19T18:00:00.000Z'),
+        status: 'RUNNING',
+      },
       test: { id: 'test-1', projectId: 'project-1' },
     });
     (hasProjectAccess as jest.Mock).mockResolvedValue(true);
@@ -82,6 +98,8 @@ describe('/api/executions/[id]/status route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.idempotent).toBe(true);
+    expect(deliverIntegrationEvent).not.toHaveBeenCalled();
+    expect(notifyProjectMembers).not.toHaveBeenCalled();
   });
 
   it('PATCH updates execution status and run counters', async () => {
@@ -91,7 +109,13 @@ describe('/api/executions/[id]/status route', () => {
       status: 'RUNNING',
       startedAt: new Date('2026-03-19T18:00:00.000Z'),
       completedAt: null,
-      run: { id: 'run-1', projectId: 'project-1', startedAt: new Date('2026-03-19T18:00:00.000Z') },
+      run: {
+        id: 'run-1',
+        name: 'Run Alpha',
+        projectId: 'project-1',
+        startedAt: new Date('2026-03-19T18:00:00.000Z'),
+        status: 'RUNNING',
+      },
       test: { id: 'test-1', projectId: 'project-1' },
     });
     (hasProjectAccess as jest.Mock).mockResolvedValue(true);
@@ -136,6 +160,18 @@ describe('/api/executions/[id]/status route', () => {
     expect(writeAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'EXECUTION_STATUS_UPDATED',
+      })
+    );
+    expect(deliverIntegrationEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'run.completed',
+        projectId: 'project-1',
+      })
+    );
+    expect(notifyProjectMembers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'execution',
+        projectId: 'project-1',
       })
     );
   });

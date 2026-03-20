@@ -3,6 +3,7 @@ import { createdResponse, errorResponse, errors } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { hasProjectAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
+import { writeAuditLog } from '@/lib/audit';
 
 export async function POST(
   _request: NextRequest,
@@ -41,30 +42,43 @@ export async function POST(
       return errors.badRequest('Run has no executions to rerun');
     }
 
-    const rerun = await prisma.run.create({
-      data: {
-        name: `${sourceRun.name} (Rerun)`,
-        description: sourceRun.description,
-        projectId: sourceRun.projectId,
-        createdBy: session.user.id,
-        type: sourceRun.type,
-        status: 'RUNNING',
-        totalCount: testIds.length,
-        passedCount: 0,
-        failedCount: 0,
-        skippedCount: 0,
-        startedAt: new Date(),
-        executions: {
-          create: testIds.map((testId) => ({
-            testId,
-            status: 'PENDING',
-          })),
+    const rerun = await prisma.$transaction(async (tx) => {
+      const createdRun = await tx.run.create({
+        data: {
+          name: `${sourceRun.name} (Rerun)`,
+          description: sourceRun.description,
+          projectId: sourceRun.projectId,
+          createdBy: session.user.id,
+          type: sourceRun.type,
+          status: 'RUNNING',
+          totalCount: testIds.length,
+          passedCount: 0,
+          failedCount: 0,
+          skippedCount: 0,
+          startedAt: new Date(),
         },
-      },
-      include: {
-        executions: {
-          select: { id: true, testId: true, status: true },
-        },
+      });
+
+      await tx.execution.createMany({
+        data: testIds.map((testId) => ({
+          runId: createdRun.id,
+          testId,
+          status: 'PENDING',
+        })),
+      });
+
+      return createdRun;
+    });
+
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: 'RUN_RERUN_TRIGGERED',
+      target: 'RUN',
+      targetId: rerun.id,
+      projectId: sourceRun.projectId,
+      metadata: {
+        sourceRunId: id,
+        testCount: testIds.length,
       },
     });
 

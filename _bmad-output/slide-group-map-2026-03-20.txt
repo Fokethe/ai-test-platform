@@ -1,0 +1,119 @@
+--- Slide 14 / Group 50 ---
+[1] Name=Hexagon 2 | Type=1 | L=36.5 | T=149.8 | W=164.8 | H=137.4 | Text=
+[2] Name=Hexagon 3 | Type=1 | L=178.8 | T=224.4 | W=164.8 | H=137.4 | Text=
+[3] Name=Hexagon 4 | Type=1 | L=321.1 | T=149.8 | W=164.8 | H=137.4 | Text=
+[4] Name=Hexagon 5 | Type=1 | L=463.4 | T=224.4 | W=164.8 | H=137.4 | Text=
+[5] Name=Hexagon 7 | Type=1 | L=603.8 | T=149.8 | W=164.8 | H=137.4 | Text=
+[6] Name=Hexagon 8 | Type=1 | L=746.2 | T=224.4 | W=164.8 | H=137.4 | Text=
+[7] Name=iconfont-11143-5258352 | Type=5 | L=103.7 | T=176.4 | W=45.3 | H=48.0 | Text=
+[8] Name=TextBox 23 | Type=17 | L=359.4 | T=248.3 | W=91.2 | H=29.1 | Text=招标阶段
+[9] Name=TextBox 24 | Type=17 | L=216.6 | T=322.1 | W=91.2 | H=29.1 | Text=设计阶段
+[10] Name=TextBox 25 | Type=17 | L=500.3 | T=325.8 | W=91.2 | H=29.1 | Text=施工阶段
+[11] Name=TextBox 26 | Type=17 | L=75.3 | T=248.3 | W=91.2 | H=29.1 | Text=决策阶段
+[12] Name=TextBox 27 | Type=17 | L=643.4 | T=246.6 | W=91.2 | H=29.1 | Text=竣工阶段
+[13] Name=TextBox 28 | Type=17 | L=783.0 | T=322.0 | W=91.2 | H=29.1 | Text=运维阶段
+[14] Name=logo-design_154997 | Type=5 | L=238.2 | T=251.5 | W=48.0 | H=48.0 | Text=
+[15] Name=amusement-park_98111 | Type=5 | L=381.5 | T=173.4 | W=48.0 | H=47.4 | Text=
+[16] Name=settings_126314 | Type=5 | L=518.6 | T=254.0 | W=54.9 | H=43.6 | Text=
+[17] Name=task-complete_66276 | Type=5 | L=668.7 | T=172.4 | W=46.0 | H=48.0 | Text=
+[18] Name=iconfont-11573-5485624 | Type=5 | L=804.6 | T=251.5 | W=48.0 | H=48.0 | Text=
+[19] Name=TextBox 44 | Type=17 | L=55.4 | T=295.4 | W=145.5 | H=138.1 | Text=项目建议书 可行性研究报告 资金申请报告 运营策划 评估报告 投资匡算/估算
+[20] Name=TextBox 45 | Type=17 | L=205.9 | T=366.9 | W=145.5 | H=116.3 | Text=初步设计 施工图设计 设计审查 设计概算 施工图预算
+[21] Name=TextBox 46 | Type=17 | L=351.3 | T=295.1 | W=145.5 | H=72.7 | Text=招投标策划 控制价编制 开标招标
+[22] Name=TextBox 47 | Type=17 | L=490.9 | T=364.5 | W=137.4 | H=159.9 | Text=质量控制 进度控制 投资控制 风险管理 合同管理 信息管理 组织协调
+[23] Name=TextBox 48 | Type=17 | L=629.9 | T=292.2 | W=145.5 | H=138.1 | Text=竣工管理 竣工图编制 验收报告 档案资料 保修期管理 竣工结算、决算
+[24] Name=TextBox 49 | Type=17 | L=774.5 | T=362.5 | W=182.0 | H=159.9 | Text=运营成本分析 合同管理全生命周期 成本管理 项目后评价 财政支出绩效评价 资产管理 内审服务
+--- Slide 15 / Group 2 ---
+[1] Name=Arc 9_1 | Type=1 | L=57.5 | T=419.2 | W=856.0 | H=82.2 | Text=
+[2] Name=Arc 9_1_1 | Type=1 | L=111.5 | T=392.2 | W=748.0 | H=82.9 | Text=
+[3] Name=ComponentBackground1 | Type=1 | L=57.5 | T=178.7 | W=154.7 | H=188.9 | Text=
+[4] Name=Bullet1 | Type=17 | L=61.1 | T=234.8 | W=147.5 | H=97.9 | Text=总体规划
+[5] Name=Number1 | Type=1 | L=99.4 | T=143.0 | W=70.9 | H=70.9 | Text=01
+[6] Name=ComponentBackground2 | Type=1 | L=228.1 | T=151.3 | W=154.7 | H=188.9 | Text=
+[7] Name=Bullet2 | Type=17 | L=231.7 | T=207.5 | W=147.5 | H=97.9 | Text=部门信息化规划
+[8] Name=Number2 | Type=1 | L=270.0 | T=115.6 | W=70.9 | H=70.9 | Text=02
+[9] Name=ComponentBackground3 | Type=1 | L=398.7 | T=124.0 | W=154.7 | H=188.9 | Text=
+[10] Name=Bullet3 | Type=17 | L=402.3 | T=180.1 | W=147.5 | H=97.9 | Text=初步设计及概算 （立项方案）
+[11] Name=Number3 | Type=1 | L=440.6 | T=88.3 | W=70.9 | H=70.9 | Text=03
+[12] Name=ComponentBackground4 | Type=1 | L=569.3 | T=158.5 | W=154.7 | H=188.9 | Text=
+[13] Name=Bullet4 | Type=17 | L=572.9 | T=214.7 | W=147.5 | H=97.9 | Text=可行性研究报告 (资金申请报告）
+[14] Name=Number4 | Type=1 | L=611.2 | T=122.8 | W=70.9 | H=70.9 | Text=04
+[15] Name=ComponentBackground5 | Type=1 | L=739.8 | T=178.7 | W=154.7 | H=188.9 | Text=
+[16] Name=Bullet5 | Type=17 | L=743.5 | T=234.8 | W=147.5 | H=97.9 | Text=项目建议书
+[17] Name=Number5 | Type=1 | L=781.8 | T=143.0 | W=70.9 | H=70.9 | Text=05
+[18] Name=Arc 9_1_1 | Type=1 | L=186.0 | T=371.2 | W=599.0 | H=65.4 | Text=
+[19] Name=Title | Type=1 | L=380.8 | T=471.3 | W=195.3 | H=36.2 | Text=统一标准
+[20] Name=Cube 35 | Type=1 | L=452.0 | T=314.7 | W=64.0 | H=107.6 | Text=全域数字化转型
+[21] Name=Cube 36 | Type=1 | L=546.6 | T=311.6 | W=64.0 | H=107.6 | Text=新 城 建
+[22] Name=Cube 37 | Type=1 | L=641.2 | T=305.4 | W=64.0 | H=107.6 | Text=数字经济
+[23] Name=Arc 9_1_1 | Type=1 | L=186.0 | T=371.0 | W=599.0 | H=65.4 | Text=
+[24] Name=Cube 39 | Type=1 | L=253.1 | T=305.4 | W=64.0 | H=107.6 | Text=新型智慧城市
+[25] Name=Cube 40 | Type=1 | L=350.5 | T=314.5 | W=64.0 | H=107.6 | Text=数字政府
+[26] Name=Title | Type=1 | L=72.7 | T=456.5 | W=195.3 | H=36.2 | Text=统一规划
+[27] Name=Title | Type=1 | L=211.9 | T=467.2 | W=195.3 | H=36.2 | Text=统一架构
+[28] Name=Title | Type=1 | L=724.8 | T=453.5 | W=195.3 | H=36.2 | Text=统一运维
+[29] Name=Title | Type=1 | L=535.8 | T=469.0 | W=195.3 | H=36.2 | Text=统一数据
+[30] Name=Title | Type=1 | L=92.6 | T=422.0 | W=195.3 | H=36.2 | Text=城市精准精细治理
+[31] Name=Title | Type=1 | L=246.2 | T=433.5 | W=195.3 | H=36.2 | Text=普惠数字公共服务
+[32] Name=Title | Type=1 | L=678.6 | T=421.9 | W=195.3 | H=36.2 | Text=城市安全韧性水平
+[33] Name=Title | Type=1 | L=523.1 | T=434.2 | W=195.3 | H=36.2 | Text=绿色智慧宜居环境
+[34] Name=Title | Type=1 | L=382.2 | T=439.5 | W=195.3 | H=36.2 | Text=产城融合发展
+--- Slide 16 / Group 24 ---
+[1] Name=Rounded Rectangle 31 | Type=1 | L=161.4 | T=224.5 | W=577.4 | H=32.5 | Text=监理支撑：法律法规、技术标准、合同文件、设计文件
+[2] Name=Rectangle 3 | Type=1 | L=34.5 | T=184.2 | W=106.2 | H=60.1 | Text=质量控制
+[3] Name=Rectangle 4 | Type=1 | L=34.5 | T=257.8 | W=106.2 | H=60.1 | Text=进度控制
+[4] Name=Rectangle 5 | Type=1 | L=34.5 | T=331.3 | W=106.2 | H=60.1 | Text=投资控制
+[5] Name=Rectangle 6 | Type=1 | L=34.5 | T=404.9 | W=106.2 | H=60.1 | Text=变更控制
+[6] Name=Rectangle 8 | Type=1 | L=757.9 | T=185.9 | W=94.7 | H=80.9 | Text=合同管理
+[7] Name=Rectangle 9 | Type=1 | L=757.9 | T=285.0 | W=94.7 | H=80.9 | Text=信息管理
+[8] Name=Rectangle 10 | Type=1 | L=757.9 | T=384.1 | W=94.7 | H=80.9 | Text=安全管理
+[9] Name=Bevel 15 | Type=1 | L=170.6 | T=188.7 | W=123.2 | H=30.0 | Text=前期阶段
+[10] Name=Bevel 16 | Type=1 | L=379.4 | T=188.7 | W=123.2 | H=30.0 | Text=实施阶段
+[11] Name=Bevel 17 | Type=1 | L=603.9 | T=188.7 | W=123.2 | H=30.0 | Text=验收收尾
+[12] Name=Left Brace 18 | Type=1 | L=436.3 | T=-45.1 | W=15.5 | H=447.6 | Text=
+[13] Name=Rectangle 19 | Type=1 | L=171.1 | T=263.9 | W=29.2 | H=162.4 | Text=规划设计监理
+[14] Name=Rectangle 20 | Type=1 | L=216.0 | T=263.9 | W=29.2 | H=162.4 | Text=招标阶段监理
+[15] Name=Rectangle 21 | Type=1 | L=260.9 | T=263.9 | W=29.2 | H=162.4 | Text=合同阶段监理
+[16] Name=Rectangle 25 | Type=1 | L=356.6 | T=271.9 | W=175.0 | H=29.9 | Text=软件开发服务监理
+[17] Name=Rectangle 26 | Type=1 | L=356.6 | T=311.3 | W=175.0 | H=29.9 | Text=信息系统集成监理
+[18] Name=Rectangle 27 | Type=1 | L=356.6 | T=350.3 | W=175.0 | H=29.9 | Text=设备软件采购监理
+[19] Name=Rectangle 28 | Type=1 | L=356.6 | T=389.3 | W=175.0 | H=29.9 | Text=运营维护项目监理
+[20] Name=Rectangle 29 | Type=1 | L=626.9 | T=261.8 | W=29.2 | H=162.4 | Text=验收阶段监理
+[21] Name=Rectangle 30 | Type=1 | L=671.8 | T=261.8 | W=29.2 | H=162.4 | Text=质保阶段监理
+[22] Name=Rectangle 32 | Type=1 | L=155.6 | T=432.1 | W=153.0 | H=33.4 | Text=监理规划/细则
+[23] Name=Rectangle 34 | Type=1 | L=329.7 | T=432.4 | W=155.7 | H=33.4 | Text=监理日/周/月报
+[24] Name=Rectangle 36 | Type=1 | L=506.6 | T=431.6 | W=107.3 | H=33.4 | Text=监理通知
+[25] Name=Rectangle 38 | Type=1 | L=632.5 | T=432.1 | W=107.3 | H=33.4 | Text=监理报告
+--- Slide 17 / Group 53 ---
+[1] Name=AutoShape 5 | Type=1 | L=418.0 | T=150.0 | W=240.0 | H=85.0 | Text=
+[2] Name=Picture 6 | Type=28 | L=430.0 | T=162.0 | W=24.0 | H=24.0 | Text=
+[3] Name=AutoShape 7 | Type=1 | L=460.0 | T=160.0 | W=180.0 | H=24.0 | Text=投资估算
+[4] Name=AutoShape 8 | Type=1 | L=460.0 | T=192.0 | W=188.8 | H=40.0 | Text=为项目前期提供科学的投资预测与分析，奠定成本基础。
+[5] Name=AutoShape 9 | Type=1 | L=672.0 | T=150.0 | W=240.0 | H=85.0 | Text=
+[6] Name=Picture 10 | Type=28 | L=684.0 | T=162.0 | W=24.0 | H=24.0 | Text=
+[7] Name=AutoShape 11 | Type=1 | L=714.0 | T=160.0 | W=180.0 | H=24.0 | Text=工程概算
+[8] Name=AutoShape 12 | Type=1 | L=714.0 | T=186.0 | W=180.0 | H=40.0 | Text=基于初步设计图纸，精准编制或审核项目概算文件。
+[9] Name=AutoShape 13 | Type=1 | L=418.0 | T=245.0 | W=240.0 | H=85.0 | Text=
+[10] Name=Picture 14 | Type=28 | L=430.0 | T=257.0 | W=24.0 | H=24.0 | Text=
+[11] Name=AutoShape 15 | Type=1 | L=460.0 | T=255.0 | W=180.0 | H=24.0 | Text=工程控制价
+[12] Name=AutoShape 16 | Type=1 | L=460.0 | T=287.0 | W=194.0 | H=40.0 | Text=采用清单或定额计价法，科学确定招标控制价，防止超概。
+[13] Name=AutoShape 17 | Type=1 | L=672.0 | T=245.0 | W=240.0 | H=85.0 | Text=
+[14] Name=Picture 18 | Type=28 | L=684.0 | T=257.0 | W=24.0 | H=24.0 | Text=
+[15] Name=AutoShape 19 | Type=1 | L=714.0 | T=255.0 | W=180.0 | H=24.0 | Text=实施阶段造价
+[16] Name=AutoShape 20 | Type=1 | L=714.0 | T=287.0 | W=193.0 | H=40.0 | Text=全过程跟踪项目实施，动态控制工程造价，及时纠偏。
+[17] Name=AutoShape 21 | Type=1 | L=418.0 | T=340.0 | W=240.0 | H=85.0 | Text=
+[18] Name=Picture 22 | Type=28 | L=430.0 | T=352.0 | W=24.0 | H=24.0 | Text=
+[19] Name=AutoShape 23 | Type=1 | L=460.0 | T=350.0 | W=180.0 | H=24.0 | Text=工程结算
+[20] Name=AutoShape 24 | Type=1 | L=460.0 | T=385.8 | W=194.0 | H=40.0 | Text=根据竣工图纸和合同，公正编制或严格审核工程结算书。
+[21] Name=AutoShape 25 | Type=1 | L=672.0 | T=340.0 | W=240.0 | H=85.0 | Text=
+[22] Name=Picture 26 | Type=28 | L=684.0 | T=352.0 | W=24.0 | H=24.0 | Text=
+[23] Name=AutoShape 27 | Type=1 | L=714.0 | T=350.0 | W=180.0 | H=24.0 | Text=工程决算
+[24] Name=AutoShape 28 | Type=1 | L=714.0 | T=386.5 | W=198.0 | H=40.0 | Text=完成项目财务决算，提供专项审计服务，确保资产清晰。
+--- Slide 18 / Group 54 ---
+[1] Name=AutoShape 31 | Type=1 | L=492.0 | T=310.0 | W=127.2 | H=30.0 | Text=业务领域
+[2] Name=Picture 32 | Type=28 | L=492.0 | T=354.0 | W=20.0 | H=20.0 | Text=
+[3] Name=AutoShape 33 | Type=1 | L=524.0 | T=341.2 | W=400.0 | H=60.0 | Text=数据中心：噪声、防雷与接地、高度等 计算机场地：净高、噪声、接地电阻、温湿度、照明等。
+[4] Name=Picture 34 | Type=28 | L=492.0 | T=420.0 | W=20.0 | H=20.0 | Text=
+[5] Name=AutoShape 35 | Type=1 | L=524.0 | T=404.8 | W=400.0 | H=48.0 | Text=软件：功能、性能、安全、兼容性等。
+[6] Name=Picture 36 | Type=28 | L=492.0 | T=470.0 | W=20.0 | H=20.0 | Text=
+[7] Name=AutoShape 37 | Type=1 | L=524.0 | T=468.0 | W=400.0 | H=24.0 | Text=执行标准：严格遵循国家、行业及地方现行最新技术规范

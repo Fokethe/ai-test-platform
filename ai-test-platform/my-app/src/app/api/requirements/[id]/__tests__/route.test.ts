@@ -47,6 +47,22 @@ describe('GET /api/requirements/[id]', () => {
     expect(response.status).toBe(401);
   });
 
+  it('returns 500 when database query throws', async () => {
+    (auth as jest.Mock).mockResolvedValue({
+      user: { id: 'user-1', role: 'USER' },
+    });
+    (prisma.aiRequirement.findUnique as jest.Mock).mockRejectedValue(
+      new Error('db connection lost')
+    );
+
+    const response = await GET(
+      new Request('http://localhost/api/requirements/req-1') as never,
+      { params: Promise.resolve({ id: 'req-1' }) }
+    );
+
+    expect(response.status).toBe(500);
+  });
+
   it('returns 404 when requirement does not exist', async () => {
     (auth as jest.Mock).mockResolvedValue({
       user: { id: 'user-1', role: 'USER' },

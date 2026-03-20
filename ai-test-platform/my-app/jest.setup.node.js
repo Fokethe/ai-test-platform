@@ -1,9 +1,35 @@
+function createHeaders(initHeaders = {}) {
+  const store = new Map();
+
+  Object.entries(initHeaders).forEach(([key, value]) => {
+    store.set(String(key).toLowerCase(), String(value));
+  });
+
+  return {
+    get(name) {
+      return store.get(String(name).toLowerCase());
+    },
+    set(name, value) {
+      store.set(String(name).toLowerCase(), String(value));
+    },
+    has(name) {
+      return store.has(String(name).toLowerCase());
+    },
+    entries() {
+      return store.entries();
+    },
+    [Symbol.iterator]() {
+      return store[Symbol.iterator]();
+    },
+  };
+}
+
 // Mock Next.js Request/Response for API tests
 global.Request = class Request {
   constructor(input, init = {}) {
     this.url = typeof input === 'string' ? input : input.url;
     this.method = init.method || 'GET';
-    this.headers = new Map(Object.entries(init.headers || {}));
+    this.headers = createHeaders(init.headers || {});
     this.body = init.body || null;
   }
   
@@ -21,8 +47,17 @@ global.Response = class Response {
     this.body = body;
     this.status = init.status || 200;
     this.statusText = init.statusText || 'OK';
-    this.headers = new Map(Object.entries(init.headers || {}));
-    this._json = typeof body === 'string' ? JSON.parse(body) : body;
+    this.headers = createHeaders(init.headers || {});
+
+    if (typeof body === 'string') {
+      try {
+        this._json = JSON.parse(body);
+      } catch {
+        this._json = body;
+      }
+    } else {
+      this._json = body;
+    }
   }
   
   async json() {

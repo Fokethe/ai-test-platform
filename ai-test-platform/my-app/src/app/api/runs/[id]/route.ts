@@ -4,6 +4,7 @@ import { errorResponse, errors, successResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { hasProjectAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
+import { writeAuditLog } from '@/lib/audit';
 
 const ALLOWED_RUN_STATUSES: RunStatus[] = ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'];
 
@@ -167,6 +168,19 @@ export async function PUT(
     const updated = await prisma.run.update({
       where: { id },
       data: nextData,
+    });
+
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: 'RUN_UPDATED',
+      target: 'RUN',
+      targetId: id,
+      projectId: updated.projectId || access.run?.projectId,
+      metadata: {
+        status: updated.status,
+        hasNameUpdate: name !== undefined,
+        hasDescriptionUpdate: description !== undefined,
+      },
     });
 
     return successResponse(updated, 'Run updated');

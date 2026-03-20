@@ -1,0 +1,55 @@
+--- Slide 2 ---
+[1] Name=Title 4 | Type=14 | L=421.3 | T=138.1 | W=485.7 | H=111.3 | Text=公司概况
+[2] Name=Text Placeholder 24 | Type=14 | L=421.3 | T=256.1 | W=485.7 | H=75.0 | Text=公司简介、组织架构、专业资质、精英团队
+--- Slide 3 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=公司简介
+[2] Name=TextBox 3 | Type=17 | L=318.3 | T=438.3 | W=571.2 | H=60.6 | Text=吾之所及  皆卓越! 
+[3] Name=TextBox 5 | Type=17 | L=318.3 | T=103.7 | W=577.9 | H=322.0 | Text=智信方略 是一家致力于提供项目全过程解决方案的技术型服务企业。2013年成立，位于宝安区新安街道，专注新型智慧城市、新城建、数字经济、数字政府等信息工程领域的咨询服务，主要提供信息化总体规划、专题研究规划、项目建议书、资金申请报告、可行性研究报告、工程设计、工程监理、第三方测评、造价咨询、项目后评价及项目管理等全过程咨询服务。
+[4] Name=Picture 6 | Type=13 | L=63.9 | T=120.7 | W=238.6 | H=316.2 | Text=
+--- Slide 14 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=全过程管理
+[2] Name=Title | Type=1 | L=52.5 | T=87.0 | W=855.0 | H=68.3 | Text=工程项目全过程管理
+[3] Name=Group 50 | Type=6 | L=36.5 | T=149.8 | W=920.0 | H=374.6 | Text=
+--- Slide 15 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=咨询设计
+[2] Name=Group 2 | Type=6 | L=57.5 | T=88.3 | W=862.5 | H=419.2 | Text=
+--- Slide 16 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=工程监理
+[2] Name=Rounded Rectangle 2 | Type=1 | L=34.5 | T=98.0 | W=899.0 | H=70.9 | Text=四控制   三管理   一协调
+[3] Name=Rounded Rectangle 13 | Type=1 | L=34.5 | T=482.8 | W=899.0 | H=37.7 | Text=项目监理信息系统平台
+[4] Name=Group 24 | Type=6 | L=34.5 | T=170.9 | W=818.1 | H=294.9 | Text=
+[5] Name=Rectangle 23 | Type=1 | L=862.7 | T=187.0 | W=66.9 | H=278.0 | Text=组 织 协 调
+--- Slide 17 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=造价咨询
+[2] Name=Picture 3 | Type=13 | L=48.0 | T=110.0 | W=340.0 | H=380.0 | Text=
+[3] Name=AutoShape 4 | Type=1 | L=418.0 | T=110.0 | W=494.0 | H=30.0 | Text=全生命周期核心造价咨询服务
+[4] Name=Group 53 | Type=6 | L=418.0 | T=150.0 | W=494.0 | H=276.5 | Text=
+[5] Name=AutoShape 29 | Type=1 | L=418.0 | T=435.0 | W=494.0 | H=55.0 | Text=
+[6] Name=Picture 30 | Type=28 | L=430.0 | T=447.0 | W=24.0 | H=24.0 | Text=
+[7] Name=AutoShape 31 | Type=1 | L=460.0 | T=445.0 | W=440.0 | H=35.0 | Text=增值服务：驻场支持 派遣注册造价工程师、会计师等驻场，提供贴身造价管理支持。
+--- Slide 18 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=第三方检测服务
+[2] Name=AutoShape 4 | Type=1 | L=48.8 | T=91.6 | W=600.0 | H=24.0 | Text=服务理念：科学 · 规范 · 公正 · 独立
+[3] Name=AutoShape 5 | Type=1 | L=48.0 | T=130.0 | W=204.0 | H=150.0 | Text=
+[4] Name=Picture 6 | Type=28 | L=64.0 | T=146.0 | W=32.0 | H=32.0 | Text=
+[5] Name=AutoShape 7 | Type=1 | L=64.0 | T=180.0 | W=170.0 | H=24.0 | Text=权威资质认证
+[6] Name=AutoShape 8 | Type=1 | L=64.0 | T=208.0 | W=179.3 | H=60.0 | Text=拥有CMA资质，确保检测结果具备法律效力与公信力。
+[7] Name=AutoShape 9 | Type=1 | L=268.0 | T=130.0 | W=204.0 | H=150.0 | Text=
+[8] Name=Picture 10 | Type=28 | L=284.0 | T=146.0 | W=32.0 | H=32.0 | Text=
+[9] Name=AutoShape 11 | Type=1 | L=284.0 | T=180.0 | W=170.0 | H=24.0 | Text=资深专家团队
+[10] Name=AutoShape 12 | Type=1 | L=268.0 | T=208.0 | W=194.8 | H=60.0 | Text=汇聚行业经验丰富的工程师与技术专家，提供专业技术支持。
+[11] Name=AutoShape 13 | Type=1 | L=488.0 | T=130.0 | W=204.0 | H=150.0 | Text=
+[12] Name=Picture 14 | Type=28 | L=504.0 | T=146.0 | W=32.0 | H=32.0 | Text=
+[13] Name=AutoShape 15 | Type=1 | L=504.0 | T=180.0 | W=170.0 | H=24.0 | Text=先进检测设备
+[14] Name=AutoShape 16 | Type=1 | L=492.0 | T=208.0 | W=200.0 | H=60.0 | Text=配备国际领先检测仪器，保证数据的准确性、可靠性与时效性。
+[15] Name=AutoShape 17 | Type=1 | L=708.0 | T=130.0 | W=204.0 | H=150.0 | Text=
+[16] Name=Picture 18 | Type=28 | L=724.0 | T=146.0 | W=32.0 | H=32.0 | Text=
+[17] Name=AutoShape 19 | Type=1 | L=724.0 | T=180.0 | W=170.0 | H=24.0 | Text=一站式解决方案
+[18] Name=AutoShape 20 | Type=1 | L=709.5 | T=212.5 | W=199.0 | H=60.0 | Text=覆盖环境、设备、性能、安全等多领域，提供全流程检测服务。
+[19] Name=Connector 21 | Type=1 | L=48.0 | T=294.5 | W=864.0 | H=1.0 | Text=
+[20] Name=Group 54 | Type=6 | L=492.0 | T=310.0 | W=432.0 | H=182.0 | Text=
+[21] Name=Picture 47 | Type=13 | L=243.3 | T=308.0 | W=145.4 | H=205.6 | Text=
+[22] Name=Picture 53 | Type=13 | L=21.8 | T=338.2 | W=207.3 | H=146.9 | Text=
+--- Slide 20 ---
+[1] Name=Title 1 | Type=14 | L=52.0 | T=10.1 | W=855.0 | H=70.9 | Text=业绩清单-咨询设计
+[2] Name=Table 2 | Type=19 | L=29.4 | T=106.3 | W=903.1 | H=414.5 | Text=

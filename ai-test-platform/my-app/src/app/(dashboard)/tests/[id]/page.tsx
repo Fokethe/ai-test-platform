@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -43,7 +44,7 @@ import {
 import { BentoCard, BentoGrid, BentoHeader } from '@/components/bento';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { swrFetcher as fetcher } from '@/lib/utils/fetcher';
+import { safeFetcher } from '@/lib/utils/fetcher';
 
 interface TestDetail {
   id: string;
@@ -66,6 +67,18 @@ interface TestDetail {
   updatedAt: string;
 }
 
+const DETAIL_TIMEOUT_MS = 10000;
+
+const TEST_DETAIL_SWR_CONFIG: SWRConfiguration = {
+  loadingTimeout: DETAIL_TIMEOUT_MS,
+  errorRetryCount: 2,
+  errorRetryInterval: 2000,
+  shouldRetryOnError: (error) =>
+    error instanceof Error &&
+    (error.message.toLowerCase().includes('timeout') ||
+      error.message.toLowerCase().includes('network')),
+};
+
 export default function TestDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -74,7 +87,8 @@ export default function TestDetailPage() {
 
   const { data, error, isLoading, mutate } = useSWR(
     id ? `/api/tests/${id}` : null,
-    fetcher
+    (url: string) => safeFetcher(url, { timeoutMs: DETAIL_TIMEOUT_MS }),
+    TEST_DETAIL_SWR_CONFIG
   );
 
   const test: TestDetail = data?.data;
@@ -110,6 +124,9 @@ export default function TestDetailPage() {
         <BentoCard className="p-12 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-500 text-lg">加载失败</p>
+          {error instanceof Error ? (
+            <p className="text-sm text-slate-500 mt-2">{error.message}</p>
+          ) : null}
           <Button variant="outline" className="mt-4" onClick={() => mutate()}>
             重试
           </Button>

@@ -1,0 +1,49 @@
+# Agent Customization
+# Customize any section below - all are optional
+
+# Override agent name
+agent:
+  metadata:
+    name: ""
+
+# Replace entire persona (not merged)
+persona:
+  role: ""
+  identity: ""
+  communication_style: ""
+  principles: []
+
+# Add custom critical actions (appended after standard config loading)
+critical_actions: []
+
+# Add persistent memories for the agent
+memories:
+  - "Default audience is clients and leaders."
+  - "Default goal is to make the audience see the company as a professional institution."
+  - "For third-party testing summary pages, emphasize professionalism, people, equipment, standards, test types, and process stages."
+  - "Project content may appear as display-only evidence, but should usually be de-emphasized in summary pages because project pages are handled separately."
+  - "Preferred style anchors are slides 14, 15, and 16; avoid over-matching slide 17."
+  - "Default permission exists to expand from 2 pages to 3 pages."
+  - "CMA certificate and standards from evaluation files should be treated as required proof."
+  - "Preferred template qualities are professional, technological, and elegant; other company profiles may be referenced."
+# Example:
+# memories:
+#   - "User prefers detailed technical explanations"
+#   - "Current project uses React and TypeScript"
+
+# Add custom menu items (appended to base menu)
+# Don't include * prefix or help/exit - auto-injected
+menu: []
+# Example:
+# menu:
+#   - trigger: my-workflow
+#     workflow: "{project-root}/custom/my.yaml"
+#     description: My custom workflow
+
+# Add custom prompts (for action="#id" handlers)
+prompts: []
+# Example:
+# prompts:
+# - id: my-prompt
+#   content: |
+#     Prompt instructions here

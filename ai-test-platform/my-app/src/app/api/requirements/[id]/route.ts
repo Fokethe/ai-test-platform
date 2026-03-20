@@ -17,101 +17,112 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return errors.unauthorized();
-  }
+  void request;
 
-  const { id } = await params;
-  const requirement = await prisma.aiRequirement.findUnique({
-    where: { id },
-    include: {
-      testPoints: {
-        orderBy: { order: 'asc' },
-      },
-    },
-  });
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errors.unauthorized();
+    }
 
-  if (!requirement) {
-    return errors.notFound('Requirement');
-  }
+    const { id } = await params;
+    if (!id) {
+      return errors.badRequest('requirement id is required');
+    }
 
-  const canAccessProject = await hasProjectAccess(session.user.id, requirement.projectId);
-  if (!canAccessProject) {
-    return errors.forbidden();
-  }
-
-  const project = await prisma.project.findUnique({
-    where: { id: requirement.projectId },
-    select: { id: true, name: true },
-  });
-
-  const normalizedTestPoints: RequirementTestPointRecord[] = requirement.testPoints.map(
-    (point, index) => ({
-      id: point.id,
-      name: point.name,
-      description: point.description,
-      priority: normalizePriority(point.priority),
-      relatedFeature: point.relatedFeature || 'General',
-      order: typeof point.order === 'number' ? point.order : index,
-    })
-  );
-
-  const linkedTests = await prisma.test.findMany({
-    where: {
-      requirementId: id,
-      projectId: requirement.projectId,
-      status: { not: 'ARCHIVED' },
-    },
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      status: true,
-      source: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          executions: true,
-          issues: true,
+    const requirement = await prisma.aiRequirement.findUnique({
+      where: { id },
+      include: {
+        testPoints: {
+          orderBy: { order: 'asc' },
         },
       },
-    },
-  });
+    });
 
-  const totalExecutions = linkedTests.reduce((sum, item) => sum + item._count.executions, 0);
+    if (!requirement) {
+      return errors.notFound('Requirement');
+    }
 
-  return successResponse({
-    ...requirement,
-    fileName: requirement.filename,
-    fileType: requirement.type,
-    status: 'COMPLETED',
-    features: safeParseDbField<string[]>(requirement.features, []),
-    businessRules: safeParseDbField<unknown[]>(requirement.businessRules, []),
-    testPoints: normalizedTestPoints,
-    testPointGroups: groupTestPointsByFeature(normalizedTestPoints),
-    isConfirmed: !!requirement.confirmedAt,
-    traceability: {
-      requirementId: requirement.id,
-      projectId: requirement.projectId,
-      linkedTests: linkedTests.map((item) => ({
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        status: item.status,
-        source: item.source,
-        executionCount: item._count.executions,
-        issueCount: item._count.issues,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-      })),
-      summary: {
-        linkedTestCount: linkedTests.length,
-        totalExecutionCount: totalExecutions,
+    const canAccessProject = await hasProjectAccess(session.user.id, requirement.projectId);
+    if (!canAccessProject) {
+      return errors.forbidden();
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: requirement.projectId },
+      select: { id: true, name: true },
+    });
+
+    const normalizedTestPoints: RequirementTestPointRecord[] = requirement.testPoints.map(
+      (point, index) => ({
+        id: point.id,
+        name: point.name,
+        description: point.description,
+        priority: normalizePriority(point.priority),
+        relatedFeature: point.relatedFeature || 'General',
+        order: typeof point.order === 'number' ? point.order : index,
+      })
+    );
+
+    const linkedTests = await prisma.test.findMany({
+      where: {
+        requirementId: id,
+        projectId: requirement.projectId,
+        status: { not: 'ARCHIVED' },
       },
-    },
-    project,
-  });
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        status: true,
+        source: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            executions: true,
+            issues: true,
+          },
+        },
+      },
+    });
+
+    const totalExecutions = linkedTests.reduce((sum, item) => sum + item._count.executions, 0);
+
+    return successResponse({
+      ...requirement,
+      fileName: requirement.filename,
+      fileType: requirement.type,
+      status: 'COMPLETED',
+      features: safeParseDbField<string[]>(requirement.features, []),
+      businessRules: safeParseDbField<unknown[]>(requirement.businessRules, []),
+      testPoints: normalizedTestPoints,
+      testPointGroups: groupTestPointsByFeature(normalizedTestPoints),
+      isConfirmed: !!requirement.confirmedAt,
+      traceability: {
+        requirementId: requirement.id,
+        projectId: requirement.projectId,
+        linkedTests: linkedTests.map((item) => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          status: item.status,
+          source: item.source,
+          executionCount: item._count.executions,
+          issueCount: item._count.issues,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        })),
+        summary: {
+          linkedTestCount: linkedTests.length,
+          totalExecutionCount: totalExecutions,
+        },
+      },
+      project,
+    });
+  } catch (error) {
+    console.error('Failed to fetch requirement detail:', error);
+    return errors.internalError();
+  }
 }

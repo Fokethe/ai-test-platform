@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { errors, successResponse } from '@/lib/api-response';
 import { hasProjectAccess } from '@/lib/project-access';
 import { writeAuditLog } from '@/lib/audit';
+import { deliverIntegrationEvent } from '@/lib/integrations/event-delivery';
+import { notifyProjectMembers } from '@/lib/notifications/project-events';
 
 const statusSchema = z.object({
   status: z.enum(['PENDING', 'RUNNING', 'PASSED', 'FAILED', 'SKIPPED', 'ERROR']),
@@ -20,6 +22,11 @@ const statusSchema = z.object({
 });
 
 const terminalStatuses: NewExecutionStatus[] = ['PASSED', 'FAILED', 'SKIPPED', 'ERROR'];
+const terminalRunStatuses = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
+
+function isTerminalRunStatus(status: string | null | undefined) {
+  return !!status && terminalRunStatuses.has(status);
+}
 
 function toRunCounts(statuses: NewExecutionStatus[]) {
   const totalCount = statuses.length;
@@ -132,8 +139,10 @@ export async function PATCH(
       run: {
         select: {
           id: true,
+          name: true,
           projectId: true,
           startedAt: true,
+          status: true,
         },
       },
       test: {
@@ -273,6 +282,48 @@ export async function PATCH(
       idempotencyKey: parsed.data.idempotencyKey,
     },
   });
+
+  const runJustCompleted =
+    isTerminalRunStatus(result.run.status) &&
+    !isTerminalRunStatus(execution.run.status);
+
+  if (projectId && runJustCompleted) {
+    try {
+      await Promise.all([
+        deliverIntegrationEvent({
+          projectId,
+          event: 'run.completed',
+          actorId: session.user.id,
+          payload: {
+            runId: result.run.id,
+            runName: execution.run.name,
+            status: result.run.status,
+            totalCount: result.run.totalCount,
+            passedCount: result.run.passedCount,
+            failedCount: result.run.failedCount,
+            skippedCount: result.run.skippedCount,
+            completedAt: result.run.completedAt,
+          },
+        }),
+        notifyProjectMembers({
+          projectId,
+          actorId: session.user.id,
+          category: 'execution',
+          type: 'EXECUTION',
+          title: result.run.status === 'FAILED' ? 'Run 执行失败' : 'Run 执行完成',
+          content: `运行 ${execution.run.name || result.run.id} 已结束，状态：${result.run.status}`,
+          data: {
+            runId: result.run.id,
+            runStatus: result.run.status,
+            failedCount: result.run.failedCount,
+            totalCount: result.run.totalCount,
+          },
+        }),
+      ]);
+    } catch (dispatchError) {
+      console.error('Failed to dispatch run completion signals:', dispatchError);
+    }
+  }
 
   return successResponse(result);
 }
