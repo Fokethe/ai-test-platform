@@ -313,7 +313,7 @@ export async function runHierarchicalIndexJob(
   const units = await loadActiveBuildUnits(input.sourceType, input.sourceId);
   const unitContentMap = buildUnitContentMap(units);
 
-  let rootClusters = rootClustersFromCheckpoint || buildRootClusters(units);
+  const rootClusters = rootClustersFromCheckpoint || buildRootClusters(units);
   let subClusters = subClustersFromCheckpoint || buildSubClusters(rootClusters);
   let stage: HierarchicalStage = resumeStage || 'cluster-root';
 

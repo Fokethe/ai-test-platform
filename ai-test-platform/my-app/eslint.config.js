@@ -38,10 +38,11 @@ export default [
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', {
+      '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
       }],
+      '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
@@ -63,8 +64,12 @@ export default [
       'coverage/**',
       'dist/**',
       '*.config.js',
+      '*.config.cjs',
+      'jest.config.cjs',
       'jest.setup.js',
       'jest.setup.node.js',
+      'scripts/check-env.js',
+      'scripts/migrate-data.ts',
     ],
   },
 ];

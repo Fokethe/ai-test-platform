@@ -18,9 +18,8 @@ export async function GET() {
 
     // 获取或创建默认配置
     let config = await prisma.systemConfig.findFirst();
-    
+
     if (!config) {
-      // 创建默认配置
       config = await prisma.systemConfig.create({
         data: {
           executionTimeout: 300,
@@ -36,9 +35,9 @@ export async function GET() {
 
     return successResponse({
       emailNotifications: config.enableEmailNotification,
-      webhookNotifications: true, // 默认开启
-      require2FA: false, // 默认关闭
-      sessionTimeout: 30, // 默认30分钟
+      webhookNotifications: true,
+      require2FA: false,
+      sessionTimeout: 30,
       autoCleanup: config.enableAutoCleanup,
       retentionDays: config.logRetentionDays,
     });
@@ -56,15 +55,13 @@ export async function POST(request: NextRequest) {
       return unauthorizedResponse();
     }
 
-    // 检查权限（只有管理员可以修改）
+    // 只有管理员可以修改
     if (session.user.role !== 'ADMIN') {
       return errorResponse('权限不足', 403);
     }
 
     const body = await request.json();
-
-    // 获取现有配置
-    let config = await prisma.systemConfig.findFirst();
+    const config = await prisma.systemConfig.findFirst();
 
     const configData = {
       enableAutoCleanup: body.autoCleanup ?? true,
@@ -73,13 +70,11 @@ export async function POST(request: NextRequest) {
     };
 
     if (config) {
-      // 更新配置
       await prisma.systemConfig.update({
         where: { id: config.id },
         data: configData,
       });
     } else {
-      // 创建新配置
       await prisma.systemConfig.create({
         data: {
           ...configData,

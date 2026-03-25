@@ -1,6 +1,6 @@
 'use client';
 
-import useSWR, { SWRConfiguration } from 'swr';
+import useSWR, { SWRConfiguration, mutate as swrMutate } from 'swr';
 import { useSession } from 'next-auth/react';
 
 // 标准响应格式
@@ -223,12 +223,8 @@ export function useUserSettings(config?: SWRConfiguration) {
 // 预加载函数（用于路由预加载）
 export function preloadData(url: string) {
   // SWR 的预加载机制
-  const { mutate } = useSWRConfig();
-  mutate(url, fetcher(url), false);
+  swrMutate(url, fetcher(url), false);
 }
-
-// 导入 useSWRConfig
-import { useSWRConfig } from 'swr';
 
 // 导出刷新函数
 export { mutate as globalMutate } from 'swr';

@@ -146,7 +146,7 @@ function generateTestPoints(features: string[], businessRules: BusinessRule[]): 
  */
 function isRuleRelatedToFeature(rule: BusinessRule, feature: string): boolean {
   // 简单启发式：检查规则描述中是否包含功能关键词
-  const featureKeywords = feature.split(/[\s\-]/);
+  const featureKeywords = feature.split(/[\s-]/);
   return featureKeywords.some(keyword => 
     keyword.length > 1 && rule.description.includes(keyword)
   );

@@ -9,7 +9,7 @@ describe('check-env script helpers', () => {
   test('parseEnvContent supports CRLF lines and quoted values', () => {
     const content = [
       '# comment',
-      'NEXTAUTH_SECRET=\"secret-value\"',
+      'NEXTAUTH_SECRET="secret-value"',
       'DATABASE_URL=file:./prisma/dev.db',
       'OPENAI_API_KEY=',
       '',
