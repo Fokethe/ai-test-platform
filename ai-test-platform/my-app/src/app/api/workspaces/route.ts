@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.name = {
         contains: search,
-        mode: 'insensitive',
       };
     }
 
@@ -149,3 +148,4 @@ export async function POST(request: NextRequest) {
     return errorResponse('Failed to create workspace', 500);
   }
 }
+

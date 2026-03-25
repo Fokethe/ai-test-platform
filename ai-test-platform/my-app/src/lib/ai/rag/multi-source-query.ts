@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/prisma';
 
 export type QuerySource = 'relational' | 'graph' | 'vector';
 
@@ -94,8 +94,8 @@ async function executeRelational(
         projectId: { in: projectIds },
         status: { not: 'ARCHIVED' },
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
+          { name: { contains: query } },
+          { description: { contains: query } },
         ],
       },
       take: limit,
@@ -111,8 +111,8 @@ async function executeRelational(
       where: {
         page: { system: { projectId: { in: projectIds } } },
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query } },
+          { description: { contains: query } },
         ],
       },
       take: limit,
@@ -170,8 +170,8 @@ async function executeGraph(
     where: {
       page: { system: { projectId: { in: projectIds } } },
       OR: [
-        { title: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
+        { title: { contains: query } },
+        { description: { contains: query } },
       ],
     },
     take: limit,
@@ -235,8 +235,8 @@ async function executeVector(
       where: {
         projectId: { in: projectIds },
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { content: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query } },
+          { content: { contains: query } },
         ],
       },
       take: limit,
@@ -253,8 +253,8 @@ async function executeVector(
       where: {
         projectId: { in: projectIds },
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { content: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query } },
+          { content: { contains: query } },
         ],
       },
       take: limit,
@@ -380,3 +380,4 @@ export async function executeMultiSourceQuery(input: {
     mergedCandidates: mergeCandidates(sourceResults, input.topK),
   };
 }
+

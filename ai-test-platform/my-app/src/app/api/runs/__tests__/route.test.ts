@@ -165,7 +165,7 @@ describe('POST /api/runs', () => {
     expect(prisma.run.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          projectId: 'project-1',
+          project: { connect: { id: 'project-1' } },
           createdBy: 'user-1',
           status: 'RUNNING',
           totalCount: 2,

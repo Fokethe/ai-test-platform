@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { auth } from '@/lib/auth';
 import { writeAuditLog } from '@/lib/audit';
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
   const where = search
     ? {
         OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
+          { name: { contains: search } },
+          { email: { contains: search } },
         ],
       }
     : {};
@@ -145,3 +145,4 @@ export async function POST(request: NextRequest) {
 
   return successResponse(user, 'Invitation sent successfully');
 }
+

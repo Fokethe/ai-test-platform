@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { RequirementParser } from '@/lib/ai/agents/requirement-parser';
 import { auth } from '@/lib/auth';
@@ -8,6 +8,8 @@ import { hasProjectAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
 import { groupTestPointsByFeature, persistRequirementIngestion } from '@/lib/requirements/ingestion';
 import { safeParseDbField } from '@/lib/utils/safe-json-parser';
+
+type RequirementPriority = 'P0' | 'P1' | 'P2' | 'P3';
 
 function normalizeText(value: unknown): string {
   if (typeof value !== 'string') {
@@ -60,9 +62,9 @@ export async function GET(request: NextRequest) {
 
   if (search) {
     where.OR = [
-      { title: { contains: search, mode: 'insensitive' } },
-      { content: { contains: search, mode: 'insensitive' } },
-      { filename: { contains: search, mode: 'insensitive' } },
+      { title: { contains: search } },
+      { content: { contains: search } },
+      { filename: { contains: search } },
     ];
   }
 
@@ -92,13 +94,14 @@ export async function GET(request: NextRequest) {
       id: point.id,
       name: point.name,
       description: point.description,
-      priority:
+      priority: (
         point.priority === 'P0' ||
         point.priority === 'P1' ||
         point.priority === 'P2' ||
         point.priority === 'P3'
           ? point.priority
-          : 'P1',
+          : 'P1'
+      ) as RequirementPriority,
       relatedFeature: point.relatedFeature || 'General',
       order: typeof point.order === 'number' ? point.order : index,
     }));
@@ -185,3 +188,4 @@ export async function POST(request: NextRequest) {
     return errors.internalError();
   }
 }
+

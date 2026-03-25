@@ -257,7 +257,9 @@ function buildRunCreateData(context: RunCreationContext): Prisma.RunCreateInput 
   return {
     name: context.runName,
     description: context.input.description,
-    projectId: context.input.projectId,
+    project: {
+      connect: { id: context.input.projectId },
+    },
     createdBy: context.userId,
     type: context.input.type,
     status,

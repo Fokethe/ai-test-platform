@@ -39,14 +39,13 @@ export async function GET(request: NextRequest) {
       where.workspaceId = workspaceId;
     }
 
-    if (status) {
-      where.status = status as Prisma.ProjectStatus;
+    if (status === 'ACTIVE' || status === 'ARCHIVED') {
+      where.status = status;
     }
 
     if (search) {
       where.name = {
         contains: search,
-        mode: 'insensitive',
       };
     }
 

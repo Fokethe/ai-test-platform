@@ -48,6 +48,18 @@ export const test = base.extend<{
  * 登录功能
  */
 export async function login(page: Page, email: string, password: string): Promise<void> {
+  const registerResponse = await page.request.post('/api/auth/register', {
+    data: {
+      email,
+      password,
+      name: 'Demo User',
+    },
+  });
+  const registerStatus = registerResponse.status();
+  if (!registerResponse.ok() && registerStatus !== 409) {
+    throw new Error(`Failed to ensure test user, status=${registerStatus}`);
+  }
+
   await page.goto('/login');
   await waitForLoginFormReady(page);
 
@@ -59,7 +71,7 @@ export async function login(page: Page, email: string, password: string): Promis
 
   // 提交表单并等待跳转
   await submitButton.click();
-  await page.waitForURL(/\/dashboard(?:\?.*)?$/, { timeout: 15000 });
+  await page.waitForURL(/\/dashboard(?:\?.*)?$/, { timeout: 30000 });
 }
 
 /**

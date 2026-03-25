@@ -175,7 +175,7 @@ export async function PUT(
       action: 'RUN_UPDATED',
       target: 'RUN',
       targetId: id,
-      projectId: updated.projectId || access.run?.projectId,
+      projectId: updated.projectId ?? access.run?.projectId ?? undefined,
       metadata: {
         status: updated.status,
         hasNameUpdate: name !== undefined,

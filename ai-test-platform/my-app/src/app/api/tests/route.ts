@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import {
   buildMeta,
@@ -103,8 +103,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       andFilters.push({
         OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search } },
+          { description: { contains: search } },
         ],
       });
     }
@@ -258,3 +258,4 @@ export async function POST(request: NextRequest) {
     return errorResponse('Failed to create test', 500);
   }
 }
+
