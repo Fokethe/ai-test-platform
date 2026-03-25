@@ -1,0 +1,19 @@
+{
+  "batchId": "acceptance-20260325-002",
+  "mode": "no-fix",
+  "date": "2026-03-25",
+  "commit": "e009a5a8",
+  "triggerCommand": "/acceptance --no-fix（shell 等价执行）",
+  "workspace": "ai-test-platform/my-app",
+  "recoveryActions": [
+    "npx prisma generate（修复运行态 Prisma 客户端生成产物）"
+  ],
+  "executionSteps": [
+    "npm run lint",
+    "npm run test",
+    "npm run test:api",
+    "npm run test:api:guards",
+    "runtime probe: /api/health and key routes",
+    "npx playwright test e2e/epic7-smoke.spec.ts --project=chromium --reporter=line"
+  ]
+}

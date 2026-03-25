@@ -233,6 +233,8 @@ export function AssetLibraryContent() {
   );
 }
 
+export default AssetLibraryContent;
+
 // 资产列表组件
 function AssetList({
   assets,

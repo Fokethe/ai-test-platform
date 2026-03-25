@@ -118,7 +118,7 @@ export default function NotificationsPage() {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6" data-testid="loading-skeleton">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Skeleton className="h-24" />
@@ -246,14 +246,18 @@ export default function NotificationsPage() {
               <BentoCard
                 key={notification.id}
                 variant="bordered"
+                data-testid="notification-item"
                 className={`p-4 transition-all ${
                   notification.read
                     ? 'bg-white border-slate-200'
-                    : 'bg-slate-50/50 border-[var(--electric)]/30'
+                    : 'bg-slate-50/50 border-[var(--electric)]/30 unread'
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`p-2 rounded-xl ${typeStyles[notification.type]}`}>
+                  <div
+                    className={`p-2 rounded-xl ${typeStyles[notification.type]}`}
+                    data-testid={`icon-${notification.type}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -281,7 +285,7 @@ export default function NotificationsPage() {
                             className="text-[var(--electric)] hover:text-[var(--electric)] hover:bg-[var(--electric)]/10"
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            已读
+                            标记已读
                           </Button>
                         )}
                         <Button

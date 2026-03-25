@@ -1,0 +1,41 @@
+{
+  "batchId": "acceptance-20260325-001",
+  "step": 5,
+  "name": "runtime-validation",
+  "results": [
+    {
+      "round": "runtime-probe-1",
+      "summary": "api health returned unhealthy, most pages timed out",
+      "checks": [
+        { "name": "GET /api/health", "statusCode": 503, "pass": false, "detail": "Database connection failed" },
+        { "name": "GET /login", "statusCode": null, "pass": false, "detail": "Object reference not set / timeout from probe client" },
+        { "name": "GET /register", "statusCode": null, "pass": false, "detail": "timeout" },
+        { "name": "GET /workspaces", "statusCode": null, "pass": false, "detail": "timeout" },
+        { "name": "GET /dashboard", "statusCode": null, "pass": false, "detail": "timeout" },
+        { "name": "GET /api/workspaces", "statusCode": 401, "pass": true, "detail": "unauthorized as expected for anonymous user" },
+        { "name": "GET /api/notifications/unread", "statusCode": 401, "pass": true, "detail": "unauthorized as expected for anonymous user" },
+        { "name": "GET /api/dashboard", "statusCode": 401, "pass": true, "detail": "unauthorized as expected for anonymous user" }
+      ]
+    },
+    {
+      "round": "runtime-probe-2",
+      "summary": "service degraded further and became unresponsive",
+      "checks": [
+        { "name": "GET /api/health", "statusCode": null, "pass": false, "detail": "120s timeout" },
+        { "name": "GET /login", "statusCode": null, "pass": false, "detail": "120s timeout" }
+      ]
+    },
+    {
+      "round": "e2e-smoke",
+      "summary": "playwright setup timeout",
+      "checks": [
+        {
+          "name": "playwright epic7 smoke",
+          "statusCode": null,
+          "pass": false,
+          "detail": "Timed out waiting 300s for plugin setup/teardown"
+        }
+      ]
+    }
+  ]
+}

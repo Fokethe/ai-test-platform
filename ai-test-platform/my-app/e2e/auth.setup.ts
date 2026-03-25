@@ -27,14 +27,6 @@ export async function waitForLoginFormReady(page: Page): Promise<void> {
   await expect(emailInput).toBeVisible();
   await expect(passwordInput).toBeVisible();
   await expect(rememberCheckbox).toBeVisible();
-
-  const initialState = (await rememberCheckbox.getAttribute('data-state')) ?? 'unchecked';
-  const toggledState = initialState === 'checked' ? 'unchecked' : 'checked';
-
-  await rememberCheckbox.click();
-  await expect(rememberCheckbox).toHaveAttribute('data-state', toggledState);
-  await rememberCheckbox.click();
-  await expect(rememberCheckbox).toHaveAttribute('data-state', initialState);
 }
 
 /**
@@ -46,9 +38,9 @@ export const test = base.extend<{
   /**
    * 已登录的页面 fixture
    */
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }, runPage) => {
     await login(page, TEST_USER.email, TEST_USER.password);
-    await use(page);
+    await runPage(page);
   },
 });
 

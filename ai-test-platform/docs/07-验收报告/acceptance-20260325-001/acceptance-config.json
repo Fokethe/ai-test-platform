@@ -1,0 +1,22 @@
+{
+  "batchId": "acceptance-20260325-001",
+  "mode": "no-fix",
+  "requestedCommand": "/acceptance --no-fix",
+  "executedBy": "Codex shell fallback",
+  "executedAt": "2026-03-25T17:30:00+08:00",
+  "commit": "e009a5a8",
+  "workspace": "f:/ai-test-platform/ai-test-platform",
+  "appDir": "f:/ai-test-platform/ai-test-platform/ai-test-platform/my-app",
+  "notes": [
+    "Shell cannot execute slash command directly, so equivalent no-fix checks were run.",
+    "No source code changes were made during this run."
+  ],
+  "checks": [
+    "npm run lint",
+    "npm run test",
+    "npm run test:api",
+    "npm run test:api:guards",
+    "runtime probe: /api/health and key routes",
+    "playwright smoke: epic7 (timed out in setup)"
+  ]
+}

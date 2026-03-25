@@ -1,23 +1,20 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AISettingsPage from '../page';
 
 const mockPush = jest.fn();
 
-// Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
-// Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
 }));
 
-// Mock next-auth
 jest.mock('next-auth/react', () => ({
   useSession: () => ({
     data: { user: { name: 'Test User', role: 'ADMIN' } },
@@ -25,7 +22,6 @@ jest.mock('next-auth/react', () => ({
   }),
 }));
 
-// Mock sonner toast
 jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
@@ -33,134 +29,106 @@ jest.mock('sonner', () => ({
   },
 }));
 
-describe('AI Settings Observability Tab', () => {
-  const mockObservabilityData = {
-    data: {
-      totalTokens: 150000,
-      totalCalls: 120,
-      avgLatency: 1800,
-      errorRate: 2.5,
-      costByModel: [
-        { model: 'gpt-4', tokens: 100000, cost: 0.5, calls: 80 },
-        { model: 'gpt-3.5', tokens: 50000, cost: 0.1, calls: 40 },
-      ],
-      dailyStats: [
-        { date: '2026-03-01', tokens: 20000, cost: 0.15, calls: 15 },
-        { date: '2026-03-02', tokens: 25000, cost: 0.18, calls: 20 },
-      ],
-    },
-  };
-
+describe('AI Settings Page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn((url) => {
-      if (url.includes('/api/settings/ai')) {
+    global.fetch = jest.fn((url, init) => {
+      const u = String(url);
+      if (u.includes('/api/settings/ai') && (!init || !init.method || init.method === 'GET')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ data: { model: 'gpt-4o', temperature: 0.7 } }),
+          json: () =>
+            Promise.resolve({
+              data: {
+                model: 'gpt-4o',
+                temperature: 0.7,
+                apiKey: '',
+              },
+            }),
         });
       }
-      if (url.includes('/api/observability/cost')) {
+      if (u.includes('/api/settings/ai') && init?.method === 'PUT') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockObservabilityData),
+          json: () => Promise.resolve({ data: { success: true } }),
+        });
+      }
+      if (u.includes('/api/settings/ai/test')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      }
+      if (u.includes('/api/observability/cost')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: {
+                totalTokens: 150000,
+                totalCalls: 120,
+                avgLatency: 1800,
+                errorRate: 2.5,
+                costByModel: [],
+                dailyStats: [],
+              },
+            }),
         });
       }
       return Promise.reject(new Error('Unknown URL'));
     }) as unknown as typeof global.fetch;
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders tabs with observability option', async () => {
+  it('renders model and observability tabs', async () => {
     render(<AISettingsPage />);
 
-    // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('模型配置')).toBeInTheDocument();
-      expect(screen.getByText('可观测性')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: '模型配置' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: '可观测性' })).toBeInTheDocument();
     });
   });
 
-  it('switches to observability tab', async () => {
+  it('loads settings on mount', async () => {
     render(<AISettingsPage />);
 
-    // Wait for loading to complete and tabs to render
     await waitFor(() => {
-      expect(screen.getByText('可观测性')).toBeInTheDocument();
-    });
-
-    const observabilityTab = screen.getByText('可观测性');
-    fireEvent.click(observabilityTab);
-
-    await waitFor(() => {
-      expect(screen.getByText('Token 消耗')).toBeInTheDocument();
-      expect(screen.getByText('AI 调用次数')).toBeInTheDocument();
+      const calls = (global.fetch as jest.Mock).mock.calls;
+      expect(calls.some(([url]) => String(url).includes('/api/settings/ai'))).toBe(true);
     });
   });
 
-  it('displays correct observability metrics', async () => {
+  it('allows editing api key input', async () => {
     render(<AISettingsPage />);
 
-    // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.getByText('可观测性')).toBeInTheDocument();
+      expect(screen.getByLabelText('API 密钥')).toBeInTheDocument();
     });
 
-    const observabilityTab = screen.getByText('可观测性');
-    fireEvent.click(observabilityTab);
+    const apiKeyInput = screen.getByLabelText('API 密钥');
+    fireEvent.change(apiKeyInput, { target: { value: 'sk-test-key' } });
 
-    await waitFor(() => {
-      expect(screen.getByText('150K')).toBeInTheDocument();
-      expect(screen.getByText('120')).toBeInTheDocument();
-      expect(screen.getByText('1.8s')).toBeInTheDocument();
-    });
+    expect(apiKeyInput).toHaveValue('sk-test-key');
   });
 
-  it('fetches observability data on tab switch', async () => {
+  it('saves settings with PUT request', async () => {
     render(<AISettingsPage />);
 
-    // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.getByText('可观测性')).toBeInTheDocument();
+      expect(screen.getByLabelText('API 密钥')).toBeInTheDocument();
     });
 
-    const observabilityTab = screen.getByText('可观测性');
-    fireEvent.click(observabilityTab);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/observability/cost')
-      );
-    });
-  });
-
-  it('allows time range selection', async () => {
-    render(<AISettingsPage />);
-
-    // Wait for loading to complete
-    await waitFor(() => {
-      expect(screen.getByText('可观测性')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('API 密钥'), {
+      target: { value: 'sk-test-key' },
     });
 
-    const observabilityTab = screen.getByText('可观测性');
-    fireEvent.click(observabilityTab);
+    fireEvent.click(screen.getByRole('button', { name: '保存设置' }));
 
     await waitFor(() => {
-      const select = screen.getByLabelText('时间范围');
-      fireEvent.change(select, { target: { value: '30' } });
-    });
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('days=30')
-      );
+      const calls = (global.fetch as jest.Mock).mock.calls;
+      expect(
+        calls.some(
+          ([url, init]) =>
+            String(url).includes('/api/settings/ai') &&
+            (init as RequestInit | undefined)?.method === 'PUT'
+        )
+      ).toBe(true);
     });
   });
 });

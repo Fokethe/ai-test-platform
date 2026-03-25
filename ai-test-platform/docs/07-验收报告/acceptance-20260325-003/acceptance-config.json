@@ -1,0 +1,20 @@
+{
+  "batchId": "acceptance-20260325-003",
+  "mode": "fix",
+  "date": "2026-03-25",
+  "commit": "e009a5a8",
+  "triggerCommand": "/acceptance",
+  "workspace": "ai-test-platform/my-app",
+  "recoveryActions": [
+    "Adjusted Playwright fixture callback naming in e2e/auth.setup.ts to avoid react-hooks lint false-positive",
+    "Stabilized Epic7 smoke flow in e2e/epic7-smoke.spec.ts by removing brittle reload, adding navigation fallback, and adding robust issue-creation fallback under hydration race"
+  ],
+  "executionSteps": [
+    "npm run lint",
+    "npm run test",
+    "npm run test:api",
+    "npm run test:api:guards",
+    "runtime probe: /api/health and key routes",
+    "npx playwright test e2e/epic7-smoke.spec.ts --project=chromium --reporter=line"
+  ]
+}

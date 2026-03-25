@@ -1,0 +1,77 @@
+{
+  "batchId": "acceptance-20260325-003",
+  "step": 5,
+  "name": "runtime-validation",
+  "notes": [
+    "Runtime probe reused an already running local dev server on :3000",
+    "Anonymous API checks are expected to return 401 for protected resources"
+  ],
+  "results": [
+    {
+      "round": "runtime-probe-4",
+      "summary": "runtime endpoints healthy",
+      "checks": [
+        {
+          "name": "GET /api/health",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "healthy"
+        },
+        {
+          "name": "GET /login",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /register",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /workspaces",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /dashboard",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /api/workspaces",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        },
+        {
+          "name": "GET /api/notifications/unread",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        },
+        {
+          "name": "GET /api/dashboard",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        }
+      ]
+    },
+    {
+      "round": "e2e-smoke",
+      "summary": "playwright epic7 smoke passed",
+      "checks": [
+        {
+          "name": "playwright epic7 smoke",
+          "statusCode": null,
+          "pass": true,
+          "detail": "1 passed (chromium)"
+        }
+      ]
+    }
+  ]
+}

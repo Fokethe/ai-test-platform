@@ -1,0 +1,76 @@
+{
+  "batchId": "acceptance-20260325-002",
+  "step": 5,
+  "name": "runtime-validation",
+  "notes": [
+    "执行前先运行 npx prisma generate，恢复 Prisma 运行态客户端。"
+  ],
+  "results": [
+    {
+      "round": "runtime-probe-3",
+      "summary": "runtime endpoints recovered",
+      "checks": [
+        {
+          "name": "GET /api/health",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "healthy"
+        },
+        {
+          "name": "GET /login",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /register",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /workspaces",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /dashboard",
+          "statusCode": 200,
+          "pass": true,
+          "detail": "ok"
+        },
+        {
+          "name": "GET /api/workspaces",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        },
+        {
+          "name": "GET /api/notifications/unread",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        },
+        {
+          "name": "GET /api/dashboard",
+          "statusCode": 401,
+          "pass": true,
+          "detail": "unauthorized as expected for anonymous user"
+        }
+      ]
+    },
+    {
+      "round": "e2e-smoke",
+      "summary": "playwright now executes but has functional assertion failure",
+      "checks": [
+        {
+          "name": "playwright epic7 smoke",
+          "statusCode": null,
+          "pass": false,
+          "detail": "auth.setup.ts:35 remember checkbox did not transition to expected checked state"
+        }
+      ]
+    }
+  ]
+}

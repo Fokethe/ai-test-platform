@@ -6,12 +6,11 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface BentoCardProps {
+interface BentoCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   variant?: 'default' | 'featured' | 'glass' | 'bordered';
   hover?: boolean;
-  onClick?: () => void;
 }
 
 export function BentoCard({
@@ -19,7 +18,7 @@ export function BentoCard({
   className,
   variant = 'default',
   hover = true,
-  onClick,
+  ...props
 }: BentoCardProps) {
   const variantStyles = {
     default: 'bento-card',
@@ -33,10 +32,10 @@ export function BentoCard({
       className={cn(
         variantStyles[variant],
         hover && 'hover:scale-[1.02]',
-        onClick && 'cursor-pointer',
+        props.onClick && 'cursor-pointer',
         className
       )}
-      onClick={onClick}
+      {...props}
     >
       {children}
     </div>
