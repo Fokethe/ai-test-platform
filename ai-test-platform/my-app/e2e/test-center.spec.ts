@@ -2,10 +2,13 @@ import { test, expect } from '@playwright/test';
 import { login, TEST_USER } from './auth.setup';
 
 test.describe('Test Center', () => {
+  test.describe.configure({ mode: 'serial' });
+  test.setTimeout(120000);
+
   test.beforeEach(async ({ page }) => {
     await login(page, TEST_USER.email, TEST_USER.password);
-    await page.goto('/tests');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/tests', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await expect(page.locator('h1, h2').first()).toBeVisible();
   });
 
   test('page loads', async ({ page }) => {

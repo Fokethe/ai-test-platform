@@ -1,19 +1,22 @@
-/**
- * AI Settings Page
- * TDD Round 4.4 & 4.5: AI配置设置
- * 新增: 可观测性标签页
- * 
- * 功能：
- * 1. API密钥配置 - 添加密钥输入区域
- * 2. 参数调整 - 温度、最大token等参数调节
- * 3. 功能开关
- * 4. 可观测性 - AI性能指标监控
- */
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bot, Save, Sparkles, Key, Thermometer, Hash, Eye, EyeOff, Loader2, Activity, BarChart3, Clock, TrendingUp, Database, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  BarChart3,
+  Bot,
+  Clock,
+  Database,
+  Eye,
+  EyeOff,
+  Key,
+  Loader2,
+  Save,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -24,32 +27,27 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
 
-// 默认配置
-const DEFAULT_SETTINGS = {
-  enableAI: true,
-  autoGenerate: false,
-  smartAnalysis: true,
-  model: 'gpt-4o',
-  // API密钥（加密存储）
-  apiKey: '',
-  // 参数设置
-  temperature: 0.7,
-  maxTokens: 2000,
-  topP: 1.0,
-  frequencyPenalty: 0,
-  presencePenalty: 0,
+type AiSettings = {
+  enableAI: boolean;
+  autoGenerate: boolean;
+  smartAnalysis: boolean;
+  model: string;
+  apiKey: string;
+  temperature: number;
+  maxTokens: number;
+  topP: number;
+  frequencyPenalty: number;
+  presencePenalty: number;
 };
 
-// 可观测性数据类型
-interface ObservabilityData {
+type ObservabilityData = {
   totalTokens: number;
   totalCalls: number;
   avgLatency: number;
   errorRate: number;
+  totalCost: number;
   costByModel: Array<{
     model: string;
     tokens: number;
@@ -62,72 +60,150 @@ interface ObservabilityData {
     cost: number;
     calls: number;
   }>;
+};
+
+const DEFAULT_SETTINGS: AiSettings = {
+  enableAI: true,
+  autoGenerate: false,
+  smartAnalysis: true,
+  model: 'gpt-4o',
+  apiKey: '',
+  temperature: 0.7,
+  maxTokens: 2000,
+  topP: 1,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+};
+
+const MODEL_OPTIONS = [
+  {
+    id: 'gpt-4o',
+    name: 'GPT-4o',
+    family: 'GPT',
+    description: '主力模型，适合多数测试场景',
+  },
+  {
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini',
+    family: 'GPT',
+    description: '成本更低，适合批量生成',
+  },
+  {
+    id: 'claude-3-7-sonnet',
+    name: 'Claude 3.7 Sonnet',
+    family: 'Sonnet',
+    description: '适合复杂文本分析与推理',
+  },
+  {
+    id: 'kimi-k2.5',
+    name: 'Kimi K2.5',
+    family: 'K2.5',
+    description: '长文本和中文场景表现稳定',
+  },
+];
+
+function toNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-export default function AISettingsPage() {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [saving, setSaving] = useState(false);
+function normalizeSettings(payload: any): AiSettings {
+  const data = payload?.data || {};
+  return {
+    enableAI: typeof data.enableAI === 'boolean' ? data.enableAI : DEFAULT_SETTINGS.enableAI,
+    autoGenerate:
+      typeof data.autoGenerate === 'boolean' ? data.autoGenerate : DEFAULT_SETTINGS.autoGenerate,
+    smartAnalysis:
+      typeof data.smartAnalysis === 'boolean' ? data.smartAnalysis : DEFAULT_SETTINGS.smartAnalysis,
+    model: typeof data.model === 'string' ? data.model : DEFAULT_SETTINGS.model,
+    apiKey: typeof data.apiKey === 'string' ? data.apiKey : DEFAULT_SETTINGS.apiKey,
+    temperature: toNumber(data.temperature, DEFAULT_SETTINGS.temperature),
+    maxTokens: Math.floor(toNumber(data.maxTokens, DEFAULT_SETTINGS.maxTokens)),
+    topP: toNumber(data.topP, DEFAULT_SETTINGS.topP),
+    frequencyPenalty: toNumber(data.frequencyPenalty, DEFAULT_SETTINGS.frequencyPenalty),
+    presencePenalty: toNumber(data.presencePenalty, DEFAULT_SETTINGS.presencePenalty),
+  };
+}
+
+function formatCompactNumber(value: number) {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
+  }
+  return String(value);
+}
+
+function getErrorMessage(payload: any, fallback: string) {
+  return payload?.error?.message || payload?.message || payload?.error || fallback;
+}
+
+export default function AiSettingsPage() {
+  const [tab, setTab] = useState<'model' | 'observability'>('model');
+  const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS);
+  const [snapshot, setSnapshot] = useState(JSON.stringify(DEFAULT_SETTINGS));
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testingKey, setTestingKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  
-  // 可观测性状态
-  const [activeTab, setActiveTab] = useState('model');
-  const [observabilityData, setObservabilityData] = useState<ObservabilityData | null>(null);
-  const [observabilityLoading, setObservabilityLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState('7');
 
-  // 加载设置
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/api/settings/ai');
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data) {
-            setSettings(prev => ({ ...prev, ...result.data }));
-          }
-        }
-      } catch (error) {
-        console.error('加载设置失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [days, setDays] = useState('7');
+  const [obsLoading, setObsLoading] = useState(false);
+  const [obsData, setObsData] = useState<ObservabilityData | null>(null);
 
-    loadSettings();
-  }, []);
+  const hasChanges = useMemo(
+    () => JSON.stringify(settings) !== snapshot,
+    [settings, snapshot]
+  );
 
-  // 加载可观测性数据
-  useEffect(() => {
-    if (activeTab === 'observability') {
-      loadObservabilityData();
-    }
-  }, [activeTab, timeRange]);
-
-  const loadObservabilityData = async () => {
-    setObservabilityLoading(true);
+  const loadSettings = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`/api/observability/cost?days=${timeRange}`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data) {
-          setObservabilityData(result.data);
-        }
+      const response = await fetch('/api/settings/ai', { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(getErrorMessage(payload, '加载 AI 设置失败'));
       }
+      const normalized = normalizeSettings(payload);
+      setSettings(normalized);
+      setSnapshot(JSON.stringify(normalized));
     } catch (error) {
-      console.error('加载可观测性数据失败:', error);
+      toast.error(error instanceof Error ? error.message : '加载 AI 设置失败');
     } finally {
-      setObservabilityLoading(false);
+      setLoading(false);
     }
   };
 
-  // 监听设置变化
-  useEffect(() => {
-    setHasChanges(true);
-  }, [settings]);
+  const loadObservability = async () => {
+    setObsLoading(true);
+    try {
+      const response = await fetch(`/api/observability/cost?days=${days}`, {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, '加载可观测数据失败'));
+      }
+      setObsData(payload.data as ObservabilityData);
+    } catch (error) {
+      setObsData(null);
+      toast.error(error instanceof Error ? error.message : '加载可观测数据失败');
+    } finally {
+      setObsLoading(false);
+    }
+  };
 
-  const handleSave = async () => {
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'observability') {
+      loadObservability();
+    }
+  }, [tab, days]);
+
+  const saveSettings = async () => {
     setSaving(true);
     try {
       const response = await fetch('/api/settings/ai', {
@@ -135,418 +211,395 @@ export default function AISettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-
-      if (!response.ok) {
-        throw new Error('保存失败');
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, '保存失败'));
       }
 
+      const normalized = normalizeSettings(payload);
+      setSettings(normalized);
+      setSnapshot(JSON.stringify(normalized));
       toast.success('AI 设置已保存');
-      setHasChanges(false);
     } catch (error) {
-      toast.error('保存失败', {
-        description: error instanceof Error ? error.message : '请重试',
-      });
+      toast.error(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSaving(false);
     }
   };
 
-  // 测试API密钥
   const testApiKey = async () => {
-    if (!settings.apiKey) {
-      toast.error('请先输入 API 密钥');
+    if (!settings.apiKey.trim()) {
+      toast.error('请先输入 API Key');
       return;
     }
-
+    setTestingKey(true);
     try {
       const response = await fetch('/api/settings/ai/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: settings.apiKey }),
       });
-
-      if (response.ok) {
-        toast.success('API 密钥有效');
-      } else {
-        throw new Error('API 密钥无效');
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, 'API Key 验证失败'));
       }
+      toast.success('API Key 验证通过');
     } catch (error) {
-      toast.error('API 密钥测试失败', {
-        description: error instanceof Error ? error.message : '请检查密钥',
-      });
+      toast.error(error instanceof Error ? error.message : 'API Key 验证失败');
+    } finally {
+      setTestingKey(false);
     }
-  };
-
-  // 格式化数字
-  const formatNumber = (num: number) => {
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="py-20 flex justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header */}
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bot className="h-6 w-6" />
+            <Bot className="w-6 h-6" />
             AI 设置
           </h1>
-          <p className="text-slate-500 mt-1">配置 AI 助手功能和模型参数</p>
+          <p className="text-slate-500 mt-1">配置模型参数、密钥验证与观测数据</p>
         </div>
-        {activeTab === 'model' && (
-          <Button 
-            onClick={handleSave} 
-            disabled={saving || !hasChanges}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? '保存中...' : '保存设置'}
+        {tab === 'model' ? (
+          <Button onClick={saveSettings} disabled={saving || !hasChanges}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                保存中...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                保存设置
+              </>
+            )}
           </Button>
-        )}
+        ) : null}
       </div>
 
-      {/* 未保存提示 */}
-      {hasChanges && activeTab === 'model' && (
+      {tab === 'model' && hasChanges ? (
         <Alert>
-          <AlertDescription>
-            设置已修改，请记得保存更改
-          </AlertDescription>
+          <AlertDescription>当前有未保存改动，刷新页面前请先保存。</AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as 'model' | 'observability')}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="model">模型配置</TabsTrigger>
-          <TabsTrigger value="observability">可观测性</TabsTrigger>
+          <TabsTrigger value="observability">可观测</TabsTrigger>
         </TabsList>
 
-        {/* 模型配置标签页 */}
         <TabsContent value="model" className="space-y-6 mt-6">
-          {/* API密钥配置 */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                API 密钥配置
+                <Key className="w-5 h-5" />
+                API Key
               </CardTitle>
-              <CardDescription>
-                配置 AI 服务的 API 密钥，支持 OpenAI、Azure 等
-              </CardDescription>
+              <CardDescription>保存到用户级配置（加密存储），刷新后仍保持生效。</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">API 密钥</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      id="apiKey"
-                      type={showApiKey ? 'text' : 'password'}
-                      placeholder="sk-..."
-                      value={settings.apiKey}
-                      onChange={(e) => setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                    >
-                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <Button variant="outline" onClick={testApiKey}>
-                    测试
+            <CardContent className="space-y-3">
+              <Label htmlFor="api-key">API Key</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="api-key"
+                    type={showApiKey ? 'text' : 'password'}
+                    value={settings.apiKey}
+                    placeholder="sk-..."
+                    onChange={(event) =>
+                      setSettings((prev) => ({ ...prev, apiKey: event.target.value }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setShowApiKey((prev) => !prev)}
+                  >
+                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  密钥将被加密存储，仅用于 AI 请求
-                </p>
+                <Button type="button" variant="outline" disabled={testingKey} onClick={testApiKey}>
+                  {testingKey ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      验证中...
+                    </>
+                  ) : (
+                    '验证'
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* AI功能开关 */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-yellow-500" />
-                AI 功能开关
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                功能开关
               </CardTitle>
-              <CardDescription>启用或禁用 AI 相关功能</CardDescription>
+              <CardDescription>控制 AI 能力在系统中的启用状态。</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-5">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>启用 AI 助手</Label>
-                  <p className="text-sm text-slate-500">在测试用例生成中使用 AI 辅助</p>
+                <div>
+                  <Label>启用 AI</Label>
+                  <p className="text-sm text-slate-500">控制 AI 相关功能总开关</p>
                 </div>
                 <Switch
                   checked={settings.enableAI}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enableAI: checked }))}
+                  onCheckedChange={(value) => setSettings((prev) => ({ ...prev, enableAI: value }))}
                 />
               </div>
-
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>自动生成用例</Label>
-                  <p className="text-sm text-slate-500">根据需求自动生成测试用例</p>
+                <div>
+                  <Label>自动生成</Label>
+                  <p className="text-sm text-slate-500">允许需求后自动生成用例</p>
                 </div>
                 <Switch
                   checked={settings.autoGenerate}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, autoGenerate: checked }))}
+                  onCheckedChange={(value) =>
+                    setSettings((prev) => ({ ...prev, autoGenerate: value }))
+                  }
                 />
               </div>
-
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+                <div>
                   <Label>智能分析</Label>
-                  <p className="text-sm text-slate-500">对执行结果进行智能分析</p>
+                  <p className="text-sm text-slate-500">执行结果启用 AI 诊断建议</p>
                 </div>
                 <Switch
                   checked={settings.smartAnalysis}
-                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, smartAnalysis: checked }))}
+                  onCheckedChange={(value) =>
+                    setSettings((prev) => ({ ...prev, smartAnalysis: value }))
+                  }
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* 模型设置 */}
           <Card>
             <CardHeader>
-              <CardTitle>模型配置</CardTitle>
-              <CardDescription>选择使用的 AI 模型</CardDescription>
+              <CardTitle>模型选择（GPT / Sonnet / K2.5）</CardTitle>
+              <CardDescription>按成本、速度和效果选择模型。</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                {['gpt-4o', 'gpt-4o-mini', 'claude-3'].map((model) => (
+              <div className="grid gap-3 md:grid-cols-2">
+                {MODEL_OPTIONS.map((option) => (
                   <button
-                    key={model}
-                    onClick={() => setSettings(prev => ({ ...prev, model }))}
-                    className={`p-4 border rounded-lg text-left transition-colors ${
-                      settings.model === model
-                        ? 'border-blue-500 bg-blue-50'
+                    type="button"
+                    key={option.id}
+                    onClick={() => setSettings((prev) => ({ ...prev, model: option.id }))}
+                    className={`border rounded-lg p-4 text-left transition-colors ${
+                      settings.model === option.id
+                        ? 'border-[var(--electric)] bg-[var(--electric)]/5'
                         : 'hover:border-slate-300'
                     }`}
                   >
-                    <div className="font-medium">{model}</div>
-                    <div className="text-sm text-slate-500 mt-1">
-                      {model === 'gpt-4o' && '推荐 - 平衡性能与质量'}
-                      {model === 'gpt-4o-mini' && '快速 - 适合简单任务'}
-                      {model === 'claude-3' && '高质量 - 适合复杂分析'}
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium">{option.name}</p>
+                      <span className="text-xs text-slate-500">{option.family}</span>
                     </div>
+                    <p className="text-sm text-slate-500 mt-1">{option.description}</p>
                   </button>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* 参数调整 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Thermometer className="h-5 w-5" />
-                参数调整
-              </CardTitle>
-              <CardDescription>
-                调整 AI 生成参数以获得不同风格的输出
-              </CardDescription>
+              <CardTitle>生成参数</CardTitle>
+              <CardDescription>保存后会作为默认生成参数使用。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Temperature */}
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <Label htmlFor="temperature">Temperature（随机性）</Label>
-                  <span className="text-sm text-slate-500">{settings.temperature}</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Temperature</Label>
+                  <span className="text-sm text-slate-500">{settings.temperature.toFixed(1)}</span>
                 </div>
                 <Slider
-                  id="temperature"
                   min={0}
                   max={2}
                   step={0.1}
                   value={[settings.temperature]}
-                  onValueChange={([value]) => setSettings(prev => ({ ...prev, temperature: value }))}
+                  onValueChange={([value]) =>
+                    setSettings((prev) => ({ ...prev, temperature: value }))
+                  }
                 />
-                <p className="text-xs text-slate-500">
-                  较低值使输出更确定，较高值使输出更多样化
-                </p>
               </div>
-
-              {/* Max Tokens */}
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <Label htmlFor="maxTokens" className="flex items-center gap-1">
-                    <Hash className="h-3 w-3" />
-                    Max Tokens（最大长度）
-                  </Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Max Tokens</Label>
                   <span className="text-sm text-slate-500">{settings.maxTokens}</span>
                 </div>
                 <Slider
-                  id="maxTokens"
                   min={100}
-                  max={4000}
+                  max={32000}
                   step={100}
                   value={[settings.maxTokens]}
-                  onValueChange={([value]) => setSettings(prev => ({ ...prev, maxTokens: value }))}
+                  onValueChange={([value]) =>
+                    setSettings((prev) => ({ ...prev, maxTokens: value }))
+                  }
                 />
-                <p className="text-xs text-slate-500">
-                  控制生成文本的最大长度
-                </p>
               </div>
-
-              {/* Top P */}
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <Label htmlFor="topP">Top P（多样性）</Label>
-                  <span className="text-sm text-slate-500">{settings.topP}</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Top P</Label>
+                  <span className="text-sm text-slate-500">{settings.topP.toFixed(1)}</span>
                 </div>
                 <Slider
-                  id="topP"
                   min={0}
                   max={1}
                   step={0.1}
                   value={[settings.topP]}
-                  onValueChange={([value]) => setSettings(prev => ({ ...prev, topP: value }))}
+                  onValueChange={([value]) => setSettings((prev) => ({ ...prev, topP: value }))}
                 />
               </div>
-
-              {/* Frequency Penalty */}
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <Label htmlFor="frequencyPenalty">Frequency Penalty（重复惩罚）</Label>
-                  <span className="text-sm text-slate-500">{settings.frequencyPenalty}</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Frequency Penalty</Label>
+                  <span className="text-sm text-slate-500">{settings.frequencyPenalty.toFixed(1)}</span>
                 </div>
                 <Slider
-                  id="frequencyPenalty"
                   min={-2}
                   max={2}
                   step={0.1}
                   value={[settings.frequencyPenalty]}
-                  onValueChange={([value]) => setSettings(prev => ({ ...prev, frequencyPenalty: value }))}
+                  onValueChange={([value]) =>
+                    setSettings((prev) => ({ ...prev, frequencyPenalty: value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Presence Penalty</Label>
+                  <span className="text-sm text-slate-500">{settings.presencePenalty.toFixed(1)}</span>
+                </div>
+                <Slider
+                  min={-2}
+                  max={2}
+                  step={0.1}
+                  value={[settings.presencePenalty]}
+                  onValueChange={([value]) =>
+                    setSettings((prev) => ({ ...prev, presencePenalty: value }))
+                  }
                 />
               </div>
             </CardContent>
           </Card>
-
-          {/* 使用提示 */}
-          <div className="bg-blue-50 rounded-xl p-6">
-            <h3 className="font-semibold text-slate-900 mb-2">💡 参数建议</h3>
-            <ul className="text-sm text-slate-600 space-y-1">
-              <li>• <strong>测试用例生成</strong>：Temperature 0.3-0.5，确保输出稳定</li>
-              <li>• <strong>需求分析</strong>：Temperature 0.5-0.7，平衡创造性和准确性</li>
-              <li>• <strong>问题诊断</strong>：Temperature 0.1-0.3，确保输出准确</li>
-              <li>• Max Tokens 根据用例复杂度调整，通常 1000-2000 足够</li>
-            </ul>
-          </div>
         </TabsContent>
 
-        {/* 可观测性标签页 */}
         <TabsContent value="observability" className="space-y-6 mt-6">
-          {/* 时间范围选择 */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              AI 性能监控
+              <Activity className="w-5 h-5" />
+              AI 可观测数据
             </h2>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="timeRange" className="text-sm">时间范围</Label>
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger id="timeRange" className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7天</SelectItem>
-                  <SelectItem value="30">30天</SelectItem>
-                  <SelectItem value="90">90天</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={days} onValueChange={setDays}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 天</SelectItem>
+                <SelectItem value="30">30 天</SelectItem>
+                <SelectItem value="90">90 天</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {observabilityLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-28" />
+          {obsLoading ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-28" />
               ))}
             </div>
-          ) : observabilityData ? (
+          ) : !obsData ? (
+            <Card>
+              <CardContent className="py-10 text-center text-slate-500">
+                <AlertCircle className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                未获取到可观测数据
+                <div>
+                  <Button variant="outline" className="mt-4" onClick={loadObservability}>
+                    重试
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <>
-              {/* 指标卡片 */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-slate-500">Token 消耗</p>
-                        <p className="text-2xl font-bold">{formatNumber(observabilityData.totalTokens)}</p>
+                        <p className="text-2xl font-bold">{formatCompactNumber(obsData.totalTokens)}</p>
                       </div>
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <Database className="h-5 w-5 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-500">AI 调用次数</p>
-                        <p className="text-2xl font-bold">{observabilityData.totalCalls}</p>
-                      </div>
-                      <div className="p-2 bg-purple-100 rounded-full">
-                        <BarChart3 className="h-5 w-5 text-purple-600" />
+                      <div className="p-2 rounded-full bg-blue-100">
+                        <Database className="w-5 h-5 text-blue-600" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-500">平均响应时间</p>
-                        <p className="text-2xl font-bold">{(observabilityData.avgLatency / 1000).toFixed(1)}s</p>
+                        <p className="text-sm text-slate-500">调用次数</p>
+                        <p className="text-2xl font-bold">{obsData.totalCalls}</p>
                       </div>
-                      <div className="p-2 bg-green-100 rounded-full">
-                        <Clock className="h-5 w-5 text-green-600" />
+                      <div className="p-2 rounded-full bg-purple-100">
+                        <BarChart3 className="w-5 h-5 text-purple-600" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-slate-500">错误率</p>
-                        <p className="text-2xl font-bold">{observabilityData.errorRate.toFixed(1)}%</p>
+                        <p className="text-sm text-slate-500">平均延迟</p>
+                        <p className="text-2xl font-bold">
+                          {obsData.avgLatency > 0 ? `${(obsData.avgLatency / 1000).toFixed(2)}s` : '-'}
+                        </p>
                       </div>
-                      <div className="p-2 bg-red-100 rounded-full">
-                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      <div className="p-2 rounded-full bg-emerald-100">
+                        <Clock className="w-5 h-5 text-emerald-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-500">累计成本</p>
+                        <p className="text-2xl font-bold">${obsData.totalCost.toFixed(4)}</p>
+                      </div>
+                      <div className="p-2 rounded-full bg-amber-100">
+                        <TrendingUp className="w-5 h-5 text-amber-600" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* 模型统计表格 */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    模型使用统计
-                  </CardTitle>
+                  <CardTitle>模型成本明细</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -554,32 +607,32 @@ export default function AISettingsPage() {
                       <TableRow>
                         <TableHead>模型</TableHead>
                         <TableHead>调用次数</TableHead>
-                        <TableHead>Token 数</TableHead>
+                        <TableHead>Token</TableHead>
                         <TableHead>成本</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {observabilityData.costByModel.map((model) => (
-                        <TableRow key={model.model}>
-                          <TableCell className="font-medium">{model.model}</TableCell>
-                          <TableCell>{model.calls}</TableCell>
-                          <TableCell>{formatNumber(model.tokens)}</TableCell>
-                          <TableCell>${model.cost.toFixed(2)}</TableCell>
+                      {(obsData.costByModel || []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-slate-500">
+                            暂无模型调用数据
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        obsData.costByModel.map((item) => (
+                          <TableRow key={item.model}>
+                            <TableCell className="font-medium">{item.model}</TableCell>
+                            <TableCell>{item.calls}</TableCell>
+                            <TableCell>{formatCompactNumber(item.tokens)}</TableCell>
+                            <TableCell>${item.cost.toFixed(6)}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
               </Card>
             </>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center text-slate-500">
-                <Activity className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                <p>暂无可观测性数据</p>
-                <p className="text-sm mt-1">AI 调用后将自动收集性能指标</p>
-              </CardContent>
-            </Card>
           )}
         </TabsContent>
       </Tabs>

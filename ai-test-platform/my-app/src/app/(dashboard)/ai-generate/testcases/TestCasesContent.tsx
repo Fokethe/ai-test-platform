@@ -1,651 +1,542 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ListSkeleton } from '@/components/ui/skeleton-list'
-import { toast } from 'sonner'
-import { AlertTriangle, Check, ChevronLeft, Edit2, Download, Save, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import useSWR from 'swr';
+import {
+  AlertTriangle,
+  CheckSquare,
+  ChevronLeft,
+  Download,
+  Loader2,
+  Save,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { safeFetcher } from '@/lib/utils/fetcher';
 
-interface TestCase {
-  id: string
-  title: string
-  precondition: string
-  steps: string[]
-  expectedResult: string
-  priority: '高' | '中' | '低'
-  module: string
-}
+type RequirementOption = {
+  id: string;
+  title: string;
+  testPoints?: Array<{
+    id: string;
+    name: string;
+  }>;
+};
 
-// 可用模型列表
-const AVAILABLE_MODELS = [
+type GeneratedTestCase = {
+  id: string;
+  title: string;
+  precondition: string;
+  steps: string[];
+  expectedResult: string;
+  priority: string;
+  module: string;
+};
+
+type RawCase = {
+  id?: string;
+  title?: string;
+  name?: string;
+  precondition?: string;
+  expectedResult?: string;
+  priority?: string;
+  relatedFeature?: string;
+  module?: string;
+  steps?: unknown;
+};
+
+const MODEL_OPTIONS = [
+  { id: 'gpt-4o', name: 'GPT-4o' },
+  { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet' },
   { id: 'kimi-k2.5', name: 'Kimi K2.5' },
-  { id: 'qwen-3', name: '千问 3' },
-]
+];
 
-// 获取默认模型ID
-const getDefaultModelId = () => 'kimi-k2.5'
-
-// 验证并获取有效的模型ID
-const getValidModelId = (modelId: string | null): string => {
-  if (!modelId) return getDefaultModelId()
-  const validModel = AVAILABLE_MODELS.find(m => m.id === modelId)
-  return validModel ? validModel.id : getDefaultModelId()
+function normalizeSteps(steps: unknown): string[] {
+  if (Array.isArray(steps)) {
+    return steps
+      .map((step) => (typeof step === 'string' ? step.trim() : ''))
+      .filter(Boolean);
+  }
+  if (typeof steps === 'string' && steps.trim()) {
+    try {
+      return normalizeSteps(JSON.parse(steps));
+    } catch {
+      return steps
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
 }
 
-// 获取模型显示名称
-const getModelDisplayName = (modelId: string): string => {
-  const model = AVAILABLE_MODELS.find(m => m.id === modelId)
-  return model ? model.name : modelId
+function normalizeCase(raw: RawCase, index: number): GeneratedTestCase {
+  return {
+    id: raw.id || `generated-${index + 1}`,
+    title: (raw.title || raw.name || `测试用例 ${index + 1}`).trim(),
+    precondition: (raw.precondition || '').trim(),
+    steps: normalizeSteps(raw.steps),
+    expectedResult: (raw.expectedResult || '').trim(),
+    priority: (raw.priority || 'MEDIUM').trim(),
+    module: (raw.module || raw.relatedFeature || '通用模块').trim(),
+  };
+}
+
+function parseGeneratedCases(payload: unknown): GeneratedTestCase[] {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const root = payload as Record<string, unknown>;
+  const primary = root.data as Record<string, unknown> | undefined;
+
+  let rawList: unknown = undefined;
+  if (Array.isArray(primary?.testCases)) {
+    rawList = primary?.testCases;
+  } else if (Array.isArray((primary?.data as Record<string, unknown> | undefined)?.testCases)) {
+    rawList = (primary?.data as Record<string, unknown>).testCases;
+  } else if (Array.isArray(root.testCases)) {
+    rawList = root.testCases;
+  } else if (Array.isArray(root.data)) {
+    rawList = root.data;
+  }
+
+  if (!Array.isArray(rawList)) {
+    return [];
+  }
+
+  return rawList
+    .map((item, index) => normalizeCase((item || {}) as RawCase, index))
+    .filter((item) => item.title.trim().length > 0);
 }
 
 export default function TestCasesContent() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const requirementId = searchParams.get('requirementId')
-  const testPointId = searchParams.get('testPointId')
-  const modelId = getValidModelId(searchParams.get('modelId'))
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [testCases, setTestCases] = useState<TestCase[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [editingCase, setEditingCase] = useState<TestCase | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const requirementId = searchParams.get('requirementId') || '';
+  const testPointId = searchParams.get('testPointId') || '';
+  const modelId = searchParams.get('modelId') || MODEL_OPTIONS[0].id;
 
-  // 加载测试用例
-  const loadTestCases = useCallback(async () => {
-    if (!requirementId || !testPointId) {
-      setError('缺少必要参数')
-      setLoading(false)
-      return
-    }
+  const [cases, setCases] = useState<GeneratedTestCase[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectRequirementId, setSelectRequirementId] = useState('');
+  const [selectTestPointId, setSelectTestPointId] = useState('');
 
-    try {
-      setLoading(true)
-      setError(null)
+  const { data: requirementsPayload } = useSWR('/api/requirements?page=1&pageSize=100', safeFetcher, {
+    revalidateOnFocus: false,
+  });
 
-      const response = await fetch(
-        `/api/requirements/${requirementId}/generate-testcases`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            testPointIds: [testPointId],
-            modelId: modelId,
-          }),
-        }
-      )
+  const requirements: RequirementOption[] = Array.isArray(requirementsPayload?.data?.list)
+    ? requirementsPayload.data.list
+    : [];
 
-      const result = await response.json()
+  const selectedRequirement = useMemo(
+    () => requirements.find((item) => item.id === selectRequirementId),
+    [requirements, selectRequirementId]
+  );
 
-      if (result.code !== 0) {
-        setError(result.message || '生成用例失败')
-        return
-      }
-
-      setTestCases(result.data || [])
-    } catch (err) {
-      setError('加载失败')
-    } finally {
-      setLoading(false)
-    }
-  }, [requirementId, testPointId, modelId])
+  const selectedTestPoints = selectedRequirement?.testPoints || [];
 
   useEffect(() => {
-    loadTestCases()
-  }, [loadTestCases])
+    if (requirementId) {
+      setSelectRequirementId(requirementId);
+    }
+    if (testPointId) {
+      setSelectTestPointId(testPointId);
+    }
+  }, [requirementId, testPointId]);
 
-  // 全选/取消全选
-  const handleSelectAll = (checked: boolean) => {
+  useEffect(() => {
+    if (!requirementId || !testPointId) {
+      return;
+    }
+
+    const run = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch(`/api/requirements/${requirementId}/generate-testcases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            testPointIds: [testPointId],
+            modelId,
+          }),
+        });
+        const payload = await response.json();
+        if (payload.code !== 0) {
+          throw new Error(payload.error?.message || payload.message || '生成失败');
+        }
+        const parsedCases = parseGeneratedCases(payload);
+        setCases(parsedCases);
+        setSelected(new Set(parsedCases.map((item) => item.id)));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '生成失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [requirementId, testPointId, modelId]);
+
+  const toggleAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(testCases.map(tc => tc.id)))
+      setSelected(new Set(cases.map((item) => item.id)));
     } else {
-      setSelectedIds(new Set())
+      setSelected(new Set());
     }
-  }
+  };
 
-  // 选择单个
-  const handleSelectOne = (id: string, checked: boolean) => {
-    const newSelected = new Set(selectedIds)
-    if (checked) {
-      newSelected.add(id)
-    } else {
-      newSelected.delete(id)
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const deleteSelected = () => {
+    if (selected.size === 0) {
+      return;
     }
-    setSelectedIds(newSelected)
-  }
+    setCases((prev) => prev.filter((item) => !selected.has(item.id)));
+    setSelected(new Set());
+  };
 
-  // 打开编辑对话框
-  const handleEdit = (testCase: TestCase) => {
-    setEditingCase({ ...testCase })
-    setIsEditDialogOpen(true)
-  }
-
-  // 保存编辑
-  const handleSaveEdit = () => {
-    if (!editingCase) return
-
-    setTestCases(prev =>
-      prev.map(tc => (tc.id === editingCase.id ? editingCase : tc))
-    )
-    setIsEditDialogOpen(false)
-    setEditingCase(null)
-    toast.success('修改已保存')
-  }
-
-  // 打开删除对话框
-  const handleDeleteClick = (id: string) => {
-    setDeletingId(id)
-    setIsDeleteDialogOpen(true)
-  }
-
-  // 确认删除
-  const handleConfirmDelete = () => {
-    if (!deletingId) return
-
-    setTestCases(prev => prev.filter(tc => tc.id !== deletingId))
-    setSelectedIds(prev => {
-      const newSet = new Set(prev)
-      newSet.delete(deletingId)
-      return newSet
-    })
-    setIsDeleteDialogOpen(false)
-    setDeletingId(null)
-    toast.success('测试用例已删除')
-  }
-
-  // 批量删除
-  const handleBatchDelete = () => {
-    if (selectedIds.size === 0) return
-    setTestCases(prev => prev.filter(tc => !selectedIds.has(tc.id)))
-    setSelectedIds(new Set())
-    toast.success(`已删除 ${selectedIds.size} 个测试用例`)
-  }
-
-  // 保存所有用例
-  const handleSaveAll = async () => {
-    if (testCases.length === 0) {
-      toast.error('没有可保存的测试用例')
-      return
+  const continueGenerate = () => {
+    if (!selectRequirementId || !selectTestPointId) {
+      toast.error('请先选择需求与测试点');
+      return;
     }
 
+    const params = new URLSearchParams();
+    params.set('requirementId', selectRequirementId);
+    params.set('testPointId', selectTestPointId);
+    params.set('modelId', modelId);
+    router.push(`/ai-generate/testcases?${params.toString()}`);
+  };
+
+  const saveAll = async () => {
+    if (!requirementId) {
+      toast.error('缺少 requirementId，无法保存');
+      return;
+    }
+    if (cases.length === 0) {
+      toast.error('没有可保存的测试用例');
+      return;
+    }
+
+    setSaving(true);
     try {
-      setSaving(true)
       const response = await fetch('/api/testcases/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requirementId,
-          testCases: testCases.map(tc => ({
-            ...tc,
-            steps: JSON.stringify(tc.steps),
+          testCases: cases.map((item) => ({
+            title: item.title,
+            precondition: item.precondition,
+            steps: item.steps,
+            expectedResult: item.expectedResult,
+            priority: item.priority,
+            module: item.module,
           })),
         }),
-      })
+      });
 
-      const result = await response.json()
-
-      if (result.code !== 0) {
-        toast.error(result.message || '保存失败')
-        return
+      const payload = await response.json();
+      if (payload.code !== 0) {
+        throw new Error(payload.error?.message || payload.message || '保存失败');
       }
 
-      toast.success(`保存成功！共保存 ${result.data?.saved || testCases.length} 个测试用例`)
-      router.push('/tests')
+      const saved = payload.data?.saved ?? payload.data?.count ?? cases.length;
+      toast.success(`保存成功，共 ${saved} 条`);
+      router.push('/tests');
     } catch (err) {
-      toast.error('保存失败')
+      toast.error(err instanceof Error ? err.message : '保存失败');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  // 导出 Excel
-  const handleExportExcel = async () => {
-    const casesToExport = selectedIds.size > 0
-      ? testCases.filter(tc => selectedIds.has(tc.id))
-      : testCases
-
-    if (casesToExport.length === 0) {
-      toast.error('没有可导出的测试用例')
-      return
+  const exportExcel = async () => {
+    if (cases.length === 0) {
+      toast.error('没有可导出的测试用例');
+      return;
     }
 
+    setExporting(true);
     try {
-      setExporting(true)
       const response = await fetch('/api/testcases/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          testCases: casesToExport,
-          moduleName: casesToExport[0]?.module || '测试用例',
+          testCases: cases.map((item) => ({
+            id: item.id,
+            title: item.title,
+            precondition: item.precondition,
+            expectedResult: item.expectedResult,
+            steps: item.steps.map((step, index) => ({
+              order: index + 1,
+              action: step,
+            })),
+            priority: item.priority,
+            module: item.module,
+          })),
+          moduleName: cases[0]?.module || '测试用例',
         }),
-      })
+      });
 
-      const result = await response.json()
-
-      if (result.code !== 0) {
-        toast.error(result.message || '导出失败')
-        return
+      const payload = await response.json();
+      if (payload.code !== 0) {
+        throw new Error(payload.error?.message || payload.message || '导出失败');
       }
 
-      // 将 base64 转换为 Blob 并下载
-      const byteCharacters = atob(result.data.data)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      const binary = atob(payload.data.data);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
       }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-
-      // 创建下载链接
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = result.data.filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-
-      toast.success(`导出成功！共导出 ${casesToExport.length} 个测试用例`)
+      const blob = new Blob([bytes], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = payload.data.filename || 'test-cases.xlsx';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      toast.success('导出成功');
     } catch (err) {
-      toast.error('导出失败')
+      toast.error(err instanceof Error ? err.message : '导出失败');
     } finally {
-      setExporting(false)
+      setExporting(false);
     }
-  }
+  };
 
-  // 获取优先级颜色
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case '高':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case '中':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case '低':
-        return 'bg-green-100 text-green-800 border-green-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-
-  // 缺少参数提示
   if (!requirementId || !testPointId) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="space-y-6">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-5 w-5" />
-              <p>缺少必要参数：requirementId 和 testPointId</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              缺少生成参数
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-slate-500">
+              当前需要 `requirementId` 和 `testPointId` 才能生成用例。你可以在这里先选择后继续。
+            </p>
 
-  return (
-    <div className="container mx-auto py-8 px-4">
-      {/* 页面标题 */}
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          className="mb-4 -ml-4"
-          onClick={() => router.back()}
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          返回
-        </Button>
-        <h1 className="text-3xl font-bold">测试用例预览</h1>
-        <p className="text-muted-foreground mt-1">
-          查看并编辑生成的测试用例，确认后保存到测试库
-        </p>
-      </div>
-
-      {/* 加载状态 */}
-      {loading && (
-        <Card>
-          <CardContent className="pt-6">
-            <ListSkeleton count={3} />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 错误提示 */}
-      {error && !loading && (
-        <Card className="border-red-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              <p>{error}</p>
-            </div>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={loadTestCases}
-            >
-              重试
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 测试用例列表 */}
-      {!loading && !error && (
-        <>
-          {/* 模型信息卡片 */}
-          <Card className="mb-4 bg-blue-50 border-blue-200">
-            <CardContent className="py-3">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">AI 模型:</span>
-                <Badge variant="secondary" className="font-medium">
-                  {getModelDisplayName(modelId)}
-                </Badge>
-                <span className="text-muted-foreground ml-2">
-                  使用此模型生成测试用例
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 工具栏 */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="select-all"
-                  checked={
-                    testCases.length > 0 && selectedIds.size === testCases.length
-                  }
-                  onCheckedChange={handleSelectAll}
-                />
-                <Label htmlFor="select-all" className="text-sm cursor-pointer">
-                  全选 ({selectedIds.size}/{testCases.length})
-                </Label>
-              </div>
-              {selectedIds.size > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBatchDelete}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  批量删除 ({selectedIds.size})
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportExcel}
-                disabled={exporting || testCases.length === 0}
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin mr-1 h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                    导出中...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-1" />
-                    导出 Excel
-                  </>
-                )}
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                共 {testCases.length} 个测试用例
-              </span>
-            </div>
-          </div>
-
-          {/* 用例卡片列表 */}
-          <div className="space-y-4">
-            {testCases.map((testCase, index) => (
-              <Card key={testCase.id} className="relative">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={selectedIds.has(testCase.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(testCase.id, checked as boolean)
-                      }
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg font-semibold mb-2">
-                            {index + 1}. {testCase.title}
-                          </CardTitle>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className={getPriorityColor(testCase.priority)}>
-                              {testCase.priority}优先级
-                            </Badge>
-                            <Badge variant="outline">{testCase.module}</Badge>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(testCase)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDeleteClick(testCase.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3 text-sm">
-                    {/* 前置条件 */}
-                    <div>
-                      <span className="font-medium text-muted-foreground">前置条件：</span>
-                      <span>{testCase.precondition}</span>
-                    </div>
-                    {/* 测试步骤 */}
-                    <div>
-                      <span className="font-medium text-muted-foreground">测试步骤：</span>
-                      <ol className="list-decimal list-inside mt-1 space-y-1 ml-4">
-                        {testCase.steps.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ol>
-                    </div>
-                    {/* 预期结果 */}
-                    <div>
-                      <span className="font-medium text-muted-foreground">预期结果：</span>
-                      <span className="text-green-700">{testCase.expectedResult}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* 底部操作栏 */}
-          {testCases.length > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
-              <div className="container mx-auto flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  已选择 {selectedIds.size} 个用例，共 {testCases.length} 个
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => router.back()}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    取消
-                  </Button>
-                  <Button
-                    onClick={handleSaveAll}
-                    disabled={saving || testCases.length === 0}
-                    className="min-w-[120px]"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                        保存中...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1" />
-                        确认保存
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* 编辑对话框 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>编辑测试用例</DialogTitle>
-          </DialogHeader>
-          {editingCase && (
-            <div className="space-y-4 py-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="title">用例标题</Label>
-                <Input
-                  id="title"
-                  value={editingCase.title}
-                  onChange={(e) =>
-                    setEditingCase({ ...editingCase, title: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="module">所属模块</Label>
-                <Input
-                  id="module"
-                  value={editingCase.module}
-                  onChange={(e) =>
-                    setEditingCase({ ...editingCase, module: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="priority">优先级</Label>
+                <Label>需求</Label>
                 <Select
-                  value={editingCase.priority}
-                  onValueChange={(value: '高' | '中' | '低') =>
-                    setEditingCase({ ...editingCase, priority: value })
-                  }
+                  value={selectRequirementId}
+                  onValueChange={(value) => {
+                    setSelectRequirementId(value);
+                    setSelectTestPointId('');
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="选择需求" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="高">高</SelectItem>
-                    <SelectItem value="中">中</SelectItem>
-                    <SelectItem value="低">低</SelectItem>
+                    {requirements.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="precondition">前置条件</Label>
-                <Textarea
-                  id="precondition"
-                  value={editingCase.precondition}
-                  onChange={(e) =>
-                    setEditingCase({
-                      ...editingCase,
-                      precondition: e.target.value,
-                    })
-                  }
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="steps">测试步骤（每行一个步骤）</Label>
-                <Textarea
-                  id="steps"
-                  value={editingCase.steps.join('\n')}
-                  onChange={(e) =>
-                    setEditingCase({
-                      ...editingCase,
-                      steps: e.target.value.split('\n').filter(Boolean),
-                    })
-                  }
-                  rows={5}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expectedResult">预期结果</Label>
-                <Textarea
-                  id="expectedResult"
-                  value={editingCase.expectedResult}
-                  onChange={(e) =>
-                    setEditingCase({
-                      ...editingCase,
-                      expectedResult: e.target.value,
-                    })
-                  }
-                  rows={2}
-                />
+                <Label>测试点</Label>
+                <Select value={selectTestPointId} onValueChange={setSelectTestPointId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择测试点" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedTestPoints.map((point) => (
+                      <SelectItem key={point.id} value={point.id}>
+                        {point.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSaveEdit}>
-              <Check className="h-4 w-4 mr-1" />
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* 删除确认对话框 */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-          </DialogHeader>
-          <p className="py-4">确定要删除这个测试用例吗？此操作不可撤销。</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <div className="flex items-center gap-2">
+              <Button onClick={continueGenerate}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                继续生成
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/ai-generate/requirements')}>
+                去需求页选择
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <Button variant="ghost" className="-ml-3" onClick={() => router.back()}>
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            返回
+          </Button>
+          <h1 className="text-2xl font-bold">AI 生成测试用例</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            需求 ID: {requirementId} · 测试点 ID: {testPointId}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportExcel} disabled={exporting || cases.length === 0}>
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? '导出中...' : '导出 Excel'}
+          </Button>
+          <Button onClick={saveAll} disabled={saving || cases.length === 0}>
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? '保存中...' : '保存到用例库'}
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {error ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-red-600 text-sm">{error}</p>
+            <Button variant="outline" className="mt-3" onClick={() => window.location.reload()}>
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!loading && !error ? (
+        <Card>
+          <CardContent className="py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={cases.length > 0 && selected.size === cases.length}
+                  onCheckedChange={(checked) => toggleAll(Boolean(checked))}
+                />
+                <span className="text-sm text-slate-500">
+                  已选 {selected.size} / {cases.length}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deleteSelected}
+                disabled={selected.size === 0}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                删除选中
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {cases.map((item, index) => (
+                <Card key={item.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selected.has(item.id)}
+                        onCheckedChange={(checked) => toggleOne(item.id, Boolean(checked))}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <CardTitle className="text-base">
+                          {index + 1}. {item.title}
+                        </CardTitle>
+                        <p className="text-xs text-slate-500 mt-1">
+                          优先级: {item.priority} · 模块: {item.module}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm">
+                      <span className="font-medium">前置条件：</span>
+                      {item.precondition || '-'}
+                    </p>
+                    <div className="text-sm">
+                      <span className="font-medium">步骤：</span>
+                      <ol className="list-decimal list-inside mt-1 space-y-1">
+                        {item.steps.map((step, stepIndex) => (
+                          <li key={`${item.id}-step-${stepIndex}`}>{step}</li>
+                        ))}
+                        {item.steps.length === 0 ? <li>-</li> : null}
+                      </ol>
+                    </div>
+                    <p className="text-sm">
+                      <span className="font-medium">预期结果：</span>
+                      {item.expectedResult || '-'}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {cases.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-8">未生成到可用测试用例</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-white px-6 py-3">
+        <div className="mx-auto max-w-7xl flex items-center justify-between">
+          <div className="text-sm text-slate-500">
+            已选 {selected.size} 条，可保存 {cases.length} 条
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => router.back()}>
               取消
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              <Trash2 className="h-4 w-4 mr-1" />
-              确认
+            <Button onClick={saveAll} disabled={saving || cases.length === 0}>
+              <CheckSquare className="w-4 h-4 mr-2" />
+              {saving ? '保存中...' : '确认保存'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
+

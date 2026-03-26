@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第三方软件测评服务效果图 V2</title>
+    <style>
+      :root {
+        --bg-top: #eef5ff;
+        --bg-bottom: #d1e3f7;
+        --deep-blue: #0f5cad;
+        --deep-blue-2: #0a4c96;
+        --mid-blue: #2190dd;
+        --light-blue: #4ac7ee;
+        --text-dark: #0d3162;
+        --white: #ffffff;
+        --shadow: 0 10px 22px rgba(16, 76, 146, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e6eef8;
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+
+      .slide {
+        position: relative;
+        width: 1600px;
+        height: 900px;
+        margin: 0 auto;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 28%),
+          linear-gradient(180deg, var(--bg-top) 0%, #dbe9f8 42%, var(--bg-bottom) 100%);
+      }
+
+      .watermark {
+        position: absolute;
+        font-size: 54px;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.26);
+        transform: rotate(-30deg);
+        letter-spacing: 4px;
+        pointer-events: none;
+      }
+
+      .wm-a { left: 120px; top: 240px; }
+      .wm-b { left: 640px; top: 200px; }
+      .wm-c { right: 120px; top: 250px; }
+      .wm-d { left: 340px; bottom: 130px; }
+      .wm-e { right: 260px; bottom: 150px; }
+
+      .arrow {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        opacity: 0.62;
+        background: rgba(255, 255, 255, 0.72);
+        clip-path: polygon(18% 82%, 54% 82%, 54% 42%, 84% 42%, 50% 8%, 16% 42%, 44% 42%, 44% 82%);
+        filter: drop-shadow(0 8px 16px rgba(23, 87, 150, 0.1));
+      }
+
+      .a1 { left: 260px; top: 500px; transform: rotate(-12deg) scale(1.05); }
+      .a2 { right: 120px; top: 120px; transform: rotate(20deg) scale(0.96); }
+      .a3 { right: 280px; bottom: 80px; transform: rotate(-8deg) scale(1.08); }
+
+      .header {
+        position: absolute;
+        left: 60px;
+        top: 18px;
+        width: 1480px;
+        height: 84px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #2d84dd 0%, #0e5eaf 68%, #0a4d97 100%);
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 46px;
+        font-weight: 800;
+        letter-spacing: 3px;
+      }
+
+      .summary {
+        position: absolute;
+        left: 370px;
+        top: 122px;
+        width: 860px;
+        height: 52px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #5fd2ef 0%, #46b7e3 100%);
+        box-shadow: 0 8px 14px rgba(19, 92, 158, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 2px;
+      }
+
+      .basis-bar {
+        position: absolute;
+        left: 140px;
+        top: 194px;
+        width: 1320px;
+        height: 58px;
+        border-radius: 14px;
+        background: linear-gradient(90deg, #5acbef 0%, #319ee0 100%);
+        box-shadow: 0 8px 18px rgba(20, 94, 160, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      .modules {
+        position: absolute;
+        left: 140px;
+        top: 276px;
+        width: 1320px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 18px;
+      }
+
+      .module {
+        border-radius: 20px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.34);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(2px);
+      }
+
+      .module-header {
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #1c7adc 0%, #0d5ca8 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 26px;
+        font-weight: 800;
+      }
+
+      .phase-title {
+        height: 32px;
+        margin-top: 12px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #5fd0ef 0%, #43b3e4 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 1px;
+      }
+
+      .phase-body {
+        height: 64px;
+        margin-top: 8px;
+        border-radius: 12px;
+        border: 3px solid rgba(24, 109, 186, 0.16);
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .output {
+        height: 74px;
+        margin-top: 14px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #53c8ee 0%, #37aee4 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.4;
+        box-shadow: 0 8px 14px rgba(18, 96, 158, 0.2);
+      }
+
+      .footer-bar {
+        position: absolute;
+        left: 110px;
+        bottom: 40px;
+        width: 1380px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #46c4ea 0%, #2ba1dc 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        box-shadow: var(--shadow);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide">
+      <div class="watermark wm-a">SMART CONSULT</div>
+      <div class="watermark wm-b">SMART CONSULT</div>
+      <div class="watermark wm-c">SMART CONSULT</div>
+      <div class="watermark wm-d">SMART CONSULT</div>
+      <div class="watermark wm-e">SMART CONSULT</div>
+      <div class="arrow a1"></div>
+      <div class="arrow a2"></div>
+      <div class="arrow a3"></div>
+
+      <div class="header">第三方软件测评服务</div>
+      <div class="summary">统一依据&nbsp;&nbsp;&nbsp;统一阶段&nbsp;&nbsp;&nbsp;分类实施&nbsp;&nbsp;&nbsp;分类交付</div>
+      <div class="basis-bar">测评依据：项目文件&nbsp;&nbsp;/&nbsp;&nbsp;国家标准&nbsp;&nbsp;/&nbsp;&nbsp;行业标准&nbsp;&nbsp;/&nbsp;&nbsp;合同要求&nbsp;&nbsp;/&nbsp;&nbsp;验收要求</div>
+
+      <div class="modules">
+        <div class="module">
+          <div class="module-header">功能测评</div>
+          <div class="phase-title">前期准备</div>
+          <div class="phase-body">需求确认<br />资料审查</div>
+          <div class="phase-title">测评实施</div>
+          <div class="phase-body">测试用例<br />缺陷记录</div>
+          <div class="phase-title">报告交付</div>
+          <div class="phase-body">复测验证<br />功能报告</div>
+          <div class="output">输出：委托单 / 用例 /<br />缺陷清单 / 测评报告</div>
+        </div>
+
+        <div class="module">
+          <div class="module-header">性能测评</div>
+          <div class="phase-title">前期准备</div>
+          <div class="phase-body">指标确认<br />脚本准备</div>
+          <div class="phase-title">测评实施</div>
+          <div class="phase-body">压测执行<br />数据采集</div>
+          <div class="phase-title">报告交付</div>
+          <div class="phase-body">瓶颈分析<br />性能报告</div>
+          <div class="output">输出：指标单 / 脚本 /<br />性能数据 / 测评报告</div>
+        </div>
+
+        <div class="module">
+          <div class="module-header">安全专项测评</div>
+          <div class="phase-title">前期准备</div>
+          <div class="phase-body">范围确认<br />账号环境</div>
+          <div class="phase-title">测评实施</div>
+          <div class="phase-body">漏洞扫描<br />人工验证</div>
+          <div class="phase-title">报告交付</div>
+          <div class="phase-body">整改复测<br />安全报告</div>
+          <div class="output">输出：范围单 / 漏洞单 /<br />复测记录 / 测评报告</div>
+        </div>
+
+        <div class="module">
+          <div class="module-header">源代码专项测评</div>
+          <div class="phase-title">前期准备</div>
+          <div class="phase-body">代码范围<br />规则清单</div>
+          <div class="phase-title">测评实施</div>
+          <div class="phase-body">静态分析<br />缺陷定位</div>
+          <div class="phase-title">报告交付</div>
+          <div class="phase-body">整改建议<br />审查报告</div>
+          <div class="output">输出：范围单 / 缺陷单 /<br />整改建议 / 审查报告</div>
+        </div>
+
+        <div class="module">
+          <div class="module-header">计算机场地测评</div>
+          <div class="phase-title">前期准备</div>
+          <div class="phase-body">场地确认<br />检查表单</div>
+          <div class="phase-title">测评实施</div>
+          <div class="phase-body">现场检查<br />数据记录</div>
+          <div class="phase-title">报告交付</div>
+          <div class="phase-body">不符整改<br />场地报告</div>
+          <div class="output">输出：检查表 / 记录表 /<br />整改项 / 测评报告</div>
+        </div>
+      </div>
+
+      <div class="footer-bar">全过程留痕&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;资料管理&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;结果复核</div>
+    </div>
+  </body>
+</html>

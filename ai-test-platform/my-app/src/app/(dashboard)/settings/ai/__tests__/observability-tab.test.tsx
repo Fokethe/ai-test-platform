@@ -50,22 +50,32 @@ describe('AI Settings Page', () => {
       if (u.includes('/api/settings/ai') && init?.method === 'PUT') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ data: { success: true } }),
+          json: () =>
+            Promise.resolve({
+              code: 0,
+              data: {
+                model: 'gpt-4o',
+                temperature: 0.7,
+                apiKey: 'sk-test-key',
+              },
+            }),
         });
       }
       if (u.includes('/api/settings/ai/test')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ code: 0, data: { valid: true } }) });
       }
       if (u.includes('/api/observability/cost')) {
         return Promise.resolve({
           ok: true,
           json: () =>
             Promise.resolve({
+              code: 0,
               data: {
                 totalTokens: 150000,
                 totalCalls: 120,
                 avgLatency: 1800,
                 errorRate: 2.5,
+                totalCost: 12.34,
                 costByModel: [],
                 dailyStats: [],
               },
@@ -81,7 +91,7 @@ describe('AI Settings Page', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: '模型配置' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: '可观测性' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: '可观测' })).toBeInTheDocument();
     });
   });
 
@@ -98,23 +108,22 @@ describe('AI Settings Page', () => {
     render(<AISettingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('API 密钥')).toBeInTheDocument();
+      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
     });
 
-    const apiKeyInput = screen.getByLabelText('API 密钥');
-    fireEvent.change(apiKeyInput, { target: { value: 'sk-test-key' } });
-
-    expect(apiKeyInput).toHaveValue('sk-test-key');
+    const input = screen.getByLabelText('API Key');
+    fireEvent.change(input, { target: { value: 'sk-test-key' } });
+    expect(input).toHaveValue('sk-test-key');
   });
 
   it('saves settings with PUT request', async () => {
     render(<AISettingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('API 密钥')).toBeInTheDocument();
+      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText('API 密钥'), {
+    fireEvent.change(screen.getByLabelText('API Key'), {
       target: { value: 'sk-test-key' },
     });
 

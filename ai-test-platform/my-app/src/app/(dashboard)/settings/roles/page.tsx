@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useSession } from 'next-auth/react';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSystemLanguage } from '@/components/system-language-provider';
@@ -40,6 +41,7 @@ const menuTextMap: Record<string, { zh: string; en: string }> = {
 };
 
 export default function RolePermissionPage() {
+  const { data: session } = useSession();
   const { language, t } = useSystemLanguage();
   const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,10 @@ export default function RolePermissionPage() {
       setRoles(data.roles);
       setMenus(data.menus);
       setMatrix(data.matrix);
-      if (!data.roles.includes(activeRole)) {
+      const currentRole = (session?.user?.role as Role | undefined) || activeRole;
+      if (data.roles.includes(currentRole)) {
+        setActiveRole(currentRole);
+      } else if (!data.roles.includes(activeRole)) {
         setActiveRole(data.roles[0] || 'USER');
       }
     } catch {
@@ -89,7 +94,7 @@ export default function RolePermissionPage() {
 
   useEffect(() => {
     fetchPermissions();
-  }, []);
+  }, [session?.user?.role]);
 
   const toggleMenu = (menuKey: string, checked: boolean) => {
     setMatrix((prev) => {
@@ -131,6 +136,17 @@ export default function RolePermissionPage() {
           ...prev,
           [data.role]: data.menuKeys,
         }));
+
+        const permissionVersion = `${Date.now()}`;
+        localStorage.setItem('menu_permissions_version', permissionVersion);
+        window.dispatchEvent(
+          new CustomEvent('menu-permissions-updated', {
+            detail: {
+              version: permissionVersion,
+              role: data.role,
+            },
+          })
+        );
         toast.success(t('\u6743\u9650\u4fdd\u5b58\u6210\u529f', 'Permissions saved'));
       } catch {
         toast.error(t('\u4fdd\u5b58\u5931\u8d25', 'Failed to save permissions'));

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { RequirementParser } from '@/lib/ai/agents/requirement-parser';
 import { errors, successResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { hasProjectAccess } from '@/lib/project-access';
@@ -11,6 +12,23 @@ function normalizePriority(priority: unknown): 'P0' | 'P1' | 'P2' | 'P3' {
     return priority;
   }
   return 'P1';
+}
+
+async function getRequirementWithAccess(id: string, userId: string) {
+  const requirement = await prisma.aiRequirement.findUnique({
+    where: { id },
+  });
+
+  if (!requirement) {
+    return { requirement: null, error: errors.notFound('Requirement') as Response };
+  }
+
+  const canAccessProject = await hasProjectAccess(userId, requirement.projectId);
+  if (!canAccessProject) {
+    return { requirement: null, error: errors.forbidden() as Response };
+  }
+
+  return { requirement, error: null as Response | null };
 }
 
 export async function GET(
@@ -125,4 +143,98 @@ export async function GET(
     console.error('Failed to fetch requirement detail:', error);
     return errors.internalError();
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  const { id } = await params;
+  const access = await getRequirementWithAccess(id, session.user.id);
+  if (access.error || !access.requirement) {
+    return access.error;
+  }
+
+  let body: { title?: unknown; content?: unknown };
+  try {
+    body = (await request.json()) as { title?: unknown; content?: unknown };
+  } catch {
+    return errors.badRequest('Invalid JSON payload');
+  }
+
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const content = typeof body.content === 'string' ? body.content.trim() : '';
+
+  const patch: {
+    title?: string;
+    content?: string;
+    rawText?: string;
+    size?: number;
+    features?: string;
+    businessRules?: string;
+  } = {};
+
+  if (title) {
+    patch.title = title;
+  }
+
+  if (content) {
+    const parser = new RequirementParser();
+    try {
+      const parsed = await parser.parse(content);
+      patch.content = content;
+      patch.rawText = content;
+      patch.size = Buffer.byteLength(content, 'utf-8');
+      patch.features = JSON.stringify(parsed.features || []);
+      patch.businessRules = JSON.stringify(parsed.businessRules || []);
+    } catch (error) {
+      return errors.badRequest(
+        error instanceof Error ? error.message : 'Failed to parse updated requirement'
+      );
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return errors.badRequest('No fields to update');
+  }
+
+  const updated = await prisma.aiRequirement.update({
+    where: { id },
+    data: patch,
+    include: {
+      testPoints: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  return successResponse(updated, 'Requirement updated');
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  void request;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  const { id } = await params;
+  const access = await getRequirementWithAccess(id, session.user.id);
+  if (access.error || !access.requirement) {
+    return access.error;
+  }
+
+  await prisma.aiRequirement.delete({
+    where: { id },
+  });
+
+  return successResponse({ deleted: true, id }, 'Requirement deleted');
 }

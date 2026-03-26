@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第三方软件测评服务效果图</title>
+    <style>
+      :root {
+        --bg-top: #eef5ff;
+        --bg-bottom: #cfe2f7;
+        --deep-blue: #0f5cab;
+        --deep-blue-2: #0a4487;
+        --mid-blue: #1888d8;
+        --light-blue: #47c5ef;
+        --text-dark: #0d3162;
+        --white: #ffffff;
+        --shadow: 0 10px 18px rgba(16, 76, 146, 0.24);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e7eef8;
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+
+      .slide {
+        position: relative;
+        width: 1600px;
+        height: 900px;
+        margin: 0 auto;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 26%),
+          linear-gradient(180deg, var(--bg-top) 0%, #dceaf8 42%, var(--bg-bottom) 100%);
+      }
+
+      .watermark {
+        position: absolute;
+        font-size: 58px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.44);
+        transform: rotate(-30deg);
+        letter-spacing: 4px;
+        pointer-events: none;
+      }
+
+      .wm-a { left: 160px; top: 240px; }
+      .wm-b { left: 830px; top: 260px; }
+      .wm-c { right: 120px; top: 240px; }
+      .wm-d { left: 460px; bottom: 130px; }
+      .wm-e { right: 250px; bottom: 150px; }
+
+      .arrow {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0.7;
+        filter: drop-shadow(0 8px 14px rgba(20, 72, 132, 0.12));
+      }
+
+      .arrow::before {
+        content: "";
+        position: absolute;
+        width: 160px;
+        height: 160px;
+        background: rgba(255, 255, 255, 0.72);
+        clip-path: polygon(18% 82%, 54% 82%, 54% 42%, 84% 42%, 50% 8%, 16% 42%, 44% 42%, 44% 82%);
+      }
+
+      .arrow.a1 { left: 420px; top: 350px; transform: rotate(-18deg) scale(1.1); }
+      .arrow.a2 { right: 90px; top: 130px; transform: rotate(22deg) scale(0.98); }
+      .arrow.a3 { right: 280px; bottom: 130px; transform: rotate(-10deg) scale(1.12); }
+
+      .header {
+        position: absolute;
+        left: 36px;
+        top: 12px;
+        width: 1528px;
+        height: 98px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #2f84dc 0%, #0c5dae 70%, #0a4f98 100%);
+        box-shadow: var(--shadow);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 800;
+        letter-spacing: 3px;
+      }
+
+      .summary {
+        position: absolute;
+        left: 300px;
+        top: 128px;
+        width: 1000px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #60d3ef 0%, #48b7e2 100%);
+        box-shadow: 0 6px 12px rgba(18, 95, 160, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--white);
+        letter-spacing: 2px;
+      }
+
+      .basis-panel {
+        position: absolute;
+        left: 34px;
+        top: 160px;
+        width: 170px;
+        height: 620px;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #1f73c8 0%, #0d5cae 72%, #0c518f 100%);
+        box-shadow: var(--shadow);
+        color: var(--white);
+        padding: 32px 24px;
+      }
+
+      .basis-title {
+        font-size: 44px;
+        font-weight: 800;
+        line-height: 1.18;
+        margin-bottom: 26px;
+      }
+
+      .basis-list {
+        font-size: 24px;
+        line-height: 1.7;
+        font-weight: 700;
+      }
+
+      .stage {
+        position: absolute;
+        top: 200px;
+        width: 230px;
+        height: 64px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #1c7add 0%, #0e5ea8 100%);
+        border: 4px solid rgba(255, 255, 255, 0.34);
+        box-shadow: 0 8px 16px rgba(17, 77, 145, 0.28);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 800;
+      }
+
+      .stage.s1 { left: 250px; }
+      .stage.s2 { left: 650px; width: 310px; }
+      .stage.s3 { left: 1120px; }
+
+      .basis-bar {
+        position: absolute;
+        left: 250px;
+        top: 286px;
+        width: 1110px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(90deg, #56c9ef 0%, #319fe0 100%);
+        box-shadow: 0 8px 18px rgba(22, 95, 159, 0.18);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      .prep-grid {
+        position: absolute;
+        left: 250px;
+        top: 372px;
+        width: 260px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      .prep-card,
+      .delivery-card,
+      .measure-card,
+      .side-card,
+      .output-card,
+      .footer-bar {
+        box-shadow: var(--shadow);
+      }
+
+      .prep-card,
+      .delivery-card {
+        height: 120px;
+        border-radius: 12px;
+        border: 3px solid rgba(16, 96, 168, 0.16);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 26px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .implementation {
+        position: absolute;
+        left: 560px;
+        top: 356px;
+        width: 520px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .measure-card {
+        height: 56px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 246, 255, 0.95));
+        border: 3px solid rgba(28, 111, 186, 0.24);
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 1px;
+      }
+
+      .delivery-grid {
+        position: absolute;
+        left: 1120px;
+        top: 356px;
+        width: 240px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .side-rail {
+        position: absolute;
+        right: 40px;
+        top: 180px;
+        width: 160px;
+        display: grid;
+        gap: 22px;
+      }
+
+      .side-card {
+        height: 124px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #2784da 0%, #0f63b3 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .outputs {
+        position: absolute;
+        left: 280px;
+        bottom: 100px;
+        width: 1120px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 26px;
+      }
+
+      .output-card {
+        height: 74px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #51c8ee 0%, #38aee3 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .footer-bar {
+        position: absolute;
+        left: 36px;
+        bottom: 26px;
+        width: 1528px;
+        height: 64px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #42c4ea 0%, #2ba0db 100%);
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide">
+      <div class="watermark wm-a">SMART CONSULT</div>
+      <div class="watermark wm-b">SMART CONSULT</div>
+      <div class="watermark wm-c">SMART CONSULT</div>
+      <div class="watermark wm-d">SMART CONSULT</div>
+      <div class="watermark wm-e">SMART CONSULT</div>
+
+      <div class="arrow a1"></div>
+      <div class="arrow a2"></div>
+      <div class="arrow a3"></div>
+
+      <div class="header">第三方软件测评服务</div>
+      <div class="summary">一依据&nbsp;&nbsp;&nbsp;三阶段&nbsp;&nbsp;&nbsp;五测项&nbsp;&nbsp;&nbsp;四成果</div>
+
+      <div class="basis-panel">
+        <div class="basis-title">测评依据</div>
+        <div class="basis-list">
+          项目文件<br />
+          国家标准<br />
+          行业标准<br />
+          合同要求<br />
+          验收要求
+        </div>
+      </div>
+
+      <div class="stage s1">前期准备阶段</div>
+      <div class="stage s2">测评实施阶段</div>
+      <div class="stage s3">报告交付阶段</div>
+
+      <div class="basis-bar">测评支撑：需求确认&nbsp;&nbsp;/&nbsp;&nbsp;资料审查&nbsp;&nbsp;/&nbsp;&nbsp;环境确认&nbsp;&nbsp;/&nbsp;&nbsp;方案编制&nbsp;&nbsp;/&nbsp;&nbsp;结果复核</div>
+
+      <div class="prep-grid">
+        <div class="prep-card">需求确认</div>
+        <div class="prep-card">资料审查</div>
+        <div class="prep-card">环境搭建</div>
+        <div class="prep-card">方案编制</div>
+      </div>
+
+      <div class="implementation">
+        <div class="measure-card">功能测评</div>
+        <div class="measure-card">性能测评</div>
+        <div class="measure-card">安全专项测评</div>
+        <div class="measure-card">源代码专项测评</div>
+        <div class="measure-card">计算机场地测评</div>
+      </div>
+
+      <div class="delivery-grid">
+        <div class="delivery-card">问题闭环</div>
+        <div class="delivery-card">结果评定</div>
+        <div class="delivery-card">报告交付</div>
+      </div>
+
+      <div class="side-rail">
+        <div class="side-card">资料管理</div>
+        <div class="side-card">过程留痕</div>
+        <div class="side-card">结果复核</div>
+      </div>
+
+      <div class="outputs">
+        <div class="output-card">输出：测评委托<br />资料清单</div>
+        <div class="output-card">输出：测评方案<br />测试用例</div>
+        <div class="output-card">输出：问题清单<br />复测记录</div>
+        <div class="output-card">输出：第三方<br />测评报告</div>
+      </div>
+
+      <div class="footer-bar">测评工具与标准规范平台支撑</div>
+    </div>
+  </body>
+</html>

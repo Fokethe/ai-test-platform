@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { useSystemLanguage } from '@/components/system-language-provider';
 import {
   Select,
   SelectContent,
@@ -74,6 +75,7 @@ const languages = [
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
+  const { setLanguage: setSystemLanguage } = useSystemLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(false);
@@ -138,6 +140,8 @@ export default function ProfilePage() {
           ...prev,
           ...result.data,
         }));
+        const language = result.data.language === 'en' ? 'en' : 'zh-CN';
+        setSystemLanguage(language);
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -301,6 +305,8 @@ export default function ProfilePage() {
       const result = await res.json();
       
       if (result.code === 0) {
+        const language = settings.language === 'en' ? 'en' : 'zh-CN';
+        setSystemLanguage(language);
         toast.success('设置保存成功');
       } else {
         toast.error(result.message || '保存失败');
@@ -648,9 +654,11 @@ export default function ProfilePage() {
               </Label>
               <Select
                 value={settings.language}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, language: value })
-                }
+                onValueChange={(value) => {
+                  setSettings({ ...settings, language: value });
+                  const language = value === 'en' ? 'en' : 'zh-CN';
+                  setSystemLanguage(language);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />

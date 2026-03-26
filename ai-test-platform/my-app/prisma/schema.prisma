@@ -74,6 +74,7 @@ model User {
   projectMembers   ProjectMember[]
   apiKeys          ApiKey[]
   settings         UserSettings?
+  aiSetting        UserAiSetting?
   notifications    Notification[]
   knowledgeEntries KnowledgeEntry[]
   logs             Log[]
@@ -119,6 +120,27 @@ model UserSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+model UserAiSetting {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  model            String   @default("gpt-4o")
+  apiKeyEncrypted  String?  @map("api_key_encrypted")
+  temperature      Float    @default(0.7)
+  maxTokens        Int      @default(2000) @map("max_tokens")
+  topP             Float    @default(1.0) @map("top_p")
+  frequencyPenalty Float    @default(0.0) @map("frequency_penalty")
+  presencePenalty  Float    @default(0.0) @map("presence_penalty")
+  enableAI         Boolean  @default(true) @map("enable_ai")
+  autoGenerate     Boolean  @default(false) @map("auto_generate")
+  smartAnalysis    Boolean  @default(true) @map("smart_analysis")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ai_settings")
 }
 
 model VerificationToken {

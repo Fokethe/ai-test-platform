@@ -4,6 +4,7 @@ import { parseJsonBody } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
 import { hasProjectAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
+import { resolveLegacyRequirementId } from '@/lib/requirements/legacy-bridge';
 
 type Priority = 'P0' | 'P1' | 'P2' | 'P3';
 
@@ -229,14 +230,14 @@ export async function PUT(
 
   if (typeof parseResult.data.requirementId === 'string') {
     const requirementId = parseResult.data.requirementId.trim();
-    const requirement = await prisma.requirement.findFirst({
-      where: { id: requirementId, page: { system: { projectId: access.test!.projectId } } },
-      select: { id: true },
+    const resolved = await resolveLegacyRequirementId({
+      projectId: access.test!.projectId,
+      requirementId,
     });
-    if (!requirement) {
+    if (!resolved) {
       return errors.badRequest('requirementId is invalid for this project');
     }
-    patch.requirementId = requirementId;
+    patch.requirementId = resolved;
   }
 
   if (patch.parentId) {

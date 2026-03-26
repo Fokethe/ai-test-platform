@@ -18,6 +18,15 @@ function normalizeText(value: unknown): string {
   return value.trim();
 }
 
+function uniqueIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return Array.from(
+    new Set(value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))
+  );
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -187,5 +196,56 @@ export async function POST(request: NextRequest) {
     console.error('Requirement ingestion failed:', error);
     return errors.internalError();
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return errors.unauthorized();
+  }
+
+  let body: { ids?: unknown };
+  try {
+    body = (await request.json()) as { ids?: unknown };
+  } catch {
+    return errors.badRequest('Invalid JSON payload');
+  }
+
+  const ids = uniqueIds(body.ids);
+  if (ids.length === 0) {
+    return errors.badRequest('ids is required');
+  }
+
+  const requirements = await prisma.aiRequirement.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, projectId: true },
+  });
+
+  if (requirements.length === 0) {
+    return errors.notFound('Requirement');
+  }
+
+  const allowedIds: string[] = [];
+  for (const item of requirements) {
+    // eslint-disable-next-line no-await-in-loop
+    const canAccessProject = await hasProjectAccess(session.user.id, item.projectId);
+    if (canAccessProject) {
+      allowedIds.push(item.id);
+    }
+  }
+
+  if (allowedIds.length === 0) {
+    return errors.forbidden();
+  }
+
+  const result = await prisma.aiRequirement.deleteMany({
+    where: { id: { in: allowedIds } },
+  });
+
+  return successResponse({
+    requested: ids.length,
+    deleted: result.count,
+    skipped: ids.length - result.count,
+  });
 }
 

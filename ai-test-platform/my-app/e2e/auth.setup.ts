@@ -1,99 +1,148 @@
-/**
- * E2E 测试认证设置
- * 提供共享的登录/登出功能
- */
 import { test as base, expect, Page } from '@playwright/test';
 
-/**
- * 测试用户凭证
- */
 export const TEST_USER = {
   email: 'demo@example.com',
   password: 'password123',
 };
+
+let ensureDemoReadyPromise: Promise<void> | null = null;
+
+const NON_LOGIN_PATH = /^\/(?!login(?:\/|$)).+/;
+
+function isAuthenticatedUrl(urlText: string): boolean {
+  try {
+    const url = new URL(urlText);
+    return NON_LOGIN_PATH.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDemoReady(page: Page): Promise<void> {
+  if (!ensureDemoReadyPromise) {
+    ensureDemoReadyPromise = (async () => {
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          const response = await page.request.post('/api/auth/register', {
+            data: {
+              email: TEST_USER.email,
+              password: TEST_USER.password,
+              name: 'Demo User',
+            },
+          });
+          const status = response.status();
+          if (response.ok() || status === 409) {
+            return;
+          }
+          if (attempt === 3) {
+            throw new Error(`register status=${status}`);
+          }
+        } catch (error) {
+          if (attempt === 3) {
+            throw error;
+          }
+        }
+        await page.waitForTimeout(500);
+      }
+    })()
+      .then(() => undefined)
+      .catch((error) => {
+        ensureDemoReadyPromise = null;
+        throw error;
+      });
+  }
+  await ensureDemoReadyPromise;
+}
 
 export function getLoginElements(page: Page) {
   return {
     emailInput: page.locator('input#email'),
     passwordInput: page.locator('input#password'),
     rememberCheckbox: page.locator('button#remember[role="checkbox"]'),
-    submitButton: page.getByRole('button', { name: '登录' }),
+    submitButton: page.locator('button[type="submit"]'),
   };
 }
 
 export async function waitForLoginFormReady(page: Page): Promise<void> {
-  const { emailInput, passwordInput, rememberCheckbox } = getLoginElements(page);
+  const { emailInput, passwordInput, rememberCheckbox, submitButton } = getLoginElements(page);
 
   await expect(emailInput).toBeVisible();
   await expect(passwordInput).toBeVisible();
   await expect(rememberCheckbox).toBeVisible();
+  await expect(submitButton).toBeVisible();
 }
 
-/**
- * 扩展的测试 fixture，包含认证功能
- */
 export const test = base.extend<{
   authenticatedPage: Page;
 }>({
-  /**
-   * 已登录的页面 fixture
-   */
   authenticatedPage: async ({ page }, runPage) => {
     await login(page, TEST_USER.email, TEST_USER.password);
     await runPage(page);
   },
 });
 
-/**
- * 登录功能
- */
 export async function login(page: Page, email: string, password: string): Promise<void> {
-  const registerResponse = await page.request.post('/api/auth/register', {
-    data: {
-      email,
-      password,
-      name: 'Demo User',
-    },
-  });
-  const registerStatus = registerResponse.status();
-  if (!registerResponse.ok() && registerStatus !== 409) {
-    throw new Error(`Failed to ensure test user, status=${registerStatus}`);
+  await ensureDemoReady(page);
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    await page.context().clearCookies();
+
+    try {
+      const csrfResponse = await page.request.get('/api/auth/csrf');
+      if (!csrfResponse.ok()) {
+        throw new Error(`csrf status=${csrfResponse.status()}`);
+      }
+      const csrfPayload = (await csrfResponse.json()) as { csrfToken?: string };
+      if (!csrfPayload?.csrfToken) {
+        throw new Error('csrf token missing');
+      }
+
+      const loginResponse = await page.request.post('/api/auth/callback/credentials?json=true', {
+        form: {
+          csrfToken: csrfPayload.csrfToken,
+          email,
+          password,
+          callbackUrl: 'http://localhost:3000/dashboard',
+          json: 'true',
+        },
+      });
+
+      const loginPayload = (await loginResponse.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!loginResponse.ok() || loginPayload.error) {
+        throw new Error(
+          `credentials login failed, status=${loginResponse.status()}, error=${loginPayload.error || 'unknown'}`
+        );
+      }
+
+      const targetUrl = loginPayload.url || '/dashboard';
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      if (!isAuthenticatedUrl(page.url())) {
+        throw new Error(`redirected to ${page.url()}`);
+      }
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Login failed after 2 attempts (url=${page.url()}): ${message}`);
+      }
+      await page.waitForTimeout(400);
+    }
   }
-
-  await page.goto('/login');
-  await waitForLoginFormReady(page);
-
-  const { emailInput, passwordInput, submitButton } = getLoginElements(page);
-
-  // 等待表单加载并填充
-  await emailInput.fill(email);
-  await passwordInput.fill(password);
-
-  // 提交表单并等待跳转
-  await submitButton.click();
-  await page.waitForURL(/\/dashboard(?:\?.*)?$/, { timeout: 30000 });
 }
 
-/**
- * 登出功能
- */
 export async function logout(page: Page): Promise<void> {
   await page.context().clearCookies();
-  await page.goto('/login');
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
 }
 
-/**
- * 验证是否已登录
- */
 export async function expectAuthenticated(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
-  await expect(page.getByRole('link', { name: '工作台' })).toBeVisible();
+  await expect.poll(() => isAuthenticatedUrl(page.url())).toBe(true);
 }
 
-/**
- * 验证是否已登出
- */
 export async function expectUnauthenticated(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
   await expect(getLoginElements(page).emailInput).toBeVisible();

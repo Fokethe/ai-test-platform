@@ -13,7 +13,6 @@ import {
   ChevronRight,
   FileText,
   FolderKanban,
-  Languages,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -114,7 +113,7 @@ function NavLink({
 }
 
 export default function FeishuLayout({ children }: { children: ReactNode }) {
-  const { language, setLanguage, t } = useSystemLanguage();
+  const { language, t } = useSystemLanguage();
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -122,23 +121,62 @@ export default function FeishuLayout({ children }: { children: ReactNode }) {
   const [allowedMenuKeys, setAllowedMenuKeys] = useState<string[] | null>(null);
 
   useEffect(() => {
-    const role = normalizeRole(session?.user?.role);
-    setAllowedMenuKeys(DEFAULT_ROLE_MENU_ACCESS[role]);
+    if (!session?.user?.id) {
+      setAllowedMenuKeys(null);
+      return;
+    }
 
-    const controller = new AbortController();
-    fetch('/api/auth/me/menu-permissions', { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => {
-        const payload = await response.json();
-        if (payload?.code === 0 && Array.isArray(payload?.data?.menuKeys)) {
-          setAllowedMenuKeys(payload.data.menuKeys);
-        }
+    let activeController: AbortController | null = null;
+
+    const refreshPermissions = () => {
+      const role = normalizeRole(session.user.role);
+      setAllowedMenuKeys(DEFAULT_ROLE_MENU_ACCESS[role]);
+
+      if (activeController) {
+        activeController.abort();
+      }
+      activeController = new AbortController();
+
+      fetch('/api/auth/me/menu-permissions', {
+        cache: 'no-store',
+        signal: activeController.signal,
       })
-      .catch(() => {
-        // keep role-based fallback
-      });
+        .then(async (response) => {
+          const payload = await response.json();
+          if (payload?.code === 0 && Array.isArray(payload?.data?.menuKeys)) {
+            setAllowedMenuKeys(payload.data.menuKeys);
+          }
+        })
+        .catch(() => {
+          // keep role-based fallback
+        });
+    };
 
-    return () => controller.abort();
-  }, [session?.user?.role]);
+    const onPermissionsUpdated = () => {
+      refreshPermissions();
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'menu_permissions_version') {
+        refreshPermissions();
+      }
+    };
+
+    refreshPermissions();
+    window.addEventListener('menu-permissions-updated', onPermissionsUpdated as EventListener);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      if (activeController) {
+        activeController.abort();
+      }
+      window.removeEventListener(
+        'menu-permissions-updated',
+        onPermissionsUpdated as EventListener
+      );
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [session?.user?.id, session?.user?.role]);
 
   const translatedNavItems = useMemo<NavItem[]>(
     () =>
@@ -270,12 +308,6 @@ export default function FeishuLayout({ children }: { children: ReactNode }) {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem onClick={() => setLanguage(language === 'zh-CN' ? 'en' : 'zh-CN')}>
-                  <Languages className="w-4 h-4 mr-2" />
-                  {language === 'zh-CN'
-                    ? 'Switch to English'
-                    : '\u5207\u6362\u5230\u7b80\u4f53\u4e2d\u6587'}
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: '/login', redirect: true })}

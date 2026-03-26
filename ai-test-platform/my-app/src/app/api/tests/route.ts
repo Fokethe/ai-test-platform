@@ -11,6 +11,10 @@ import { buildQueryParams, parseJsonBody } from '@/lib/api-handler';
 import { auth } from '@/lib/auth';
 import { hasProjectAccess } from '@/lib/project-access';
 import { prisma } from '@/lib/prisma';
+import {
+  ensureProjectDefaultLegacyRequirement,
+  resolveLegacyRequirementId,
+} from '@/lib/requirements/legacy-bridge';
 
 type TestType = 'CASE' | 'SUITE' | 'FOLDER';
 
@@ -176,7 +180,8 @@ export async function POST(request: NextRequest) {
 
   const name = normalizeText(parseResult.data.name);
   const projectId = normalizeText(parseResult.data.projectId);
-  let requirementId = normalizeText(parseResult.data.requirementId);
+  const rawRequirementId = normalizeText(parseResult.data.requirementId);
+  let requirementId = '';
   const description = normalizeText(parseResult.data.description) || null;
   const type = normalizeType(parseResult.data.type) || 'CASE';
   const parentId =
@@ -193,25 +198,33 @@ export async function POST(request: NextRequest) {
     return errors.forbidden();
   }
 
-  if (!requirementId) {
+  if (rawRequirementId) {
+    const resolved = await resolveLegacyRequirementId({
+      projectId,
+      requirementId: rawRequirementId,
+    });
+    if (!resolved) {
+      return errors.badRequest('requirementId is invalid for this project');
+    }
+    requirementId = resolved;
+  } else {
     const fallbackRequirement = await prisma.requirement.findFirst({
       where: { page: { system: { projectId } } },
       orderBy: { createdAt: 'asc' },
       select: { id: true },
     });
 
-    if (!fallbackRequirement) {
-      return errors.badRequest('requirementId is required');
-    }
-
-    requirementId = fallbackRequirement.id;
-  } else {
-    const requirement = await prisma.requirement.findFirst({
-      where: { id: requirementId, page: { system: { projectId } } },
-      select: { id: true },
-    });
-    if (!requirement) {
-      return errors.badRequest('requirementId is invalid for this project');
+    if (fallbackRequirement?.id) {
+      requirementId = fallbackRequirement.id;
+    } else {
+      try {
+        requirementId = await ensureProjectDefaultLegacyRequirement(
+          projectId,
+          `${name} 默认需求`
+        );
+      } catch {
+        return errors.badRequest('requirementId is required');
+      }
     }
   }
 

@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Edit2, FileText, FolderOpen, MoreHorizontal, Plus, Trash2, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import {
+  Edit2,
+  ExternalLink,
+  FolderOpen,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { BentoCard, BentoGrid, BentoHeader, BentoSearch } from '@/components/bento';
 import { Badge } from '@/components/ui/badge';
@@ -30,69 +36,103 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-interface Project {
+type ProjectStatus = 'ACTIVE' | 'ARCHIVED';
+
+type Project = {
   id: string;
   name: string;
   description: string | null;
-  status: 'ACTIVE' | 'ARCHIVED';
+  status: ProjectStatus;
   createdAt: string;
-  systemCount: number;
-  testCount: number;
-  memberCount: number;
-}
+  systemCount?: number;
+  testCount?: number;
+  memberCount?: number;
+  workspaceId: string;
+};
 
-interface WorkspaceOption {
+type WorkspaceOption = {
   id: string;
   name: string;
-}
+};
 
-interface ProjectForm {
+type ProjectForm = {
+  id?: string;
   name: string;
   description: string;
   workspaceId: string;
+  status: ProjectStatus;
+};
+
+const STATUS_STYLE: Record<ProjectStatus, { label: string; className: string }> = {
+  ACTIVE: {
+    label: '运行中',
+    className: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  },
+  ARCHIVED: {
+    label: '已归档',
+    className: 'bg-slate-100 text-slate-700 border-slate-200',
+  },
+};
+
+function emptyForm(workspaceId = ''): ProjectForm {
+  return {
+    name: '',
+    description: '',
+    workspaceId,
+    status: 'ACTIVE',
+  };
 }
 
-const STATUS_CONFIG = {
-  ACTIVE: { label: '运行中', color: 'bg-[var(--electric)]/10 text-[var(--electric)] border-[var(--electric)]/30' },
-  ARCHIVED: { label: '已归档', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-};
+function getErrorMessage(payload: any, fallback: string) {
+  return payload?.error?.message || payload?.message || payload?.error || fallback;
+}
+
+function toDateText(value: string) {
+  try {
+    return new Date(value).toLocaleDateString('zh-CN');
+  } catch {
+    return value;
+  }
+}
 
 export default function ProjectsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workspaceIdFromUrl = searchParams.get('workspaceId') || '';
 
+  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState<ProjectForm>({
-    name: '',
-    description: '',
-    workspaceId: workspaceIdFromUrl,
-  });
+  const [formOpen, setFormOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [form, setForm] = useState<ProjectForm>(emptyForm(workspaceIdFromUrl));
+  const [deletingId, setDeletingId] = useState('');
+  const [batchDeleting, setBatchDeleting] = useState(false);
+
+  const selectedCount = selectedIds.size;
 
   const fetchProjects = async () => {
+    setLoading(true);
     try {
-      const query = new URLSearchParams();
+      const params = new URLSearchParams();
+      params.set('page', '1');
+      params.set('pageSize', '200');
       if (workspaceIdFromUrl) {
-        query.set('workspaceId', workspaceIdFromUrl);
+        params.set('workspaceId', workspaceIdFromUrl);
       }
-
-      const endpoint = query.size > 0 ? `/api/projects?${query.toString()}` : '/api/projects';
-      const response = await fetch(endpoint);
-      const data = await response.json();
-      if (data.code === 0) {
-        const items = Array.isArray(data.data?.list) ? data.data.list : [];
-        setProjects(items);
-      } else {
-        toast.error(data.message || '获取项目列表失败');
+      const response = await fetch(`/api/projects?${params.toString()}`, {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, '获取项目列表失败'));
       }
+      const list: Project[] = Array.isArray(payload?.data?.list) ? payload.data.list : [];
+      setProjects(list);
     } catch (error) {
-      toast.error('获取项目列表失败');
+      toast.error(error instanceof Error ? error.message : '获取项目列表失败');
     } finally {
       setLoading(false);
     }
@@ -100,14 +140,22 @@ export default function ProjectsPage() {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await fetch('/api/workspaces?page=1&pageSize=100');
-      const data = await response.json();
-      if (data.code === 0) {
-        const items = Array.isArray(data.data?.list) ? data.data.list : [];
-        setWorkspaces(items.map((item: { id: string; name: string }) => ({ id: item.id, name: item.name })));
+      const response = await fetch('/api/workspaces?page=1&pageSize=200', {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        return;
       }
-    } catch (error) {
-      console.error('Failed to fetch workspaces:', error);
+      const list = Array.isArray(payload?.data?.list) ? payload.data.list : [];
+      setWorkspaces(
+        list.map((item: { id: string; name: string }) => ({
+          id: item.id,
+          name: item.name,
+        }))
+      );
+    } catch {
+      // Ignore workspace loading errors in list page.
     }
   };
 
@@ -117,273 +165,412 @@ export default function ProjectsPage() {
   }, [workspaceIdFromUrl]);
 
   useEffect(() => {
-    if (workspaceIdFromUrl) {
-      setFormData((prev) => ({ ...prev, workspaceId: workspaceIdFromUrl }));
+    if (!form.workspaceId) {
+      if (workspaceIdFromUrl) {
+        setForm((prev) => ({ ...prev, workspaceId: workspaceIdFromUrl }));
+      } else if (workspaces.length === 1) {
+        setForm((prev) => ({ ...prev, workspaceId: workspaces[0].id }));
+      }
     }
-  }, [workspaceIdFromUrl]);
+  }, [form.workspaceId, workspaceIdFromUrl, workspaces]);
 
-  useEffect(() => {
-    if (!formData.workspaceId && workspaces.length === 1) {
-      setFormData((prev) => ({ ...prev, workspaceId: workspaces[0].id }));
+  const filtered = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) {
+      return projects;
     }
-  }, [workspaces, formData.workspaceId]);
+    return projects.filter((project) => {
+      const title = project.name.toLowerCase();
+      const desc = (project.description || '').toLowerCase();
+      return title.includes(keyword) || desc.includes(keyword);
+    });
+  }, [projects, search]);
 
-  const filteredProjects = projects.filter((project) => {
-    const keyword = searchQuery.toLowerCase();
-    return (
-      project.name.toLowerCase().includes(keyword) ||
-      (project.description && project.description.toLowerCase().includes(keyword))
-    );
-  });
-
-  const handleSelect = (id: string, checked: boolean) => {
-    const next = new Set(selectedIds);
-    if (checked) {
-      next.add(id);
-    } else {
-      next.delete(id);
-    }
-    setSelectedIds(next);
+  const openCreate = () => {
+    setForm(emptyForm(workspaceIdFromUrl || workspaces[0]?.id || ''));
+    setFormOpen(true);
   };
 
-  const handleCreate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!formData.workspaceId) {
+  const openEdit = (project: Project) => {
+    setForm({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      workspaceId: project.workspaceId,
+      status: project.status,
+    });
+    setFormOpen(true);
+  };
+
+  const submitForm = async () => {
+    const name = form.name.trim();
+    if (!name) {
+      toast.error('请输入项目名称');
+      return;
+    }
+    if (!form.workspaceId) {
       toast.error('请选择工作空间');
       return;
     }
 
-    setCreating(true);
+    setFormLoading(true);
     try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
+      const method = form.id ? 'PUT' : 'POST';
+      const endpoint = form.id ? `/api/projects/${form.id}` : '/api/projects';
+      const body = form.id
+        ? {
+            name,
+            description: form.description.trim() || null,
+            status: form.status,
+          }
+        : {
+            name,
+            description: form.description.trim(),
+            workspaceId: form.workspaceId,
+            status: form.status,
+          };
+
+      const response = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       });
-      const data = await response.json();
-      if (data.code === 0) {
-        toast.success('项目创建成功');
-        setDialogOpen(false);
-        setFormData((prev) => ({ ...prev, name: '', description: '' }));
-        await fetchProjects();
-        router.push(`/projects/${data.data.id}`);
-      } else {
-        toast.error(data.message || '创建失败');
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, form.id ? '编辑失败' : '创建失败'));
+      }
+
+      toast.success(form.id ? '项目已更新' : '项目已创建');
+      const createdId = payload?.data?.id;
+      setFormOpen(false);
+      await fetchProjects();
+
+      if (!form.id && createdId) {
+        router.push(`/projects/${createdId}`);
       }
     } catch (error) {
-      toast.error('创建失败');
+      toast.error(error instanceof Error ? error.message : form.id ? '编辑失败' : '创建失败');
     } finally {
-      setCreating(false);
+      setFormLoading(false);
     }
   };
 
-  const handleBatchDelete = async () => {
-    if (!confirm(`确定要删除选中的 ${selectedIds.size} 个项目吗？`)) {
+  const deleteOne = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+      const payload = await response.json();
+      if (!response.ok || payload?.code !== 0) {
+        throw new Error(getErrorMessage(payload, '删除失败'));
+      }
+      toast.success('项目已删除');
+      setDeletingId('');
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(projectId);
+        return next;
+      });
+      await fetchProjects();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '删除失败');
+    }
+  };
+
+  const batchDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) {
       return;
     }
-    toast.success(`已删除 ${selectedIds.size} 个项目`);
+
+    setBatchDeleting(true);
+    let successCount = 0;
+    const failedNames: string[] = [];
+
+    for (const id of ids) {
+      try {
+        const response = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+        const payload = await response.json();
+        if (!response.ok || payload?.code !== 0) {
+          const projectName = projects.find((project) => project.id === id)?.name || id;
+          failedNames.push(projectName);
+          continue;
+        }
+        successCount += 1;
+      } catch {
+        const projectName = projects.find((project) => project.id === id)?.name || id;
+        failedNames.push(projectName);
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`已删除 ${successCount} 个项目`);
+    }
+    if (failedNames.length > 0) {
+      toast.error(`删除失败 ${failedNames.length} 个: ${failedNames.join(', ')}`);
+    }
+
+    setBatchDeleting(false);
     setSelectedIds(new Set());
-    fetchProjects();
+    await fetchProjects();
+  };
+
+  const toggleSelection = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
   };
 
   return (
-    <div className="p-6 animate-in fade-in duration-500">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <BentoHeader
-          title="项目管理"
-          count={projects.length}
-          countLabel="个项目"
-          actionLabel="创建项目"
-          onAction={() => setDialogOpen(true)}
-          onRefresh={fetchProjects}
-          isRefreshing={loading}
-          secondaryActions={
-            selectedIds.size > 0 ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">已选 {selectedIds.size} 项</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBatchDelete}
-                  className="border-red-200 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  批量删除
-                </Button>
-              </div>
-            ) : null
-          }
-        />
-
-        <BentoSearch
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onSearch={() => {}}
-          placeholder="搜索项目名称或描述..."
-        />
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin h-8 w-8 border-2 border-[var(--electric)] border-t-transparent rounded-full" />
-          </div>
-        ) : filteredProjects.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📁</div>
-            <h3 className="text-lg font-semibold mb-2">还没有项目</h3>
-            <p className="text-slate-600 mb-6">创建您的第一个项目开始协作</p>
-            <Button onClick={() => setDialogOpen(true)} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
-              <Plus className="mr-2 h-4 w-4" />
-              创建项目
-            </Button>
-          </div>
-        ) : (
-          <BentoGrid cols={3}>
-            {filteredProjects.map((project) => (
-              <BentoCard
-                key={project.id}
-                variant="bordered"
-                className="group relative p-5 transition-all duration-300 hover:border-[var(--electric)] hover:shadow-lg hover:shadow-[var(--electric)]/10"
+    <div className="space-y-6 p-6">
+      <BentoHeader
+        title="项目管理"
+        description="集中管理项目信息，支持快捷查看、编辑和删除"
+        count={projects.length}
+        countLabel="个项目"
+        actionLabel="新建项目"
+        onAction={openCreate}
+        onRefresh={fetchProjects}
+        isRefreshing={loading}
+        secondaryActions={
+          selectedCount > 0 ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-500">已选 {selectedCount} 个</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                disabled={batchDeleting}
+                onClick={batchDelete}
               >
-                <div className="absolute top-4 left-4 z-10">
+                {batchDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-1" />
+                )}
+                批量删除
+              </Button>
+            </div>
+          ) : null
+        }
+      />
+
+      <BentoSearch
+        value={search}
+        onChange={setSearch}
+        onSearch={() => null}
+        placeholder="搜索项目名称或描述"
+      />
+
+      {loading ? (
+        <BentoCard className="p-12 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+        </BentoCard>
+      ) : filtered.length === 0 ? (
+        <BentoCard className="p-12 text-center">
+          <FolderOpen className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+          <p className="text-slate-500">暂无项目</p>
+          <Button className="mt-4" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" />
+            创建第一个项目
+          </Button>
+        </BentoCard>
+      ) : (
+        <BentoGrid cols={3}>
+          {filtered.map((project) => (
+            <BentoCard key={project.id} variant="bordered" className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1">
                   <Checkbox
                     checked={selectedIds.has(project.id)}
-                    onCheckedChange={(checked) => handleSelect(project.id, checked as boolean)}
-                    className="border-slate-300 data-[state=checked]:bg-[var(--electric)] data-[state=checked]:border-[var(--electric)]"
+                    onCheckedChange={(value) => toggleSelection(project.id, Boolean(value))}
+                    className="mt-1"
                   />
-                </div>
-
-                <div className="absolute top-4 right-4 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/projects/${project.id}`)}>
-                        <FolderOpen className="mr-2 h-4 w-4" />
-                        查看详情
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Edit2 className="mr-2 h-4 w-4" />
-                        编辑
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        删除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="cursor-pointer pt-8" onClick={() => router.push(`/projects/${project.id}`)}>
-                  <h3 className="font-semibold text-lg text-slate-900 group-hover:text-[var(--electric)] transition-colors line-clamp-1">
-                    {project.name}
-                  </h3>
-                  <div className="mt-2">
-                    <Badge variant="outline" className={STATUS_CONFIG[project.status].color}>
-                      {STATUS_CONFIG[project.status].label}
-                    </Badge>
-                  </div>
-                  <p className="mt-3 text-sm text-slate-500 line-clamp-2 min-h-[40px]">
-                    {project.description || '暂无描述'}
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <div className="p-1.5 rounded-md bg-[var(--electric)]/10">
-                          <FolderOpen className="h-3.5 w-3.5 text-[var(--electric)]" />
-                        </div>
-                        <span className="font-medium">{project.systemCount || 0}</span>
-                        <span className="text-slate-400">系统</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <div className="p-1.5 rounded-md bg-blue-50">
-                          <FileText className="h-3.5 w-3.5 text-blue-500" />
-                        </div>
-                        <span className="font-medium">{project.testCount || 0}</span>
-                        <span className="text-slate-400">用例</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <div className="p-1.5 rounded-md bg-purple-50">
-                          <Users className="h-3.5 w-3.5 text-purple-500" />
-                        </div>
-                        <span className="font-medium">{project.memberCount || 0}</span>
-                        <span className="text-slate-400">成员</span>
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-lg truncate">{project.name}</p>
+                    <div className="mt-2">
+                      <Badge variant="outline" className={STATUS_STYLE[project.status].className}>
+                        {STATUS_STYLE[project.status].label}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-500 mt-3 line-clamp-2 min-h-10">
+                      {project.description || '暂无描述'}
+                    </p>
+                    <div className="mt-4 text-xs text-slate-500 space-y-1">
+                      <p>系统: {project.systemCount || 0}</p>
+                      <p>用例: {project.testCount || 0}</p>
+                      <p>成员: {project.memberCount || 0}</p>
+                      <p>创建于: {toDateText(project.createdAt)}</p>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-slate-400">
-                    创建于 {format(new Date(project.createdAt), 'yyyy-MM-dd', { locale: zhCN })}
-                  </div>
                 </div>
-              </BentoCard>
-            ))}
-          </BentoGrid>
-        )}
-      </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => router.push(`/projects/${project.id}`)}>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      查看详情
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(project)}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      编辑
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => setDeletingId(project.id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      删除
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="mt-4 pt-4 border-t flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                >
+                  <FolderOpen className="w-4 h-4 mr-1" />
+                  详情
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(project)}>
+                  <Edit2 className="w-4 h-4 mr-1" />
+                  编辑
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => setDeletingId(project.id)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  删除
+                </Button>
+              </div>
+            </BentoCard>
+          ))}
+        </BentoGrid>
+      )}
+
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>创建项目</DialogTitle>
-            <DialogDescription>创建一个新的测试项目</DialogDescription>
+            <DialogTitle>{form.id ? '编辑项目' : '新建项目'}</DialogTitle>
+            <DialogDescription>
+              {form.id ? '更新项目名称、描述和状态。' : '填写项目信息并立即创建。'}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreate}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">项目名称 *</Label>
-                <Input
-                  id="name"
-                  placeholder="输入项目名称"
-                  value={formData.name}
-                  onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="workspaceId">工作空间 *</Label>
-                <Select
-                  value={formData.workspaceId}
-                  onValueChange={(workspaceId) => setFormData({ ...formData, workspaceId })}
-                >
-                  <SelectTrigger id="workspaceId" className="w-full">
-                    <SelectValue placeholder="请选择工作空间" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workspaces.map((workspace) => (
-                      <SelectItem key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">项目描述</Label>
-                <Textarea
-                  id="description"
-                  placeholder="描述这个项目的用途（可选）"
-                  value={formData.description}
-                  onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                  rows={3}
-                />
-              </div>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="project-name">项目名称</Label>
+              <Input
+                id="project-name"
+                value={form.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="请输入项目名称"
+              />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                取消
-              </Button>
-              <Button type="submit" disabled={creating} className="bg-[var(--electric)] hover:bg-[var(--electric)]/90">
-                {creating ? '创建中...' : '创建'}
-              </Button>
-            </DialogFooter>
-          </form>
+            <div className="space-y-2">
+              <Label htmlFor="workspace-select">工作空间</Label>
+              <Select
+                value={form.workspaceId || 'none'}
+                onValueChange={(value) =>
+                  setForm((prev) => ({ ...prev, workspaceId: value === 'none' ? '' : value }))
+                }
+                disabled={Boolean(form.id)}
+              >
+                <SelectTrigger id="workspace-select">
+                  <SelectValue placeholder="请选择工作空间" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">请选择</SelectItem>
+                  {workspaces.map((workspace) => (
+                    <SelectItem key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project-status">状态</Label>
+              <Select
+                value={form.status}
+                onValueChange={(value) =>
+                  setForm((prev) => ({ ...prev, status: value as ProjectStatus }))
+                }
+              >
+                <SelectTrigger id="project-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">运行中</SelectItem>
+                  <SelectItem value="ARCHIVED">已归档</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project-description">描述</Label>
+              <Textarea
+                id="project-description"
+                rows={4}
+                value={form.description}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, description: event.target.value }))
+                }
+                placeholder="请输入项目描述（可选）"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={submitForm} disabled={formLoading}>
+              {formLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  提交中...
+                </>
+              ) : form.id ? (
+                '保存修改'
+              ) : (
+                '创建项目'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deletingId)} onOpenChange={(open) => (open ? null : setDeletingId(''))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除项目</DialogTitle>
+            <DialogDescription>删除后不可恢复，确认继续吗？</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingId('')}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={() => deleteOne(deletingId)}>
+              确认删除
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

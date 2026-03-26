@@ -31,8 +31,24 @@ export async function hasWorkspaceAccess(
     },
     select: { id: true },
   });
+  if (membership) {
+    return true;
+  }
 
-  return !!membership;
+  const allowOwner = !roles || roles.includes('OWNER');
+  if (!allowOwner) {
+    return false;
+  }
+
+  const workspace = await prisma.workspace.findFirst({
+    where: {
+      id: workspaceId,
+      ownerId: userId,
+    },
+    select: { id: true },
+  });
+
+  return !!workspace;
 }
 
 export async function hasProjectAccess(
@@ -41,17 +57,29 @@ export async function hasProjectAccess(
   roles?: WorkspaceRole[]
 ): Promise<boolean> {
   const workspaceRoleFilter = buildRoleFilter(roles);
+  const allowOwner = !roles || roles.includes('OWNER');
 
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
       workspace: {
-        members: {
-          some: {
-            userId,
-            ...workspaceRoleFilter,
+        OR: [
+          ...(allowOwner
+            ? [
+                {
+                  ownerId: userId,
+                },
+              ]
+            : []),
+          {
+            members: {
+              some: {
+                userId,
+                ...workspaceRoleFilter,
+              },
+            },
           },
-        },
+        ],
       },
     },
     select: { id: true },
@@ -66,18 +94,30 @@ export async function hasSystemAccess(
   roles?: WorkspaceRole[]
 ): Promise<boolean> {
   const workspaceRoleFilter = buildRoleFilter(roles);
+  const allowOwner = !roles || roles.includes('OWNER');
 
   const system = await prisma.system.findFirst({
     where: {
       id: systemId,
       project: {
         workspace: {
-          members: {
-            some: {
-              userId,
-              ...workspaceRoleFilter,
+          OR: [
+            ...(allowOwner
+              ? [
+                  {
+                    ownerId: userId,
+                  },
+                ]
+              : []),
+            {
+              members: {
+                some: {
+                  userId,
+                  ...workspaceRoleFilter,
+                },
+              },
             },
-          },
+          ],
         },
       },
     },
@@ -93,6 +133,7 @@ export async function hasPageAccess(
   roles?: WorkspaceRole[]
 ): Promise<boolean> {
   const workspaceRoleFilter = buildRoleFilter(roles);
+  const allowOwner = !roles || roles.includes('OWNER');
 
   const page = await prisma.page.findFirst({
     where: {
@@ -100,12 +141,23 @@ export async function hasPageAccess(
       system: {
         project: {
           workspace: {
-            members: {
-              some: {
-                userId,
-                ...workspaceRoleFilter,
+            OR: [
+              ...(allowOwner
+                ? [
+                    {
+                      ownerId: userId,
+                    },
+                  ]
+                : []),
+              {
+                members: {
+                  some: {
+                    userId,
+                    ...workspaceRoleFilter,
+                  },
+                },
               },
-            },
+            ],
           },
         },
       },
