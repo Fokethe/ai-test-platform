@@ -1,609 +1,741 @@
 'use client';
 
 import Link from 'next/link';
-import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import {
   ArrowUp,
-  Bot,
-  Database,
-  FileSearch,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  FileText,
   Loader2,
-  Sparkles,
+  MessageSquarePlus,
+  MoreHorizontal,
+  Paperclip,
+  RefreshCcw,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
-type GenerationMode = 'standard' | 'self-rag' | 'rrr';
+type ChatModel = 'gpt-5.3' | 'gpt-5.4' | 'claude-3-7-sonnet' | 'kimi-k2.5';
+type WebMode = 'smart' | 'manual' | 'off';
+type RagMode = 'standard' | 'enhanced';
+type Scope = 'all' | 'personal' | 'project';
 
-type ProjectOption = {
-  id: string;
-  name: string;
+type ReferenceItem = {
+  title: string;
+  url?: string;
+  snippet?: string;
+  provider?: string;
+  sourceType?: string;
 };
 
-type SearchContext = {
-  query?: string;
-  rewrittenQuery?: string;
-  retrievalTime?: number;
-  totalTime?: number;
-  cacheHit?: boolean;
+type MessageMeta = {
+  sources: number;
+  citations: number;
+  web: number;
+  provider?: string;
+  references?: ReferenceItem[];
+  modelRuntime?: {
+    usedModel?: string;
+    callPath?: string;
+    fallbackReason?: string;
+  };
 };
 
-type GenerationControl = {
-  mode?: GenerationMode;
-  iterations?: number;
-  confidence?: number;
-  activeRetrievalTriggered?: boolean;
-};
-
-type EvidenceSource = {
-  id: string;
-  content: string;
-  score: number;
-  metadata?: Record<string, unknown>;
-};
-
-type MessageReferences = {
-  citations: string[];
-  sources: EvidenceSource[];
-  context?: SearchContext;
-  generationControl?: GenerationControl;
-};
-
-type ChatMessage = {
+type Msg = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: number;
   pending?: boolean;
   error?: boolean;
-  references?: MessageReferences;
+  meta?: MessageMeta;
 };
 
-type ParsedSearchResult = {
-  answer: string;
-  references: MessageReferences;
-};
+type Conv = { id: string; title: string; updatedAt: string; knowledgeScope?: Scope };
+type FileItem = { id: string; name: string; size: number; content: string };
 
-const QUICK_PROMPTS = [
-  '总结最近两周登录模块的高风险场景',
-  '从知识库中找出订单支付失败的回归点',
-  '生成“注册流程”测试策略和边界条件',
-  '对比接口文档和测试用例，指出缺口',
+const MODELS: Array<{ id: ChatModel; label: string }> = [
+  { id: 'gpt-5.3', label: 'GPT-5.3' },
+  { id: 'gpt-5.4', label: 'GPT-5.4' },
+  { id: 'claude-3-7-sonnet', label: 'Claude 3.7 Sonnet' },
+  { id: 'kimi-k2.5', label: 'Kimi K2.5' },
 ];
 
-const PROJECT_ALL = '__all_projects__';
+const DEPARTMENT_ID = 'default';
+const MAX_FILES = 3;
 
-function createMessageId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const formatTime = (v: number) =>
+  new Date(v).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+function parseError(payload: unknown, fallback: string) {
+  const x = payload as { message?: string; error?: string | { message?: string } } | null;
+  return x?.message || (typeof x?.error === 'string' ? x.error : x?.error?.message) || fallback;
 }
 
-function formatMessageTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getErrorMessage(payload: unknown, fallback: string) {
-  if (!payload || typeof payload !== 'object') {
-    return fallback;
+function parseMessageMeta(meta: string | null | undefined): MessageMeta | undefined {
+  if (!meta) {
+    return undefined;
   }
-
-  const candidate = payload as {
-    message?: unknown;
-    error?: unknown;
-  };
-
-  if (typeof candidate.message === 'string' && candidate.message.trim()) {
-    return candidate.message;
-  }
-
-  if (typeof candidate.error === 'string' && candidate.error.trim()) {
-    return candidate.error;
-  }
-
-  if (candidate.error && typeof candidate.error === 'object') {
-    const nestedMessage = (candidate.error as { message?: unknown }).message;
-    if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
-      return nestedMessage;
+  try {
+    const parsed = JSON.parse(meta) as MessageMeta;
+    if (!parsed || typeof parsed !== 'object') {
+      return undefined;
     }
+    return parsed;
+  } catch {
+    return undefined;
   }
-
-  return fallback;
 }
 
-function parseProjectOptions(payload: unknown): ProjectOption[] {
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
+function buildReferences(data: {
+  references?: unknown[];
+  webSearch?: { items?: unknown[]; provider?: string };
+}): ReferenceItem[] {
+  const notNull = <T,>(value: T | null): value is T => value !== null;
 
-  const data = (payload as { data?: unknown }).data;
-  if (!data || typeof data !== 'object') {
-    return [];
-  }
-
-  const list = (data as { list?: unknown }).list;
-  if (!Array.isArray(list)) {
-    return [];
-  }
-
-  return list
-    .filter(
-      (item): item is { id: string; name?: string } =>
-        Boolean(item) &&
-        typeof item === 'object' &&
-        typeof (item as { id?: unknown }).id === 'string'
-    )
-    .map((item) => ({
-      id: item.id,
-      name:
-        typeof item.name === 'string' && item.name.trim().length > 0
-          ? item.name
-          : item.id,
-    }));
-}
-
-function parseSearchResult(payload: unknown): ParsedSearchResult | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const root = payload as { success?: unknown; data?: unknown };
-  if (root.success !== true || !root.data || typeof root.data !== 'object') {
-    return null;
-  }
-
-  const data = root.data as Record<string, unknown>;
-  const rawAnswer = data.answer;
-  const answer =
-    typeof rawAnswer === 'string' && rawAnswer.trim().length > 0
-      ? rawAnswer.trim()
-      : '检索已完成，但没有返回可展示的文本答案。';
-
-  const citations = Array.isArray(data.citations)
-    ? data.citations.filter(
-        (item): item is string =>
-          typeof item === 'string' && item.trim().length > 0
-      )
+  const directRefs = Array.isArray(data.references)
+    ? data.references
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+          const row = item as Record<string, unknown>;
+          return {
+            title: typeof row.title === 'string' ? row.title : '未命名来源',
+            url: typeof row.url === 'string' ? row.url : undefined,
+            snippet: typeof row.snippet === 'string' ? row.snippet : undefined,
+            provider: typeof row.provider === 'string' ? row.provider : undefined,
+            sourceType: typeof row.sourceType === 'string' ? row.sourceType : undefined,
+          } satisfies ReferenceItem;
+        })
+        .filter(notNull)
     : [];
 
-  const sources = Array.isArray(data.sources)
-    ? data.sources
-        .filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item) && typeof item === 'object'
-        )
-        .map((item, index) => ({
-          id: typeof item.id === 'string' ? item.id : `source-${index + 1}`,
-          content: typeof item.content === 'string' ? item.content : '',
-          score: typeof item.score === 'number' ? item.score : 0,
-          metadata:
-            item.metadata && typeof item.metadata === 'object'
-              ? (item.metadata as Record<string, unknown>)
-              : undefined,
-        }))
+  if (directRefs.length > 0) {
+    return directRefs;
+  }
+
+  return Array.isArray(data.webSearch?.items)
+    ? data.webSearch.items
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+          const row = item as Record<string, unknown>;
+          return {
+            title: typeof row.title === 'string' ? row.title : '网络来源',
+            url: typeof row.url === 'string' ? row.url : undefined,
+            snippet: typeof row.snippet === 'string' ? row.snippet : undefined,
+            provider: data.webSearch?.provider,
+            sourceType: 'web',
+          } satisfies ReferenceItem;
+        })
+        .filter(notNull)
     : [];
-
-  let context: SearchContext | undefined;
-  if (data.context && typeof data.context === 'object') {
-    const contextLike = data.context as Record<string, unknown>;
-    context = {
-      query:
-        typeof contextLike.query === 'string' ? contextLike.query : undefined,
-      rewrittenQuery:
-        typeof contextLike.rewrittenQuery === 'string'
-          ? contextLike.rewrittenQuery
-          : undefined,
-      retrievalTime:
-        typeof contextLike.retrievalTime === 'number'
-          ? contextLike.retrievalTime
-          : undefined,
-      totalTime:
-        typeof contextLike.totalTime === 'number'
-          ? contextLike.totalTime
-          : undefined,
-      cacheHit:
-        typeof contextLike.cacheHit === 'boolean'
-          ? contextLike.cacheHit
-          : undefined,
-    };
-  }
-
-  let generationControl: GenerationControl | undefined;
-  if (data.generationControl && typeof data.generationControl === 'object') {
-    const generationLike = data.generationControl as Record<string, unknown>;
-    generationControl = {
-      mode:
-        generationLike.mode === 'standard' ||
-        generationLike.mode === 'self-rag' ||
-        generationLike.mode === 'rrr'
-          ? generationLike.mode
-          : undefined,
-      iterations:
-        typeof generationLike.iterations === 'number'
-          ? generationLike.iterations
-          : undefined,
-      confidence:
-        typeof generationLike.confidence === 'number'
-          ? generationLike.confidence
-          : undefined,
-      activeRetrievalTriggered:
-        typeof generationLike.activeRetrievalTriggered === 'boolean'
-          ? generationLike.activeRetrievalTriggered
-          : undefined,
-    };
-  }
-
-  return {
-    answer,
-    references: {
-      citations,
-      sources,
-      context,
-      generationControl,
-    },
-  };
-}
-
-function scoreLabel(score: number) {
-  if (!Number.isFinite(score)) {
-    return '-';
-  }
-  const normalized = score <= 1 ? score * 100 : score;
-  return `${normalized.toFixed(normalized >= 10 ? 0 : 1)}%`;
-}
-
-function sourceTitle(source: EvidenceSource) {
-  if (!source.metadata) {
-    return source.id;
-  }
-
-  const candidates = [
-    source.metadata.title,
-    source.metadata.name,
-    source.metadata.fileName,
-    source.metadata.filename,
-    source.metadata.url,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim().length > 0) {
-      return candidate;
-    }
-  }
-
-  return source.id;
-}
-
-type ToggleSettingProps = {
-  label: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-};
-
-function ToggleSetting({
-  label,
-  description,
-  checked,
-  onCheckedChange,
-}: ToggleSettingProps) {
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div>
-        <p className="text-sm font-medium text-slate-900">{label}</p>
-        <p className="text-xs text-slate-500">{description}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
-    </div>
-  );
 }
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const search = useSearchParams();
+  const projectId = search.get('projectId')?.trim() || '';
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
   const [query, setQuery] = useState('');
-  const [departmentId, setDepartmentId] = useState('default');
-  const [projectId, setProjectId] = useState('');
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [conversations, setConversations] = useState<Conv[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>('all');
+  const [model, setModel] = useState<ChatModel>('gpt-5.4');
+  const [webMode, setWebMode] = useState<WebMode>('smart');
+  const [ragMode, setRagMode] = useState<RagMode>('enhanced');
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
+  const [booting, setBooting] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [generationMode, setGenerationMode] =
-    useState<GenerationMode>('standard');
-  const [topK, setTopK] = useState(8);
-  const [enableQueryRewrite, setEnableQueryRewrite] = useState(true);
-  const [enableSelfRAG, setEnableSelfRAG] = useState(false);
-  const [enableMultiSource, setEnableMultiSource] = useState(true);
-  const [enableRefinement, setEnableRefinement] = useState(true);
-  const [enableReranking, setEnableReranking] = useState(true);
-  const [enableActiveRetrieval, setEnableActiveRetrieval] = useState(false);
+  const loadConversations = async () => {
+    const params = new URLSearchParams({ limit: '100' });
+    if (projectId) {
+      params.set('projectId', projectId);
+    }
+    const response = await fetch(`/api/chat/conversations?${params.toString()}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      throw new Error('加载会话失败');
+    }
+    const payload = (await response.json()) as { data?: { list?: Conv[] } };
+    const rows = Array.isArray(payload.data?.list) ? payload.data.list : [];
+    setConversations(rows);
+    return rows;
+  };
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content:
-        '你好，我是 RAG 智能助手。你可以直接提问业务问题、测试问题或缺陷定位问题，我会先检索知识库证据，再给出可追溯答案。',
-      createdAt: Date.now(),
-    },
-  ]);
-
-  const messageListRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadProjects = async () => {
-      setIsLoadingProjects(true);
-      try {
-        const response = await fetch('/api/projects?page=1&pageSize=200', {
-          cache: 'no-store',
-        });
-        if (!response.ok) {
-          return;
-        }
-        const payload: unknown = await response.json();
-        const nextProjects = parseProjectOptions(payload);
-        if (!cancelled) {
-          setProjects(nextProjects);
-        }
-      } catch {
-        if (!cancelled) {
-          setProjects([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingProjects(false);
-        }
+  const openConversation = async (conversationId: string) => {
+    setActiveId(conversationId);
+    setLoadingDetail(true);
+    try {
+      const response = await fetch(`/api/chat/conversations/${conversationId}?limit=300`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error('加载会话详情失败');
       }
-    };
+      const payload = (await response.json()) as {
+        data?: {
+          knowledgeScope?: Scope;
+          messages?: Array<{
+            id: string;
+            role: 'user' | 'assistant';
+            content: string;
+            createdAt: string;
+            meta?: string;
+          }>;
+        };
+      };
+      const detail = payload.data;
+      setScope(detail?.knowledgeScope || 'all');
+      const rows = Array.isArray(detail?.messages) ? detail.messages : [];
+      setMessages(
+        rows.map((item) => ({
+          id: item.id,
+          role: item.role,
+          content: item.content,
+          createdAt: new Date(item.createdAt).getTime(),
+          meta: parseMessageMeta(item.meta),
+        }))
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '加载会话详情失败');
+      setMessages([]);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
-    void loadProjects();
+  const createConversation = async () => {
+    const response = await fetch('/api/chat/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '新对话',
+        knowledgeScope: scope,
+        projectId: projectId || undefined,
+      }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(parseError(payload, '创建会话失败'));
+    }
+    const conversationId = (payload as { data?: { id?: string } })?.data?.id || '';
+    if (!conversationId) {
+      throw new Error('创建会话返回无效');
+    }
+    setActiveId(conversationId);
+    setMessages([]);
+    setQuery('');
+    setFiles([]);
+    await loadConversations();
+    return conversationId;
+  };
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const ensureConversation = async () => activeId || createConversation();
 
-  useEffect(() => {
-    const messageList = messageListRef.current;
-    if (!messageList) {
+  const refreshWorkspace = async () => {
+    try {
+      const rows = await loadConversations();
+      if (activeId && rows.some((row) => row.id === activeId)) {
+        await openConversation(activeId);
+        return;
+      }
+      if (rows[0]?.id) {
+        await openConversation(rows[0].id);
+        return;
+      }
+      await createConversation();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '刷新失败');
+    }
+  };
+
+  const removeConversation = async (conversationId: string) => {
+    const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+      method: 'DELETE',
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(parseError(payload, '删除会话失败'));
+    }
+    const rows = await loadConversations();
+    if (activeId === conversationId) {
+      if (rows[0]?.id) {
+        await openConversation(rows[0].id);
+      } else {
+        await createConversation();
+      }
+    }
+  };
+
+  const uploadToKnowledge = async (file: File, content: string) => {
+    try {
+      const response = await fetch('/api/knowledge/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          departmentId: DEPARTMENT_ID,
+          projectId: projectId || undefined,
+          documents: [
+            {
+              id: `chat-file-${Date.now()}`,
+              content,
+              metadata: {
+                filename: file.name,
+                source: 'dashboard_chat_upload',
+              },
+            },
+          ],
+        }),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
       return;
     }
-    messageList.scrollTop = messageList.scrollHeight;
-  }, [messages]);
-
-  const sendQuery = async () => {
-    const trimmed = query.trim();
-    if (!trimmed || isSending) {
+    if (files.length >= MAX_FILES) {
+      toast.error(`最多添加 ${MAX_FILES} 个文件`);
       return;
     }
+    setUploading(true);
+    try {
+      const content = (await file.text()).trim().slice(0, 8000);
+      if (!content) {
+        toast.error('文件内容为空');
+        return;
+      }
+      setFiles((prev) => [...prev, { id: makeId(), name: file.name, size: file.size, content }]);
+      const ok = await uploadToKnowledge(file, content);
+      toast.success(ok ? '文件已加入知识检索' : '文件已加入当前对话');
+    } catch {
+      toast.error('读取文件失败');
+    } finally {
+      setUploading(false);
+    }
+  };
 
-    const trimmedDepartment = departmentId.trim();
-    if (!trimmedDepartment) {
-      toast.error('请先填写 departmentId');
+  const send = async (forcedText?: string) => {
+    const text = (forcedText ?? query).trim();
+    if (!text || sending) {
       return;
     }
-
-    const userMessage: ChatMessage = {
-      id: createMessageId(),
-      role: 'user',
-      content: trimmed,
-      createdAt: Date.now(),
-    };
-    const pendingMessageId = createMessageId();
-
+    const conversationId = await ensureConversation();
+    const history = messages
+      .filter((message) => !message.pending)
+      .slice(-8)
+      .map((message) => ({ role: message.role, content: message.content }));
+    const pendingId = makeId();
     setMessages((prev) => [
       ...prev,
-      userMessage,
+      { id: makeId(), role: 'user', content: text, createdAt: Date.now() },
       {
-        id: pendingMessageId,
+        id: pendingId,
         role: 'assistant',
-        content: '正在检索知识库并整理答案，请稍候...',
+        content: '正在思考...',
         createdAt: Date.now(),
         pending: true,
       },
     ]);
-    setQuery('');
-    setIsSending(true);
-
+    if (!forcedText) {
+      setQuery('');
+    }
+    setSending(true);
     try {
       const response = await fetch('/api/knowledge/search', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: trimmed,
-          departmentId: trimmedDepartment,
-          ...(projectId ? { projectId } : {}),
+          query: text,
+          departmentId: DEPARTMENT_ID,
+          projectId: projectId || undefined,
+          conversationId,
+          history,
+          model,
+          attachments: files.map((file) => ({ name: file.name, content: file.content })),
           options: {
-            topK,
-            enableQueryRewrite,
-            enableSelfRAG,
-            enableMultiSource,
-            enableRefinement,
-            enableReranking,
-            enableActiveRetrieval,
-            generationMode,
+            webSearchMode: webMode,
+            enableWebSearch: webMode === 'manual',
+            enableRefinement: ragMode === 'enhanced',
+            enableReranking: ragMode === 'enhanced',
+            enableQueryRewrite: true,
+            generationMode: 'standard',
           },
         }),
       });
-
-      let payload: unknown = null;
-      try {
-        payload = await response.json();
-      } catch {
-        payload = null;
-      }
-
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(getErrorMessage(payload, '检索请求失败'));
+        throw new Error(parseError(payload, '请求失败'));
       }
 
-      const result = parseSearchResult(payload);
-      if (!result) {
-        throw new Error('接口返回格式不符合预期');
+      const root = payload as {
+        success?: boolean;
+        data?: {
+          answer?: string;
+          sources?: unknown[];
+          citations?: unknown[];
+          references?: unknown[];
+          modelRuntime?: { usedModel?: string; callPath?: string; reason?: string };
+          webSearch?: {
+            items?: unknown[];
+            provider?: string;
+          };
+        };
+      };
+      if (!root.success || !root.data?.answer) {
+        throw new Error('响应格式不正确');
       }
+
+      const references = buildReferences({
+        references: root.data.references,
+        webSearch: root.data.webSearch,
+      });
 
       setMessages((prev) =>
-        prev.map((item) =>
-          item.id === pendingMessageId
+        prev.map((message) =>
+          message.id === pendingId
             ? {
-                ...item,
+                ...message,
                 pending: false,
-                content: result.answer,
-                references: result.references,
+                content: root.data?.answer || '',
+                meta: {
+                  sources: Array.isArray(root.data?.sources) ? root.data.sources.length : 0,
+                  citations: Array.isArray(root.data?.citations) ? root.data.citations.length : 0,
+                  web: Array.isArray(root.data?.webSearch?.items)
+                    ? root.data.webSearch.items.length
+                    : 0,
+                  provider: root.data?.webSearch?.provider,
+                  references,
+                  modelRuntime: {
+                    usedModel: root.data?.modelRuntime?.usedModel,
+                    callPath: root.data?.modelRuntime?.callPath,
+                    fallbackReason: root.data?.modelRuntime?.reason,
+                  },
+                },
               }
-            : item
+            : message
         )
       );
-      toast.success('RAG 检索完成');
+      setFiles([]);
+      await loadConversations();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : '检索时发生未知错误';
+      const message = error instanceof Error ? error.message : '请求失败';
       setMessages((prev) =>
         prev.map((item) =>
-          item.id === pendingMessageId
+          item.id === pendingId
             ? {
                 ...item,
                 pending: false,
                 error: true,
-                content: `检索失败：${message}`,
+                content: `请求失败：${message}`,
               }
             : item
         )
       );
       toast.error(message);
     } finally {
-      setIsSending(false);
+      setSending(false);
     }
   };
 
-  const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const run = async () => {
+      setBooting(true);
+      try {
+        const response = await fetch('/api/settings/ai', { cache: 'no-store' });
+        if (response.ok) {
+          const payload = (await response.json()) as { data?: { model?: ChatModel } };
+          if (payload.data?.model) {
+            setModel(payload.data.model);
+          }
+        }
+
+        const rows = await loadConversations();
+        if (rows[0]?.id) {
+          await openConversation(rows[0].id);
+        } else {
+          await createConversation();
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '初始化失败');
+      } finally {
+        setBooting(false);
+      }
+    };
+    void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages, loadingDetail]);
+
+  const retryFrom = (messageId: string) => {
+    const index = messages.findIndex((item) => item.id === messageId);
+    for (let i = index - 1; i >= 0; i -= 1) {
+      if (messages[i].role === 'user') {
+        void send(messages[i].content);
+        return;
+      }
+    }
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      void sendQuery();
+      void send();
     }
   };
 
-  let latestReferences: MessageReferences | null = null;
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const current = messages[index];
-    if (current.role === 'assistant' && current.references) {
-      latestReferences = current.references;
-      break;
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('已复制');
+    } catch {
+      toast.error('复制失败');
     }
-  }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-cyan-100 bg-gradient-to-r from-cyan-50 via-white to-blue-50 p-6">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-cyan-200/30 blur-2xl" />
-        <div className="absolute -bottom-12 left-1/3 h-28 w-28 rounded-full bg-blue-200/40 blur-2xl" />
-        <div className="relative space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs text-cyan-700">
-            <Sparkles className="h-3.5 w-3.5" />
-            RAG 工作台
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              RAG 检索与智能对话工作台
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              类似飞书知识问答体验：左侧连续对话，右侧可控检索策略和证据追踪，方便团队把回答直接用于测试设计与问题定位。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary" className="bg-cyan-100 text-cyan-700">
-              智能问答
-            </Badge>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-              检索增强生成
-            </Badge>
-            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-              可追溯证据
-            </Badge>
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden bg-white">
+      <aside
+        className={cn(
+          'h-full border-r border-slate-200 bg-white transition-all',
+          collapsed ? 'w-16' : 'w-72'
+        )}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-slate-200 px-3">
+          <Button
+            type="button"
+            size={collapsed ? 'icon' : 'sm'}
+            onClick={() => void createConversation()}
+            className={cn('h-8', collapsed ? 'w-8' : 'bg-slate-900 text-white hover:bg-slate-800')}
+          >
+            <MessageSquarePlus className="h-4 w-4" /> {!collapsed ? '新对话' : null}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCollapsed((prev) => !prev)}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
+        <div className="h-[calc(100%-56px)] overflow-y-auto px-2 py-3">
+          {!collapsed ? (
+            <div className="mb-3 space-y-1">
+              <Link
+                href={session?.user?.id ? `/knowledge?authorId=${session.user.id}` : '/knowledge'}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+              >
+                <BookOpen className="h-4 w-4" />
+                个人知识库
+              </Link>
+              <Link
+                href={projectId ? `/knowledge?projectId=${projectId}` : '/knowledge'}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+              >
+                <FileText className="h-4 w-4" />
+                项目知识库
+              </Link>
+              <div className="px-2 pt-1 text-xs text-slate-400">历史会话</div>
+            </div>
+          ) : null}
+          <div className="space-y-1">
+            {conversations.map((conversation) => (
+              <div
+                key={conversation.id}
+                className={cn(
+                  'rounded-lg border px-2 py-2',
+                  conversation.id === activeId
+                    ? 'border-slate-300 bg-slate-100'
+                    : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
+                )}
+              >
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => void openConversation(conversation.id)}
+                >
+                  {collapsed ? (
+                    <span className="text-xs text-slate-500">会话</span>
+                  ) : (
+                    <>
+                      <p className="line-clamp-1 text-sm font-medium text-slate-800">
+                        {conversation.title}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(conversation.updatedAt).toLocaleString('zh-CN')}
+                      </p>
+                    </>
+                  )}
+                </button>
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    className="mt-1 inline-flex items-center gap-1 text-xs text-slate-400 hover:text-red-500"
+                    onClick={() => void removeConversation(conversation.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    删除
+                  </button>
+                ) : null}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_360px]">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bot className="h-4 w-4 text-[var(--electric)]" />
-              智能对话
-            </CardTitle>
-            <CardDescription>
-              每次回答都会携带来源证据，适合用于测试点梳理、缺陷分析、需求对齐。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div
-              ref={messageListRef}
-              className="h-[52vh] min-h-[360px] space-y-3 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-3"
-            >
+      </aside>
+      <section className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
+          <div className="text-sm text-slate-500">
+            {scope === 'personal'
+              ? '当前范围：个人知识'
+              : scope === 'project'
+                ? '当前范围：项目知识'
+                : '当前范围：全局知识'}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => void refreshWorkspace()}>
+            <RefreshCcw className="h-4 w-4" />
+            刷新
+          </Button>
+        </div>
+        <div ref={listRef} className="flex-1 overflow-y-auto px-6 py-6">
+          {booting || loadingDetail ? (
+            <div className="flex h-full items-center justify-center text-slate-400">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              正在加载会话...
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-center">
+              <div>
+                <p className="text-lg font-medium text-slate-800">开始一次对话</p>
+                <p className="mt-2 text-sm text-slate-400">直接提问，Enter 发送，Shift+Enter 换行</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mx-auto w-full max-w-4xl space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
+                  className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
                 >
-                  <div
-                    className={`max-w-[90%] rounded-2xl border px-4 py-3 shadow-sm ${
-                      message.role === 'user'
-                        ? 'border-[var(--electric)]/40 bg-[var(--electric)]/10 text-slate-900'
-                        : message.error
-                          ? 'border-red-200 bg-red-50 text-red-700'
-                          : 'border-slate-200 bg-white text-slate-900'
-                    }`}
-                  >
-                    <div className="mb-1 flex items-center gap-2 text-xs text-slate-500">
-                      <Badge
-                        variant="outline"
-                        className={
-                          message.role === 'user'
-                            ? 'border-[var(--electric)]/40 text-[var(--electric)]'
-                            : ''
-                        }
-                      >
-                        {message.role === 'user' ? '你' : 'RAG 助手'}
-                      </Badge>
-                      <span>{formatMessageTime(message.createdAt)}</span>
-                      {message.pending ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : null}
+                  <div className={cn('max-w-[85%]', message.role === 'user' ? '' : 'w-full')}>
+                    <div
+                      className={cn(
+                        'rounded-2xl px-4 py-3 text-sm leading-7',
+                        message.role === 'user'
+                          ? 'ml-auto bg-slate-900 text-white'
+                          : message.error
+                            ? 'border border-red-200 bg-red-50 text-red-700'
+                            : 'border border-slate-200 bg-white text-slate-900'
+                      )}
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-xs opacity-70">
+                        <span>{message.role === 'user' ? '你' : '助手'}</span>
+                        <span>{formatTime(message.createdAt)}</span>
+                        {message.pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      </div>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-6">
-                      {message.content}
-                    </p>
-                    {message.role === 'assistant' && message.references ? (
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-                        <span>引用 {message.references.citations.length} 条</span>
-                        <span>证据 {message.references.sources.length} 条</span>
-                        {message.references.generationControl?.mode ? (
-                          <span>
-                            模式 {message.references.generationControl.mode}
-                          </span>
+                    {message.role === 'assistant' && !message.pending ? (
+                      <div className="mt-2 space-y-2 px-1 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 hover:text-slate-700"
+                            onClick={() => void copyText(message.content)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            复制
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 hover:text-slate-700"
+                            onClick={() => retryFrom(message.id)}
+                          >
+                            <RefreshCcw className="h-3.5 w-3.5" />
+                            重试
+                          </button>
+                          {message.meta ? (
+                            <span>
+                              来源 {message.meta.sources} · 引用 {message.meta.citations} · 联网{' '}
+                              {message.meta.web}
+                              {message.meta.provider ? ` · ${message.meta.provider}` : ''}
+                              {message.meta.modelRuntime?.usedModel
+                                ? ` · ${message.meta.modelRuntime.usedModel}`
+                                : ''}
+                            </span>
+                          ) : null}
+                        </div>
+                        {message.meta?.references?.length ? (
+                          <details className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
+                            <summary className="cursor-pointer select-none text-slate-600">
+                              引用网址（{message.meta.references.length}）
+                            </summary>
+                            <div className="mt-2 space-y-2">
+                              {message.meta.references.map((reference, index) => (
+                                <div key={`${reference.url || reference.title}-${index}`} className="space-y-1">
+                                  {reference.url ? (
+                                    <a
+                                      href={reference.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="break-all text-blue-600 hover:underline"
+                                    >
+                                      {reference.title}
+                                    </a>
+                                  ) : (
+                                    <p className="text-slate-700">{reference.title}</p>
+                                  )}
+                                  {reference.snippet ? (
+                                    <p className="text-slate-500">{reference.snippet}</p>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
                         ) : null}
                       </div>
                     ) : null}
@@ -611,302 +743,110 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {QUICK_PROMPTS.map((prompt) => (
-                <Button
-                  key={prompt}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuery(prompt)}
-                >
-                  {prompt}
-                </Button>
-              ))}
+          )}
+        </div>
+        <div className="border-t border-slate-200 bg-white px-6 py-4">
+          <div className="mx-auto w-full max-w-4xl space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <input ref={fileRef} type="file" className="hidden" onChange={(event) => void onFile(event)} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                添加文件
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                    工具
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>会话配置</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>模型：{MODELS.find((item) => item.id === model)?.label}</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-56">
+                      <DropdownMenuRadioGroup value={model} onValueChange={(value) => setModel(value as ChatModel)}>
+                        {MODELS.map((item) => (
+                          <DropdownMenuRadioItem key={item.id} value={item.id}>
+                            {item.label}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>RAG：{ragMode === 'enhanced' ? '增强' : '标准'}</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-40">
+                      <DropdownMenuRadioGroup value={ragMode} onValueChange={(value) => setRagMode(value as RagMode)}>
+                        <DropdownMenuRadioItem value="enhanced">增强</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="standard">标准</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      联网：
+                      {webMode === 'smart' ? '智能' : webMode === 'manual' ? '手动' : '关闭'}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-40">
+                      <DropdownMenuRadioGroup value={webMode} onValueChange={(value) => setWebMode(value as WebMode)}>
+                        <DropdownMenuRadioItem value="smart">智能</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="manual">手动</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="off">关闭</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-
-            <form
-              className="space-y-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void sendQuery();
-              }}
-            >
+            {files.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+                  >
+                    <span className="max-w-[220px] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-slate-700"
+                      onClick={() => setFiles((prev) => prev.filter((item) => item.id !== file.id))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div className="relative">
               <Textarea
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={handleComposerKeyDown}
-                placeholder="输入问题，回车发送，Shift+Enter 换行"
+                onKeyDown={onKeyDown}
                 rows={3}
+                placeholder="输入问题，Enter 发送，Shift+Enter 换行"
+                className="resize-none rounded-2xl border-slate-300 pr-14"
               />
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">
-                  建议：问题里带上模块名、业务场景和目标，可提升检索精度。
-                </p>
-                <Button
-                  type="submit"
-                  className="bg-[var(--electric)] hover:bg-[var(--electric)]/90"
-                  disabled={isSending || !query.trim()}
-                >
-                  {isSending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      检索中...
-                    </>
-                  ) : (
-                    <>
-                      发送
-                      <ArrowUp className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileSearch className="h-4 w-4 text-cyan-600" />
-                检索设置
-              </CardTitle>
-              <CardDescription>
-                控制召回、重排和生成模式，快速切换不同 RAG 策略。
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  departmentId
-                </label>
-                <Input
-                  value={departmentId}
-                  onChange={(event) => setDepartmentId(event.target.value)}
-                  placeholder="default"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  项目范围
-                </label>
-                <Select
-                  value={projectId || PROJECT_ALL}
-                  onValueChange={(value) =>
-                    setProjectId(value === PROJECT_ALL ? '' : value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="全部项目" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PROJECT_ALL}>全部项目</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isLoadingProjects ? (
-                  <p className="text-xs text-slate-500">正在加载项目...</p>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
-                    生成模式
-                  </label>
-                  <Select
-                    value={generationMode}
-                    onValueChange={(value) =>
-                      setGenerationMode(value as GenerationMode)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">standard</SelectItem>
-                      <SelectItem value="self-rag">self-rag</SelectItem>
-                      <SelectItem value="rrr">rrr</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
-                    TopK
-                  </label>
-                  <Select
-                    value={String(topK)}
-                    onValueChange={(value) => setTopK(Number(value))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="15">15</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <ToggleSetting
-                  label="Query Rewrite"
-                  description="改写查询提升召回命中率"
-                  checked={enableQueryRewrite}
-                  onCheckedChange={setEnableQueryRewrite}
-                />
-                <ToggleSetting
-                  label="Self-RAG"
-                  description="让生成阶段触发自反思"
-                  checked={enableSelfRAG}
-                  onCheckedChange={setEnableSelfRAG}
-                />
-                <ToggleSetting
-                  label="Multi-Source"
-                  description="融合多源检索结果"
-                  checked={enableMultiSource}
-                  onCheckedChange={setEnableMultiSource}
-                />
-                <ToggleSetting
-                  label="Refinement + Reranking"
-                  description="先精炼再重排，提升证据质量"
-                  checked={enableRefinement && enableReranking}
-                  onCheckedChange={(checked) => {
-                    setEnableRefinement(checked);
-                    setEnableReranking(checked);
-                  }}
-                />
-                <ToggleSetting
-                  label="Active Retrieval"
-                  description="生成时触发追加检索"
-                  checked={enableActiveRetrieval}
-                  onCheckedChange={setEnableActiveRetrieval}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-2">
-                <Button variant="outline" asChild>
-                  <Link href="/knowledge">管理知识库</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/ai-generate/requirements/upload">
-                    上传需求文档
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/settings/ai">AI 模型设置</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Database className="h-4 w-4 text-emerald-600" />
-                检索证据
-              </CardTitle>
-              <CardDescription>
-                最近一次回答的引用、来源和检索上下文
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!latestReferences ? (
-                <p className="text-sm text-slate-500">
-                  发送问题后，这里会显示引用证据与检索路径。
-                </p>
-              ) : (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {latestReferences.context?.retrievalTime !== undefined ? (
-                      <Badge variant="outline">
-                        检索耗时 {latestReferences.context.retrievalTime}ms
-                      </Badge>
-                    ) : null}
-                    {latestReferences.context?.totalTime !== undefined ? (
-                      <Badge variant="outline">
-                        总耗时 {latestReferences.context.totalTime}ms
-                      </Badge>
-                    ) : null}
-                    {latestReferences.context?.cacheHit !== undefined ? (
-                      <Badge variant="outline">
-                        缓存命中{' '}
-                        {latestReferences.context.cacheHit ? '是' : '否'}
-                      </Badge>
-                    ) : null}
-                    {latestReferences.generationControl?.iterations !==
-                    undefined ? (
-                      <Badge variant="outline">
-                        迭代 {latestReferences.generationControl.iterations} 次
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  {latestReferences.citations.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        引用
-                      </p>
-                      <div className="space-y-2">
-                        {latestReferences.citations.map((citation) => (
-                          <div
-                            key={citation}
-                            className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700"
-                          >
-                            {citation}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {latestReferences.sources.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        来源片段
-                      </p>
-                      <div className="space-y-2">
-                        {latestReferences.sources.slice(0, 6).map((source) => (
-                          <div
-                            key={source.id}
-                            className="rounded-lg border border-slate-200 p-3"
-                          >
-                            <div className="mb-1 flex items-center justify-between gap-2">
-                              <p className="truncate text-xs font-medium text-slate-800">
-                                {sourceTitle(source)}
-                              </p>
-                              <Badge
-                                variant="secondary"
-                                className="bg-emerald-100 text-emerald-700"
-                              >
-                                {scoreLabel(source.score)}
-                              </Badge>
-                            </div>
-                            <p className="line-clamp-3 text-xs leading-5 text-slate-600">
-                              {source.content || '无文本片段'}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </CardContent>
-          </Card>
+              <Button
+                type="button"
+                size="icon"
+                className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-slate-900 hover:bg-slate-800"
+                disabled={sending || !query.trim()}
+                onClick={() => void send()}
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,15 +1,17 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import {
+  ArrowRight,
   Beaker,
   Download,
+  FileText,
   Folder,
   Loader2,
-  Plus,
+  ListChecks,
   Sparkles,
   Trash2,
   Upload,
@@ -42,6 +44,13 @@ type TestItem = {
   status: string;
   tags?: string | null;
   _count?: { executions: number };
+};
+
+type RequirementSummary = {
+  id: string;
+  title: string;
+  testPointCount: number;
+  isConfirmed: boolean;
 };
 
 type PaginationMeta = {
@@ -78,6 +87,8 @@ function getTab(value: string | null): ActiveTab {
 }
 
 export function TestCenterContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const params = useSearchParams();
   const [activeTab, setActiveTab] = useState<ActiveTab>(getTab(params.get('tab')));
   const [search, setSearch] = useState('');
@@ -88,6 +99,11 @@ export function TestCenterContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const nextTab = getTab(params.get('tab'));
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+  }, [params]);
 
   const type = activeTab === 'cases' ? 'CASE' : activeTab === 'suites' ? 'SUITE' : '';
   const apiUrl = useMemo(() => {
@@ -107,8 +123,21 @@ export function TestCenterContent() {
   );
   const { data: folderPayload } = useSWR(activeTab === 'ai' ? null : '/api/folders', swrFetcher);
   const { data: suitePayload } = useSWR(activeTab === 'ai' ? null : '/api/suites', swrFetcher);
+  const { data: aiRequirementPayload, mutate: mutateAiRequirements } = useSWR(
+    activeTab === 'ai' ? '/api/requirements?page=1&pageSize=4' : null,
+    swrFetcher
+  );
+  const { data: aiCasePayload, mutate: mutateAiCases } = useSWR(
+    activeTab === 'ai' ? '/api/tests?type=CASE&source=AI&page=1&pageSize=4' : null,
+    swrFetcher
+  );
   const folders = normalizeList<{ id: string; name: string }>(folderPayload);
   const suites = normalizeList<{ id: string; name: string }>(suitePayload);
+  const aiRequirements = normalizeList<RequirementSummary>(aiRequirementPayload);
+  const aiCases = normalizeList<TestItem>(aiCasePayload);
+  const aiRequirementTotal = aiRequirementPayload?.data?.pagination?.total ?? aiRequirements.length;
+  const aiCaseTotal = aiCasePayload?.data?.pagination?.total ?? aiCases.length;
+  const aiTestPointTotal = aiRequirements.reduce((sum, item) => sum + (item.testPointCount || 0), 0);
 
   const list: TestItem[] = Array.isArray(data?.data?.list) ? data.data.list : [];
   const pagination: PaginationMeta = data?.data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
@@ -120,6 +149,27 @@ export function TestCenterContent() {
     if (typeof totalPages === 'number' && totalPages > 0 && page > totalPages) {
       setPage(totalPages);
     }
+  };
+
+  const refreshAiStable = async () => {
+    await Promise.all([mutateAiRequirements(), mutateAiCases()]);
+  };
+
+  const handleTabChange = (value: string) => {
+    const nextTab = value as ActiveTab;
+    setActiveTab(nextTab);
+    setPage(1);
+    setSelectedIds(new Set());
+
+    const nextParams = new URLSearchParams(params.toString());
+    if (nextTab === 'cases') {
+      nextParams.delete('tab');
+    } else {
+      nextParams.set('tab', nextTab);
+    }
+
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   };
 
   const toggleSelect = (id: string, checked: boolean) => {
@@ -249,13 +299,13 @@ export function TestCenterContent() {
     <div className="space-y-6">
       <BentoHeader
         title="测试中心"
-        description="管理测试用例和套件"
-        count={pagination.total}
-        countLabel="项"
-        actionLabel={activeTab === 'suites' ? '新建套件' : '新建用例'}
-        actionHref={`/tests/new?type=${type}`}
-        onRefresh={() => mutate()}
-        isRefreshing={isLoading}
+        description={activeTab === 'ai' ? '直接进入 AI 生成工作台，少跳页完成需求到用例的闭环' : '管理测试用例和套件'}
+        count={activeTab === 'ai' ? aiCaseTotal : pagination.total}
+        countLabel={activeTab === 'ai' ? '个 AI 用例' : '项'}
+        actionLabel={activeTab === 'ai' ? '直接生成用例' : activeTab === 'suites' ? '新建套件' : '新建用例'}
+        actionHref={activeTab === 'ai' ? '/ai-generate/testcases' : `/tests/new?type=${type}`}
+        onRefresh={activeTab === 'ai' ? () => void refreshAiStable() : () => mutate()}
+        isRefreshing={activeTab === 'ai' ? false : isLoading}
         secondaryActions={
           activeTab !== 'ai' ? (
             <>
@@ -290,7 +340,7 @@ export function TestCenterContent() {
         }
       />
 
-      {selectedIds.size > 0 ? (
+      {activeTab !== 'ai' && selectedIds.size > 0 ? (
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={batchStatus}>批量改状态</Button>
           <Button variant="outline" size="sm" onClick={batchMove}>批量移动</Button>
@@ -301,9 +351,12 @@ export function TestCenterContent() {
         </div>
       ) : null}
 
-      <BentoSearch value={search} onChange={setSearch} onSearch={() => { setPage(1); mutate(); }} placeholder="搜索测试项" />
+      {activeTab !== 'ai' ? (
+        <BentoSearch value={search} onChange={setSearch} onSearch={() => { setPage(1); mutate(); }} placeholder="搜索测试项" />
+      ) : null}
 
-      <div className="flex gap-2 flex-wrap">
+      {activeTab !== 'ai' ? (
+        <div className="flex gap-2 flex-wrap">
         <Select value={priority || 'ALL'} onValueChange={(v) => { setPriority(v === 'ALL' ? '' : v); setPage(1); }}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="优先级" /></SelectTrigger>
           <SelectContent>
@@ -327,9 +380,10 @@ export function TestCenterContent() {
         {(folders.length > 0 || suites.length > 0) ? (
           <Badge variant="outline">Folders: {folders.length} | Suites: {suites.length}</Badge>
         ) : null}
-      </div>
+        </div>
+      ) : null}
 
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ActiveTab); setPage(1); setSelectedIds(new Set()); }}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="cases"><Beaker className="w-4 h-4 mr-2" />用例</TabsTrigger>
           <TabsTrigger value="suites"><Folder className="w-4 h-4 mr-2" />套件</TabsTrigger>
@@ -445,19 +499,156 @@ export function TestCenterContent() {
         </TabsContent>
 
         <TabsContent value="ai" className="mt-6">
-          <BentoCard className="p-12 text-center border-dashed">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--electric)] to-[var(--neon)] flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-8 h-8 text-white" />
+          <div className="space-y-4">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr),minmax(280px,0.8fr)]">
+              <BentoCard
+                variant="featured"
+                className="overflow-hidden border-blue-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_44%),linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,255,255,0.98))] p-8"
+              >
+                <div className="space-y-5">
+                  <Badge className="w-fit bg-white/80 text-blue-700 hover:bg-white/80">少跳页工作流</Badge>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-semibold tracking-tight text-slate-950">AI 智能生成</h3>
+                    <p className="max-w-2xl text-sm leading-7 text-slate-600">
+                      从测试中心直接进入生成工作台，不再先去需求详情页兜一圈。常用路径压成了“选需求、勾测试点、生成并保存”。
+                    </p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <BentoCard className="p-5">
+                      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-800">
+                        <Sparkles className="h-4 w-4 text-[var(--electric)]" />
+                        直接生成用例
+                      </div>
+                      <p className="text-sm leading-6 text-slate-500">
+                        在同一页完成需求选择、测试点勾选、结果筛选与保存。
+                      </p>
+                      <Button className="mt-4" asChild>
+                        <Link href="/ai-generate/testcases">
+                          打开生成工作台
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </BentoCard>
+
+                    <BentoCard className="p-5">
+                      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-800">
+                        <FileText className="h-4 w-4 text-emerald-600" />
+                        管理需求输入
+                      </div>
+                      <p className="text-sm leading-6 text-slate-500">
+                        上传新需求、整理已有需求，或者补测试点之后再进入生成页。
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="outline" asChild>
+                          <Link href="/ai-generate/requirements">需求列表</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <Link href="/ai-generate/requirements/upload">上传需求</Link>
+                        </Button>
+                      </div>
+                    </BentoCard>
+                  </div>
+                </div>
+              </BentoCard>
+
+              <BentoCard className="p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-[var(--electric)]" />
+                  <span className="text-sm font-medium text-slate-700">AI 资产概览</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p className="text-xs text-slate-500">需求数</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{aiRequirementTotal}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p className="text-xs text-slate-500">测试点</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{aiTestPointTotal}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <p className="text-xs text-slate-500">AI 用例</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{aiCaseTotal}</p>
+                  </div>
+                </div>
+              </BentoCard>
             </div>
-            <h3 className="text-xl font-semibold mb-2">AI 智能生成</h3>
-            <p className="text-slate-500 mb-6">前往 AI 生成中心继续完成需求与用例生成。</p>
-            <Button asChild>
-              <Link href="/ai-generate">
-                前往 AI 生成中心
-                <Plus className="w-4 h-4 ml-2" />
-              </Link>
-            </Button>
-          </BentoCard>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <BentoCard className="p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">最近需求</h4>
+                    <p className="mt-1 text-sm text-slate-500">直接从这里继续进入生成，而不是先翻详情页。</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/ai-generate/requirements">全部需求</Link>
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {aiRequirements.length > 0 ? (
+                    aiRequirements.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/ai-generate/requirements/${item.id}`} className="font-medium text-slate-900 hover:text-[var(--electric)]">
+                            {item.title}
+                          </Link>
+                          <Badge variant="outline">{item.testPointCount} 个测试点</Badge>
+                          {item.isConfirmed ? <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">已确认</Badge> : <Badge variant="secondary">待确认</Badge>}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button size="sm" asChild>
+                            <Link href={`/ai-generate/testcases?requirementId=${item.id}`}>
+                              直接生成
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/ai-generate/requirements/${item.id}`}>查看详情</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center text-sm text-slate-500">
+                      还没有需求记录，先上传一个需求文档即可开始。
+                    </div>
+                  )}
+                </div>
+              </BentoCard>
+
+              <BentoCard className="p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">最近 AI 用例</h4>
+                    <p className="mt-1 text-sm text-slate-500">生成完成后回到测试中心，这里就能继续批量管理。</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/tests">查看全部</Link>
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {aiCases.length > 0 ? (
+                    aiCases.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/tests/${item.id}`} className="font-medium text-slate-900 hover:text-[var(--electric)]">
+                            {item.name}
+                          </Link>
+                          <Badge variant="outline">{item.priority}</Badge>
+                          <Badge variant="secondary">执行 {item._count?.executions || 0}</Badge>
+                        </div>
+                        {item.description ? <p className="mt-2 text-sm leading-6 text-slate-500">{item.description}</p> : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center text-sm text-slate-500">
+                      还没有 AI 保存的用例，去生成工作台跑一轮后这里会出现最新记录。
+                    </div>
+                  )}
+                </div>
+              </BentoCard>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

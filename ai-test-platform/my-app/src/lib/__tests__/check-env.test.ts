@@ -3,6 +3,7 @@ const {
   validateEnvVars,
   isMissingOrPlaceholder,
   isValidDatabaseUrl,
+  isLikelyNestedPrismaSqlitePath,
 } = require('../../../scripts/check-env');
 
 describe('check-env script helpers', () => {
@@ -10,7 +11,7 @@ describe('check-env script helpers', () => {
     const content = [
       '# comment',
       'NEXTAUTH_SECRET="secret-value"',
-      'DATABASE_URL=file:./prisma/dev.db',
+      'DATABASE_URL=file:./dev.db',
       'OPENAI_API_KEY=',
       '',
     ].join('\r\n');
@@ -18,7 +19,7 @@ describe('check-env script helpers', () => {
     const parsed = parseEnvContent(content);
 
     expect(parsed.NEXTAUTH_SECRET).toBe('secret-value');
-    expect(parsed.DATABASE_URL).toBe('file:./prisma/dev.db');
+    expect(parsed.DATABASE_URL).toBe('file:./dev.db');
     expect(parsed.OPENAI_API_KEY).toBe('');
   });
 
@@ -34,7 +35,7 @@ describe('check-env script helpers', () => {
   test('validateEnvVars returns required failures and optional warnings', () => {
     const result = validateEnvVars({
       NEXTAUTH_SECRET: 'your-secret',
-      DATABASE_URL: 'file:./prisma/dev.db',
+      DATABASE_URL: 'file:./dev.db',
       OPENAI_API_KEY: '',
       KIMI_API_KEY: 'kimi-live-key',
     });
@@ -47,7 +48,7 @@ describe('check-env script helpers', () => {
   });
 
   test('isValidDatabaseUrl validates common prisma DSN formats', () => {
-    expect(isValidDatabaseUrl('file:./prisma/dev.db')).toBe(true);
+    expect(isValidDatabaseUrl('file:./dev.db')).toBe(true);
     expect(isValidDatabaseUrl('postgresql://user:pass@localhost:5432/db')).toBe(true);
     expect(isValidDatabaseUrl('mysql://user:pass@localhost:3306/db')).toBe(true);
     expect(isValidDatabaseUrl('not-a-db-url')).toBe(false);
@@ -65,5 +66,11 @@ describe('check-env script helpers', () => {
     expect(result.hasError).toBe(true);
     expect(result.invalidRequired).toEqual(['DATABASE_URL']);
     expect(result.configuredRequired).toEqual(['NEXTAUTH_SECRET']);
+  });
+
+  test('isLikelyNestedPrismaSqlitePath detects risky nested sqlite path', () => {
+    expect(isLikelyNestedPrismaSqlitePath('file:./prisma/dev.db')).toBe(true);
+    expect(isLikelyNestedPrismaSqlitePath('file:.\\prisma\\dev.db')).toBe(true);
+    expect(isLikelyNestedPrismaSqlitePath('file:./dev.db')).toBe(false);
   });
 });

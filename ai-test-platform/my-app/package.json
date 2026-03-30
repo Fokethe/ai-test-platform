@@ -98,7 +98,7 @@
     "langfuse": "^3.38.6",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
-    "prisma": "^6.6.0",
+    "prisma": "^6.19.2",
     "shadcn": "^3.8.4",
     "tailwindcss": "^4",
     "tesseract.js": "^7.0.0",

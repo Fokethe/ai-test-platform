@@ -23,6 +23,7 @@ import {
   User,
   Zap,
   Sparkles,
+  KeyRound,
   Command,
   X,
 } from 'lucide-react';
@@ -67,6 +68,7 @@ const searchItems: SearchItem[] = [
   { id: 'settings', title: '设置', href: '/settings', icon: Settings, keywords: ['setting', '设置', '配置'], category: '设置' },
   { id: 'profile', title: '个人设置', href: '/settings/profile', icon: User, keywords: ['profile', '个人', '账户'], category: '设置' },
   { id: 'ai-settings', title: 'AI设置', href: '/settings/ai', icon: Sparkles, keywords: ['ai setting', '模型', 'model'], category: '设置' },
+  { id: 'ai-keys', title: 'AI密钥与可观测', href: '/settings/ai?tab=ops', icon: KeyRound, keywords: ['api key', '密钥', '绑定', 'observability', '可观测'], category: '设置' },
   { id: 'users', title: '用户管理', href: '/settings/users', icon: Users, keywords: ['user', '用户'], category: '设置' },
   { id: 'activity', title: '活动日志', href: '/settings/activity', icon: Activity, keywords: ['log', '日志', 'activity'], category: '设置' },
   { id: 'system', title: '系统配置', href: '/settings/system', icon: Command, keywords: ['system', '系统', 'config'], category: '设置' },

@@ -1,6 +1,14 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import DashboardPage from '../page';
 
+jest.mock('next-auth/react', () => ({
+  useSession: () => ({
+    data: {
+      user: { id: 'user-1' },
+    },
+  }),
+}));
+
 jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
@@ -9,7 +17,7 @@ jest.mock('sonner', () => ({
   },
 }));
 
-describe('Dashboard RAG Workspace', () => {
+describe('Dashboard Chat Workspace', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -21,14 +29,64 @@ describe('Dashboard RAG Workspace', () => {
             ? input.toString()
             : String(input);
 
-      if (url.startsWith('/api/projects')) {
+      if (url === '/api/settings/ai') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ data: { model: 'gpt-5.4' } }),
+        } as Response);
+      }
+
+      if (url.startsWith('/api/chat/conversations?')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({
             data: {
-              list: [{ id: 'project-a', name: '订单系统' }],
+              list: [
+                {
+                  id: 'conv-1',
+                  title: '默认会话',
+                  knowledgeScope: 'all',
+                  updatedAt: '2026-03-27T10:00:00.000Z',
+                  createdAt: '2026-03-27T10:00:00.000Z',
+                },
+              ],
             },
           }),
+        } as Response);
+      }
+
+      if (url.startsWith('/api/chat/conversations/conv-1')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: {
+              id: 'conv-1',
+              title: '默认会话',
+              knowledgeScope: 'all',
+              projectId: null,
+              createdAt: '2026-03-27T10:00:00.000Z',
+              updatedAt: '2026-03-27T10:00:00.000Z',
+              messages: [],
+            },
+          }),
+        } as Response);
+      }
+
+      if (url === '/api/chat/conversations' && init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            data: {
+              id: 'conv-2',
+            },
+          }),
+        } as Response);
+      }
+
+      if (url === '/api/knowledge/ingest') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true }),
         } as Response);
       }
 
@@ -39,29 +97,26 @@ describe('Dashboard RAG Workspace', () => {
           json: async () => ({
             success: true,
             data: {
-              answer: `这是来自知识库的回答：${body.query || ''}`,
-              citations: ['[1] 登录流程规范：SLA 30s'],
-              sources: [
+              answer: `API answer: ${body.query || ''}`,
+              citations: ['[1] citation'],
+              sources: [{ id: 'source-1', content: 'source', score: 0.9 }],
+              references: [
                 {
-                  id: 'doc-1',
-                  content: '登录失败重试不超过 3 次，超过后触发风控。',
-                  score: 0.91,
-                  metadata: {
-                    title: '登录流程规范',
-                  },
+                  title: 'OpenAI',
+                  url: 'https://openai.com',
+                  snippet: 'AI reference',
+                  provider: 'bing-rss',
                 },
               ],
-              context: {
-                query: body.query,
-                retrievalTime: 18,
-                totalTime: 45,
-                cacheHit: false,
+              webSearch: {
+                items: [{ title: 'web', snippet: 'result', source: 'web' }],
+                provider: 'bing-rss',
+                fallbackUsed: false,
               },
-              generationControl: {
-                mode: 'standard',
-                iterations: 1,
-                confidence: 0.87,
-                activeRetrievalTriggered: false,
+              modelRuntime: {
+                usedModel: body.model,
+                callPath: 'responses',
+                apiBacked: true,
               },
             },
           }),
@@ -75,65 +130,58 @@ describe('Dashboard RAG Workspace', () => {
     }) as unknown as typeof global.fetch;
   });
 
-  it('renders rag workspace core layout', async () => {
+  it('renders rebuilt chat workspace without model settings link', async () => {
     render(<DashboardPage />);
 
-    expect(await screen.findByText('RAG 检索与智能对话工作台')).toBeInTheDocument();
-    expect(screen.getByText('检索设置')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '发送' })).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/projects?page=1&pageSize=200',
-        expect.objectContaining({ cache: 'no-store' })
-      );
-    });
+    expect(await screen.findByText('个人知识库')).toBeInTheDocument();
+    expect(screen.getByText('项目知识库')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /新对话/ })).toBeInTheDocument();
+    expect(screen.queryByText(/模型设置/)).not.toBeInTheDocument();
   });
 
-  it('supports quick prompt chips', async () => {
+  it('sends search request with conversationId and smart web mode', async () => {
     render(<DashboardPage />);
 
-    const chip = await screen.findByRole('button', {
-      name: '总结最近两周登录模块的高风险场景',
-    });
-    fireEvent.click(chip);
+    const composer = await screen.findByPlaceholderText('输入问题，Enter 发送，Shift+Enter 换行');
+    fireEvent.change(composer, { target: { value: '登录失败如何处理？' } });
+    fireEvent.keyDown(composer, { key: 'Enter', shiftKey: false });
 
-    const composer = screen.getByPlaceholderText(
-      '输入问题，回车发送，Shift+Enter 换行'
-    );
-    expect(composer).toHaveValue('总结最近两周登录模块的高风险场景');
-  });
-
-  it('submits query and renders answer with evidence', async () => {
-    render(<DashboardPage />);
-
-    const composer = await screen.findByPlaceholderText(
-      '输入问题，回车发送，Shift+Enter 换行'
-    );
-    fireEvent.change(composer, {
-      target: { value: '登录失败后系统会如何处理？' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: '发送' }));
-
-    expect(
-      await screen.findByText(
-        '这是来自知识库的回答：登录失败后系统会如何处理？'
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText('[1] 登录流程规范：SLA 30s')).toBeInTheDocument();
-    expect(screen.getByText('登录流程规范')).toBeInTheDocument();
+    expect(await screen.findByText('API answer: 登录失败如何处理？')).toBeInTheDocument();
 
     const searchCall = (global.fetch as jest.Mock).mock.calls.find(
       (call) => call[0] === '/api/knowledge/search'
     );
     expect(searchCall).toBeDefined();
 
-    const body = JSON.parse(
-      String((searchCall?.[1] as RequestInit | undefined)?.body || '{}')
-    );
-    expect(body.query).toBe('登录失败后系统会如何处理？');
-    expect(body.departmentId).toBe('default');
-    expect(body.options.generationMode).toBe('standard');
+    const body = JSON.parse(String((searchCall?.[1] as RequestInit | undefined)?.body || '{}'));
+    expect(body.conversationId).toBe('conv-1');
+    expect(body.options.webSearchMode).toBe('smart');
+    expect(body.options.enableRefinement).toBe(true);
+    expect(body.options.enableReranking).toBe(true);
+    expect(body.history).toEqual([]);
+  });
+
+  it('uploads file and calls knowledge ingest endpoint', async () => {
+    const { container } = render(<DashboardPage />);
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/settings/ai', { cache: 'no-store' });
+    });
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    const file = new File(['api spec content'], 'api-spec.md', { type: 'text/markdown' });
+    Object.defineProperty(file, 'text', {
+      value: jest.fn(async () => 'api spec content'),
+    });
+
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const ingestCall = (global.fetch as jest.Mock).mock.calls.find(
+        (call) => call[0] === '/api/knowledge/ingest'
+      );
+      expect(ingestCall).toBeDefined();
+    });
   });
 });

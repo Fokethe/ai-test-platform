@@ -53,7 +53,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    // Avoid stale app state during local debugging unless explicitly requested.
+    reuseExistingServer: process.env.CI ? false : process.env.PW_REUSE_SERVER === 'true',
     timeout: 120000,
   },
 });

@@ -20,7 +20,7 @@ export default function SettingsPage() {
     {
       id: 'ai',
       label: t('AI \u8bbe\u7f6e', 'AI Settings'),
-      description: t('\u914d\u7f6e\u6a21\u578b\u9009\u9879\u4e0e AI \u63d0\u4f9b\u5546\u3002', 'Configure model options and AI providers.'),
+      description: t('\u5728\u4e00\u4e2a\u9875\u9762\u5185\u7edf\u4e00\u7ba1\u7406\u6a21\u578b\u3001\u5bc6\u94a5\u548c AI \u53ef\u89c2\u6d4b\u3002', 'Manage models, keys, and AI observability in one place.'),
       icon: Bot,
       href: '/settings/ai',
       color: 'bg-purple-500',

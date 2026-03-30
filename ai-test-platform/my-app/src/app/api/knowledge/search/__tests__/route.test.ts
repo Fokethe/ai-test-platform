@@ -31,6 +31,15 @@ jest.mock('@/lib/prisma', () => ({
     project: {
       findMany: jest.fn(),
     },
+    knowledgeEntry: {
+      findMany: jest.fn(),
+    },
+    aiRequirement: {
+      findMany: jest.fn(),
+    },
+    userAiSetting: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -74,6 +83,8 @@ jest.mock('@/lib/ai/rag/controlled-generation', () => ({
   runControlledGeneration: jest.fn(),
 }));
 
+const originalFetch = global.fetch;
+
 describe('POST /api/knowledge/search', () => {
   const ragServiceMock = {
     initialize: jest.fn(),
@@ -82,6 +93,7 @@ describe('POST /api/knowledge/search', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    global.fetch = originalFetch;
     (auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
     (getRAGService as jest.Mock).mockReturnValue(ragServiceMock);
     ragServiceMock.initialize.mockResolvedValue(undefined);
@@ -105,6 +117,9 @@ describe('POST /api/knowledge/search', () => {
       selfRAGResult: undefined,
     });
     (prisma.project.findMany as jest.Mock).mockResolvedValue([{ id: 'project-1' }]);
+    (prisma.knowledgeEntry.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.aiRequirement.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userAiSetting.findUnique as jest.Mock).mockResolvedValue(null);
     (resolveRagStrategyConfig as jest.Mock).mockResolvedValue({
       id: 'cfg-1',
       version: 2,
@@ -265,8 +280,49 @@ describe('POST /api/knowledge/search', () => {
     expect(payload.data.routing.matchedRule).toBeUndefined();
     expect(payload.data.semanticRouting.scenario).toBe('default');
     expect(payload.data.semanticRouting.confidence).toBe(0);
+    expect(Array.isArray(payload.data.references)).toBe(true);
+    expect(payload.data.modelRuntime.usedModel).toBe('gpt-5.4');
     expect(payload.data.multiSource).toBeUndefined();
     expect(executeMultiSourceQuery).not.toHaveBeenCalled();
+  });
+
+  it('falls back to basic retrieval when rag engine initialization fails', async () => {
+    ragServiceMock.initialize.mockRejectedValueOnce(new Error('Cannot find module chromadb'));
+    (prisma.knowledgeEntry.findMany as jest.Mock).mockResolvedValueOnce([
+      {
+        id: 'k-1',
+        title: '登录流程规范',
+        content: '登录失败超过3次后触发风控策略，并要求验证码。',
+        category: '规范',
+        projectId: 'project-1',
+        updatedAt: new Date('2026-03-26T10:00:00Z'),
+      },
+    ]);
+
+    const response = await POST(
+      new Request('http://localhost/api/knowledge/search', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: '登录失败策略',
+          departmentId: 'dept-1',
+          options: {
+            enableMultiSource: false,
+          },
+        }),
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.fallback.enabled).toBe(true);
+    expect(payload.data.answer).toContain('已自动切换为基础检索模式');
+    expect(payload.data.sources[0].id).toBe('knowledge:k-1');
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'KNOWLEDGE_SEARCH_FALLBACK',
+      })
+    );
   });
 
   it('runs multi-source flow and keeps response successful when one source fails', async () => {
@@ -702,5 +758,71 @@ describe('POST /api/knowledge/search', () => {
       projectIds: ['project-1'],
       topK: 10,
     });
+  });
+
+  it('returns webSearch disabled payload when webSearchMode is off', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/knowledge/search', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'login',
+          departmentId: 'dept-1',
+          options: {
+            webSearchMode: 'off',
+          },
+        }),
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.webSearch.enabled).toBe(false);
+    expect(payload.data.webSearch.mode).toBe('off');
+  });
+
+  it('uses contextual history for manual web search and decodes numeric html entities', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () =>
+        Promise.resolve(`<?xml version="1.0" encoding="utf-8"?>
+          <rss>
+            <channel>
+              <item>
+                <title>订单模块测试模板</title>
+                <description><![CDATA[可参考&#34;测试用例模板&#34;输出字段]]></description>
+                <link>https://example.com/template</link>
+              </item>
+            </channel>
+          </rss>`),
+    }) as unknown as typeof global.fetch;
+
+    const response = await POST(
+      new Request('http://localhost/api/knowledge/search', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: 'that template',
+          departmentId: 'dept-1',
+          history: [
+            {
+              role: 'user',
+              content: '请根据订单模块输出测试用例模板',
+            },
+          ],
+          options: {
+            webSearchMode: 'manual',
+          },
+        }),
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalled();
+    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain(
+      encodeURIComponent('订单模块')
+    );
+    expect(payload.data.references[0].snippet).toContain('"测试用例模板"');
+    expect(payload.data.references[0].snippet).not.toContain('&#34;');
   });
 });

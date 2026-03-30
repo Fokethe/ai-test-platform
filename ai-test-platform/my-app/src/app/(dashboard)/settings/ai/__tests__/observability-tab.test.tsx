@@ -1,25 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AISettingsPage from '../page';
 
-const mockPush = jest.fn();
-
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }));
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
-}));
+let mockSearchParamsValue = '';
 
-jest.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: { user: { name: 'Test User', role: 'ADMIN' } },
-    status: 'authenticated',
-  }),
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(mockSearchParamsValue),
 }));
 
 jest.mock('sonner', () => ({
@@ -29,42 +20,68 @@ jest.mock('sonner', () => ({
   },
 }));
 
+jest.mock('@/components/settings/ai-key-management-panel', () => ({
+  AiKeyManagementPanel: () => <div>Mocked Key Panel</div>,
+}));
+
 describe('AI Settings Page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParamsValue = '';
     global.fetch = jest.fn((url, init) => {
-      const u = String(url);
-      if (u.includes('/api/settings/ai') && (!init || !init.method || init.method === 'GET')) {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes('/api/settings/ai/test')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ code: 0, data: { valid: true } }),
+        });
+      }
+
+      if (requestUrl.includes('/api/settings/ai') && (!init || !init.method || init.method === 'GET')) {
         return Promise.resolve({
           ok: true,
           json: () =>
             Promise.resolve({
               data: {
-                model: 'gpt-4o',
+                model: 'gpt-5.4',
                 temperature: 0.7,
                 apiKey: '',
+                enableAI: true,
+                autoGenerate: false,
+                smartAnalysis: true,
+                maxTokens: 2000,
+                topP: 1,
+                frequencyPenalty: 0,
+                presencePenalty: 0,
               },
             }),
         });
       }
-      if (u.includes('/api/settings/ai') && init?.method === 'PUT') {
+
+      if (requestUrl.includes('/api/settings/ai') && init?.method === 'PUT') {
         return Promise.resolve({
           ok: true,
           json: () =>
             Promise.resolve({
               code: 0,
               data: {
-                model: 'gpt-4o',
+                model: 'gpt-5.4',
                 temperature: 0.7,
                 apiKey: 'sk-test-key',
+                enableAI: true,
+                autoGenerate: false,
+                smartAnalysis: true,
+                maxTokens: 2000,
+                topP: 1,
+                frequencyPenalty: 0,
+                presencePenalty: 0,
               },
             }),
         });
       }
-      if (u.includes('/api/settings/ai/test')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ code: 0, data: { valid: true } }) });
-      }
-      if (u.includes('/api/observability/cost')) {
+
+      if (requestUrl.includes('/api/observability/cost')) {
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -82,16 +99,17 @@ describe('AI Settings Page', () => {
             }),
         });
       }
-      return Promise.reject(new Error('Unknown URL'));
+
+      return Promise.reject(new Error(`Unknown URL: ${requestUrl}`));
     }) as unknown as typeof global.fetch;
   });
 
-  it('renders model and observability tabs', async () => {
+  it('renders model and operations tabs', async () => {
     render(<AISettingsPage />);
 
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: '模型配置' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: '可观测' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: '密钥与可观测' })).toBeInTheDocument();
     });
   });
 
@@ -104,26 +122,28 @@ describe('AI Settings Page', () => {
     });
   });
 
-  it('allows editing api key input', async () => {
+  it('allows editing fallback api key inside operations tab', async () => {
+    mockSearchParamsValue = 'tab=ops';
     render(<AISettingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
+      expect(screen.getByLabelText('默认兼容密钥')).toBeInTheDocument();
     });
 
-    const input = screen.getByLabelText('API Key');
+    const input = screen.getByLabelText('默认兼容密钥');
     fireEvent.change(input, { target: { value: 'sk-test-key' } });
     expect(input).toHaveValue('sk-test-key');
   });
 
   it('saves settings with PUT request', async () => {
+    mockSearchParamsValue = 'tab=ops';
     render(<AISettingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('API Key')).toBeInTheDocument();
+      expect(screen.getByLabelText('默认兼容密钥')).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText('API Key'), {
+    fireEvent.change(screen.getByLabelText('默认兼容密钥'), {
       target: { value: 'sk-test-key' },
     });
 
@@ -133,9 +153,9 @@ describe('AI Settings Page', () => {
       const calls = (global.fetch as jest.Mock).mock.calls;
       expect(
         calls.some(
-          ([url, init]) =>
+          ([url, requestInit]) =>
             String(url).includes('/api/settings/ai') &&
-            (init as RequestInit | undefined)?.method === 'PUT'
+            (requestInit as RequestInit | undefined)?.method === 'PUT'
         )
       ).toBe(true);
     });

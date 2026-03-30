@@ -251,26 +251,11 @@ export default function AiRequirementDetailPage() {
 
     setGenerating(true);
     try {
-      const response = await fetch(`/api/requirements/${requirementId}/generate-testcases`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testPointIds: Array.from(selectedIds),
-        }),
-      });
-
-      const payload = await response.json();
-      if (payload.code !== 0) {
-        throw new Error(getErrorMessage(payload, '生成测试用例失败'));
-      }
-
-      const generated = Array.isArray(payload?.data?.testCases) ? payload.data.testCases : [];
-      toast.success(`已生成 ${generated.length} 条测试用例`);
-
-      const firstId = Array.from(selectedIds)[0];
+      const selectedPointIds = Array.from(selectedIds);
       const search = new URLSearchParams({
         requirementId,
-        testPointId: firstId,
+        testPointIds: selectedPointIds.join(','),
+        testPointId: selectedPointIds[0],
       });
       router.push(`/ai-generate/testcases?${search.toString()}`);
     } catch (err) {

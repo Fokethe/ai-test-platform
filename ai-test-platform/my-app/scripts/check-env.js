@@ -53,13 +53,22 @@ function isValidDatabaseUrl(value) {
     return false;
   }
 
-  // SQLite format accepted by Prisma, e.g. file:./prisma/dev.db
+  // SQLite format accepted by Prisma, e.g. file:./dev.db
   if (normalized.startsWith('file:')) {
     return true;
   }
 
   // Accept common DSN schemes for external databases.
   return /^(postgres(?:ql)?|mysql|sqlserver|mongodb):\/\//i.test(normalized);
+}
+
+function isLikelyNestedPrismaSqlitePath(value) {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim().replace(/\\/g, '/');
+  return normalized === 'file:./prisma/dev.db' || normalized.endsWith('/prisma/dev.db');
 }
 
 function validateEnvVars(envVars) {
@@ -126,8 +135,16 @@ function runEnvCheck() {
 
   result.invalidRequired.forEach((key) => {
     console.log(`FAIL REQUIRED ${key} has invalid format.`);
-    console.log('Fix: use file:./prisma/dev.db or a valid database URL scheme.');
+    console.log('Fix: use file:./dev.db or a valid database URL scheme.');
   });
+
+  const dbUrl = envVars.DATABASE_URL;
+  if (isLikelyNestedPrismaSqlitePath(dbUrl)) {
+    console.log(
+      'WARN DATABASE_URL is set to file:./prisma/dev.db, which can resolve to a nested DB path.'
+    );
+    console.log('Fix: prefer file:./dev.db to avoid login/data drift after Prisma changes.');
+  }
 
   result.configuredOptional.forEach((key) => {
     console.log(`OK   OPTIONAL ${key}`);
@@ -155,6 +172,7 @@ module.exports = {
   validateEnvVars,
   isMissingOrPlaceholder,
   isValidDatabaseUrl,
+  isLikelyNestedPrismaSqlitePath,
   runEnvCheck,
   REQUIRED_ENV_VARS,
   OPTIONAL_ENV_VARS,

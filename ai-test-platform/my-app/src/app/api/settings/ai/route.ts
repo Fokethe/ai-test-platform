@@ -8,7 +8,7 @@ const DEFAULT_AI_SETTINGS = {
   enableAI: true,
   autoGenerate: false,
   smartAnalysis: true,
-  model: 'gpt-4o',
+  model: 'gpt-5.4',
   apiKey: '',
   temperature: 0.7,
   maxTokens: 2000,
@@ -31,8 +31,8 @@ type UpdatePayload = Partial<{
 }>;
 
 const ALLOWED_MODELS = new Set([
-  'gpt-4o',
-  'gpt-4o-mini',
+  'gpt-5.3',
+  'gpt-5.4',
   'claude-3-7-sonnet',
   'kimi-k2.5',
 ]);

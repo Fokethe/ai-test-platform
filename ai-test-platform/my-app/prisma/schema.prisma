@@ -75,6 +75,8 @@ model User {
   apiKeys          ApiKey[]
   settings         UserSettings?
   aiSetting        UserAiSetting?
+  apiKeyBindings   UserModelApiKeyBinding[]
+  aiModelCallStats AiModelCallStat[]
   notifications    Notification[]
   knowledgeEntries KnowledgeEntry[]
   logs             Log[]
@@ -85,8 +87,46 @@ model User {
   inbox            Inbox[]
   reportedIssues   Issue[] @relation("IssueReporter")
   assignedIssues   Issue[] @relation("IssueAssignee")
+  chatConversations ChatConversation[]
 
   @@map("users")
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+}
+
+model ChatConversation {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  title          String   @default("新对话")
+  knowledgeScope String?  @map("knowledge_scope")
+  projectId      String?  @map("project_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+  aiModelCallStats AiModelCallStat[]
+
+  @@index([userId, updatedAt])
+  @@index([projectId, updatedAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String          @id @default(cuid())
+  conversationId String          @map("conversation_id")
+  role           ChatMessageRole
+  content        String
+  meta           String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
 }
 
 model RoleMenuPermission {
@@ -163,12 +203,59 @@ model ApiKey {
   createdAt DateTime @default(now()) @map("created_at")
   userId    String   @map("user_id")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modelBindings UserModelApiKeyBinding[]
+  callStats     AiModelCallStat[]
 
+  @@index([userId, isActive, createdAt])
   @@map("api_keys")
 }
 
 // ==================== 工作空间模块 ====================
+
+model UserModelApiKeyBinding {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  model     String
+  apiKeyId  String   @map("api_key_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, model])
+  @@index([apiKeyId])
+  @@map("user_model_api_key_bindings")
+}
+
+model AiModelCallStat {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  conversationId String?  @map("conversation_id")
+  apiKeyId       String?  @map("api_key_id")
+  model          String
+  provider       String?
+  callPath       String   @map("call_path")
+  requestTokens  Int      @default(0) @map("request_tokens")
+  responseTokens Int      @default(0) @map("response_tokens")
+  totalTokens    Int      @default(0) @map("total_tokens")
+  estimatedCost  Float    @default(0) @map("estimated_cost")
+  latencyMs      Int      @default(0) @map("latency_ms")
+  webEnabled     Boolean  @default(false) @map("web_enabled")
+  success        Boolean  @default(true)
+  fallbackReason String?  @map("fallback_reason")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation ChatConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  apiKey       ApiKey?           @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([model, createdAt])
+  @@index([apiKeyId, createdAt])
+  @@map("ai_model_call_stats")
+}
 
 model Workspace {
   id          String   @id @default(cuid())

@@ -198,6 +198,7 @@ export default function FeishuLayout({ children }: { children: ReactNode }) {
   const canSeeSettings = !allowedMenuKeys || allowedMenuKeys.includes('settings');
   const canSeeRoleSettings = !allowedMenuKeys || allowedMenuKeys.includes('settingsRoles');
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+  const isDashboardWorkspace = pathname === '/dashboard';
   const appName = t('\u0041\u0049\u6d4b\u8bd5\u5e73\u53f0', 'AI Test Platform');
 
   return (
@@ -334,7 +335,7 @@ export default function FeishuLayout({ children }: { children: ReactNode }) {
               <NotificationBell />
             </div>
           </header>
-          <div className="p-6">{children}</div>
+          <div className={cn(isDashboardWorkspace ? 'p-0' : 'p-6')}>{children}</div>
         </main>
       </div>
     </div>
