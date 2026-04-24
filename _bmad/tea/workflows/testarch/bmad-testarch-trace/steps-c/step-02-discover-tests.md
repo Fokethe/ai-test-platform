@@ -2,7 +2,7 @@
 name: 'step-02-discover-tests'
 description: 'Discover and catalog tests by level'
 nextStepFile: './step-03-map-criteria.md'
-outputFile: '{test_artifacts}/traceability-report.md'
+outputFile: '{test_artifacts}/可追溯性报告.md'
 ---
 
 # Step 2: Discover & Catalog Tests

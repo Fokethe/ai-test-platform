@@ -33,7 +33,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `installed_path` = `{project-root}/_bmad/gds/workflows/4-production/gds-correct-course`
 - `checklist` = `{installed_path}/checklist.md`
-- `default_output_file` = `{planning_artifacts}/sprint-change-proposal-{date}.md`
+- `default_output_file` = `{planning_artifacts}/迭代变更提案-{date}.md`
 
 ### Input Files
 
@@ -49,13 +49,13 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 
 ## EXECUTION
 
-### Document Discovery - Loading Project Artifacts
+### 文档发现 - Loading Project Artifacts
 
 **Strategy**: Course correction needs broad project context to assess change impact accurately. Load all available planning artifacts.
 
@@ -76,7 +76,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 3. **Selectively load sections** based on relevance to the change being analyzed — do NOT load everything, only sections that relate to the impacted areas
 4. **This document is optional** — skip if `{project_knowledge}` does not exist (greenfield projects)
 
-**Fuzzy matching**: Be flexible with document names — users may use variations like `gdd.md`, `game-design-document.md`, etc.
+**Fuzzy matching**: Be flexible with document names — users may use variations like `游戏设计文档.md`, `game-design-document.md`, etc.
 
 **Missing documents**: Not all documents may exist. GDD and Epics are essential; Architecture, UX Design, Tech Spec, Narrative, and Document Project are loaded if available. HALT if GDD or Epics cannot be found.
 

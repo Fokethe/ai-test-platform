@@ -55,4 +55,4 @@ Load and read full config from {project-root}/_bmad/gds/config.yaml and resolve:
 
 ### 2. First Step EXECUTION
 
-Read fully and follow: `{project-root}/_bmad/gds/workflows/3-technical/gds-create-epics-and-stories/steps/step-01-validate-prerequisites.md` to begin the workflow.
+Read fully and follow: `{project-root}/_bmad/gds/workflows/3-technical/gds-create-epics-and-故事/steps/step-01-validate-prerequisites.md` to begin the workflow.

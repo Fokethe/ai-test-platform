@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-narrative
 thisStepFile: './step-10-production.md'
 nextStepFile: './step-11-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/narrative-design.md'
+outputFile: '{output_folder}/叙事设计.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'
@@ -159,7 +159,7 @@ Based on the conversation, prepare the content:
   {{/if_localizing}}
 
 {{if_english_only}}
-**Approach:** English only
+**方式：** English only
 **Future consideration:** {{maybe_later_notes}}
 {{/if_english_only}}
 
@@ -167,7 +167,7 @@ Based on the conversation, prepare the content:
 
 ### Voice Acting
 
-**Approach:** {{voice_acting_level}}
+**方式：** {{voice_acting_level}}
 
 {{if_voiced}}
 **Characters Needing Voices:** {{character_count}}

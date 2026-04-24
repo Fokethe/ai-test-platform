@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-narrative
 thisStepFile: './step-06-dialogue.md'
 nextStepFile: './step-07-environmental.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/narrative-design.md'
+outputFile: '{output_folder}/叙事设计.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'

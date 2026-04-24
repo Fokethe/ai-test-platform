@@ -3,7 +3,7 @@ name: 'step-03-epic-coverage-validation'
 description: 'Validate that all GDD FRs are covered in epics and stories'
 
 nextStepFile: './step-04-ux-alignment.md'
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 ---
 
 # Step 3: Epic Coverage Validation
@@ -127,7 +127,7 @@ FR#: [Full requirement text from GDD]
 Append to {outputFile}:
 
 ```markdown
-## Epic Coverage Validation
+## 史诗覆盖校验
 
 ### Coverage Matrix
 

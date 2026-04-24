@@ -103,7 +103,7 @@ Artifacts MUST use `{project_root}` for paths so the skill works regardless of i
 ### Writing Artifacts
 
 ```markdown
-1. Create the artifact at {project_root}/docs/architecture.md
+1. Create the artifact at {project_root}/docs/架构设计.md
 2. Update {project_root}/CHANGELOG.md with entry
 3. Copy template to {project_root}/.bmad-cache/template.md
 ```

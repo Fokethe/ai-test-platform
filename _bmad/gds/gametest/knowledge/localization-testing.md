@@ -1,6 +1,6 @@
 # Localization Testing Guide
 
-## Overview
+## 概览
 
 Localization testing ensures games work correctly across languages, regions, and cultures. Beyond translation, it validates text display, cultural appropriateness, and regional compliance.
 

@@ -1,6 +1,6 @@
 # Organic
 
-## Overview
+## 概览
 Natural, warm design inspired by nature — soft shapes, earthy tones, flowing layouts.
 
 ## Visual Characteristics

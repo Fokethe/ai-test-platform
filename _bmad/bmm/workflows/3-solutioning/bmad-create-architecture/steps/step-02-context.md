@@ -125,9 +125,9 @@ Prepare the content to append to the document:
 #### Content Structure:
 
 ```markdown
-## Project Context Analysis
+## 项目上下文分析
 
-### Requirements Overview
+### 需求概览
 
 **Functional Requirements:**
 {{analysis of FRs and what they mean architecturally}}
@@ -186,7 +186,7 @@ Show the generated content and present choices:
 
 #### If 'C' (Continue):
 
-- Append the final content to `{planning_artifacts}/architecture.md`
+- Append the final content to `{planning_artifacts}/架构设计.md`
 - Update frontmatter: `stepsCompleted: [1, 2]`
 - Load `./step-03-starter.md`
 

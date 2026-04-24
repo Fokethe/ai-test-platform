@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd'
 thisStepFile: './step-06-mechanics.md'
 nextStepFile: './step-07-game-type.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
+outputFile: '{output_folder}/游戏设计文档.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'

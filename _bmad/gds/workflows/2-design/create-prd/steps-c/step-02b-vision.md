@@ -4,7 +4,7 @@ description: 'Discover the product vision and differentiator through collaborati
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-02c-executive-summary.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'

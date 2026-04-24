@@ -3,7 +3,7 @@ name: 'step-01b-continue'
 description: 'Resume an interrupted PRD workflow from the last completed step'
 
 # File References
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 ---
 
 # Step 1B: Workflow Continuation

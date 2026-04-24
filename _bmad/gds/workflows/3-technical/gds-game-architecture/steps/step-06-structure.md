@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-06-structure.md'
 nextStepFile: './step-07-patterns.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Knowledge Bases
 engineKnowledge: '{workflow_path}/knowledge/{selected_engine}-engine.md'

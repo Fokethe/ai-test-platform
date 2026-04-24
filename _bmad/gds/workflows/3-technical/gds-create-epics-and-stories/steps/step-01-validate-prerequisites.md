@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-create-epics-
 thisStepFile: './step-01-validate-prerequisites.md'
 nextStepFile: './step-02-design-epics.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{planning_artifacts}/epics.md'
+outputFile: '{planning_artifacts}/史诗与故事.md'
 epicsTemplate: '{workflow_path}/templates/epics-template.md'
 
 # Task References

@@ -3,7 +3,7 @@ name: 'step-04-docs-and-scripts'
 description: 'Document setup and add package.json scripts'
 nextStepFile: './step-05-validate-and-summary.md'
 outputFile: '{test_dir}/README.md'
-progressFile: '{test_artifacts}/framework-setup-progress.md'
+progressFile: '{test_artifacts}/测试框架搭建进度.md'
 ---
 
 # Step 4: Documentation & Scripts

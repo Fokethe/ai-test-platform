@@ -28,11 +28,11 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 ### Paths
 
 - `story_file` = `` (explicit story path; auto-discovered if empty)
-- `sprint_status` = `{implementation_artifacts}/sprint-status.yaml`
+- `sprint_status` = `{implementation_artifacts}/迭代状态.yaml`
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 
@@ -60,7 +60,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
     <!-- Sprint-based story discovery -->
     <check if="{{sprint_status}} file exists">
-      <critical>MUST read COMPLETE sprint-status.yaml file from start to end to preserve order</critical>
+      <critical>MUST read COMPLETE 迭代状态.yaml file from start to end to preserve order</critical>
       <action>Load the FULL file: {{sprint_status}}</action>
       <action>Read ALL lines from beginning to end - do not skip any content</action>
       <action>Parse the development_status section completely to understand story order</action>
@@ -72,7 +72,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
       </action>
 
       <check if="no ready-for-dev or in-progress story found">
-        <output>📋 No ready-for-dev stories found in sprint-status.yaml
+        <output>📋 No ready-for-dev stories found in 迭代状态.yaml
 
           **Current Sprint Status:** {{sprint_status_summary}}
 
@@ -152,7 +152,10 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
     </check>
 
     <action>Store the found story_key (e.g., "1-2-user-authentication") for later status updates</action>
-    <action>Find matching story file in {implementation_artifacts} using story_key pattern: {{story_key}}.md</action>
+    <action>Find the matching story file in {implementation_artifacts} by trying both patterns:
+      1. exact legacy filename: {{story_key}}.md
+      2. localized filename prefix: {{epic_num}}-{{story_num}}-*.md
+    </action>
     <action>Read COMPLETE story file from discovered path</action>
 
     <anchor id="task_check" />
@@ -389,7 +392,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
       <action>Update development_status[{{story_key}}] = "review"</action>
       <action>Update last_updated field to current date</action>
       <action>Save file, preserving ALL comments and structure including STATUS DEFINITIONS</action>
-      <output>✅ Story status updated to "review" in sprint-status.yaml</output>
+      <output>✅ Story status updated to "review" in 迭代状态.yaml</output>
     </check>
 
     <check if="{sprint_status} file does NOT exist OR {{current_sprint_status}} == 'no-sprint-tracking'">
@@ -399,7 +402,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
     <check if="story key not found in sprint status">
       <output>⚠️ Story file updated, but sprint-status update failed: {{story_key}} not found
 
-        Story status is set to "review" in file, but sprint-status.yaml may be out of sync.
+        Story status is set to "review" in file, but 迭代状态.yaml may be out of sync.
       </output>
     </check>
 

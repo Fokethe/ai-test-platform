@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-narrative
 # File References
 thisStepFile: './step-11-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/narrative-design.md'
+outputFile: '{output_folder}/叙事设计.md'
 
 # Handoff References
 architectureWorkflow: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architecture/workflow.yaml'

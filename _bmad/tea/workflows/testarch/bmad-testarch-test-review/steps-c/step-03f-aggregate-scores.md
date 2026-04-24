@@ -2,7 +2,7 @@
 name: 'step-03f-aggregate-scores'
 description: 'Aggregate quality dimension scores into overall 0-100 score'
 nextStepFile: './step-04-generate-report.md'
-outputFile: '{test_artifacts}/test-review.md'
+outputFile: '{test_artifacts}/测试评审.md'
 ---
 
 # Step 3F: Aggregate Quality Scores

@@ -1,6 +1,6 @@
 ---
 main_config: '{project-root}/_bmad/bmm/config.yaml'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 ---
 
 # PRD Create Workflow

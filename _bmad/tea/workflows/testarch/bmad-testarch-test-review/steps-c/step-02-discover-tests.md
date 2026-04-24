@@ -2,7 +2,7 @@
 name: 'step-02-discover-tests'
 description: 'Find and parse test files'
 nextStepFile: './step-03-quality-evaluation.md'
-outputFile: '{test_artifacts}/test-review.md'
+outputFile: '{test_artifacts}/测试评审.md'
 ---
 
 # Step 2: Discover & Parse Tests

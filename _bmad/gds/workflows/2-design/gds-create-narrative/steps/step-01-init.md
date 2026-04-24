@@ -10,7 +10,7 @@ thisStepFile: './step-01-init.md'
 continueStepFile: './step-01b-continue.md'
 nextStepFile: './step-02-foundation.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/narrative-design.md'
+outputFile: '{output_folder}/叙事设计.md'
 templateFile: '{workflow_path}/templates/narrative-template.md'
 ---
 

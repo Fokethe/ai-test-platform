@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-03-starter.md'
 nextStepFile: './step-04-decisions.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Knowledge Base References
 engineMcps: '{workflow_path}/engine-mcps.yaml'

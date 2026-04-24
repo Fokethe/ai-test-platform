@@ -3,7 +3,7 @@ name: 'step-01-document-discovery'
 description: 'Discover and inventory all project documents, handling duplicates and organizing file structure'
 
 nextStepFile: './step-02-gdd-analysis.md'
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 templateFile: '../templates/readiness-report-template.md'
 ---
 

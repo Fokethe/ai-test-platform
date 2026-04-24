@@ -85,7 +85,7 @@ Try to discover the following:
 - Product Brief (`*brief*.md`)
 - Research Documents (`/*research*.md`)
 - Project Documentation (generally multiple documents might be found for this in the `{project_knowledge}` or `docs` folder.)
-- Project Context (`**/project-context.md`)
+- Project Context (`**/项目上下文.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>
 

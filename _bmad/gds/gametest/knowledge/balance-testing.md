@@ -1,6 +1,6 @@
 # Balance Testing for Games
 
-## Overview
+## 概览
 
 Balance testing validates that your game's systems create fair, engaging, and appropriately challenging experiences. It covers difficulty, economy, progression, and competitive balance.
 

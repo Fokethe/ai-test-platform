@@ -59,7 +59,7 @@ Create a folder `{base-name}-distillate/` containing:
 
 Example:
 ```
-product-brief-distillate/
+产品简报-distillate/
 ├── _index.md
 ├── 01-problem-solution.md
 ├── 02-technical-decisions.md

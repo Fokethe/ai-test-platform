@@ -310,7 +310,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ---
 
-#### Non-Functional Requirements (NFRs)
+#### 非功能需求 (NFRs)
 
 **Security**: {PASS | CONCERNS | FAIL | NOT_ASSESSED} {✅ | ⚠️ | ❌}
 

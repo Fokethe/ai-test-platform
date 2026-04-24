@@ -37,7 +37,7 @@
 | `config-variables` | Beyond core vars | `planning_artifacts`, `output_folder` |
 | `output-artifacts` | What it creates (output-location) | "PRD document", "agent skill" |
 
-## Overview Section Format
+## 概览 Section Format
 
 The Overview is the first section after the title — it primes the AI for everything that follows.
 
@@ -108,14 +108,14 @@ Use bare relative paths (no prefix):
 
 ### Project `_bmad` Paths
 Use `{project-root}/_bmad/...`:
-- `{project-root}/_bmad/planning/prd.md`
+- `{project-root}/_bmad/planning/产品需求文档.md`
 - `{project-root}/_bmad/_memory/{skillName}-sidecar/`
 
 ### Config Variables
 Use directly — they already contain `{project-root}` in their resolved values:
 - `{output_folder}/file.md`
-- `{planning_artifacts}/prd.md`
+- `{planning_artifacts}/产品需求文档.md`
 
 **Never:**
 - `{project-root}/{output_folder}/file.md` (WRONG — double-prefix, config var already has path)
-- `_bmad/planning/prd.md` (WRONG — bare `_bmad` must have `{project-root}` prefix)
+- `_bmad/planning/产品需求文档.md` (WRONG — bare `_bmad` must have `{project-root}` prefix)

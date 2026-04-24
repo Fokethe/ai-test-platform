@@ -33,7 +33,7 @@ Initialize the brainstorming workflow by detecting continuation state and settin
 
 First, check the brainstorming sessions folder for existing sessions:
 
-- List all files in `{output_folder}/brainstorming/`
+- List all files in `{output_folder}/头脑风暴/`
 - **DO NOT read any file contents** - only list filenames
 - If files exist, identify the most recent by date/time in the filename
 - If no files exist, this is a fresh workflow
@@ -127,7 +127,7 @@ context_file: '[context_file if provided]'
 Append to document:
 
 ```markdown
-## Session Overview
+## 会话概览
 
 **Topic:** [session_topic]
 **Goals:** [session_goals]
@@ -136,7 +136,7 @@ Append to document:
 
 _[If context file provided, summarize key context and focus areas]_
 
-### Session Setup
+### 会话设定
 
 _[Content based on conversation about session parameters and facilitator approach]_
 ```

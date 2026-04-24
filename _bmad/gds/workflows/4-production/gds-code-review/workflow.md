@@ -36,7 +36,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 ### Paths
 
 - `installed_path` = `{project-root}/_bmad/gds/workflows/4-production/gds-code-review`
-- `sprint_status` = `{implementation_artifacts}/sprint-status.yaml`
+- `sprint_status` = `{implementation_artifacts}/迭代状态.yaml`
 - `validation` = `{installed_path}/checklist.md`
 
 ### Input Files
@@ -51,7 +51,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 
@@ -229,7 +229,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     <action>Set {{current_sprint_status}} = "no-sprint-tracking"</action>
   </check>
 
-  <!-- Sync sprint-status.yaml when story status changes (only if sprint tracking enabled) -->
+  <!-- Sync 迭代状态.yaml when story status changes (only if sprint tracking enabled) -->
   <check if="{{current_sprint_status}} != 'no-sprint-tracking'">
     <action>Load the FULL file: {sprint_status}</action>
     <action>Find development_status key matching {{story_key}}</action>
@@ -249,7 +249,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     </check>
 
     <check if="story key not found in sprint status">
-      <output>⚠️ Story file updated, but sprint-status sync failed: {{story_key}} not found in sprint-status.yaml</output>
+      <output>⚠️ Story file updated, but sprint-status sync failed: {{story_key}} not found in 迭代状态.yaml</output>
     </check>
   </check>
 

@@ -1,6 +1,6 @@
 # Platform Certification Testing Guide
 
-## Overview
+## 概览
 
 Certification testing ensures games meet platform holder requirements (Sony TRC, Microsoft XR, Nintendo Guidelines). Failing certification delays launch and costs money—test thoroughly before submission.
 

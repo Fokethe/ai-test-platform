@@ -7,7 +7,7 @@
 
 ---
 
-## Overview
+## 概览
 
 Generates **failing acceptance tests** before implementation (TDD red phase), plus an implementation checklist. Produces tests at appropriate levels (E2E/API/Component) with supporting fixtures and helpers.
 

@@ -4,7 +4,7 @@
 
 ---
 
-## Overview
+## 概览
 
 This document defines the **WDS Specification Pattern** used in Phase 4 (UX Design) for all WDS projects.
 

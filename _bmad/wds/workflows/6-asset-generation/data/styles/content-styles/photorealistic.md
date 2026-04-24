@@ -1,6 +1,6 @@
 # Photorealistic
 
-## Overview
+## 概览
 Images that look like real photographs — natural lighting, real textures, believable scenes.
 
 ## Rendering Characteristics

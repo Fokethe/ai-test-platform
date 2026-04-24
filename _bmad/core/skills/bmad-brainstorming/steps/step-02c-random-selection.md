@@ -162,9 +162,9 @@ stepsCompleted: [1, 2]
 **Append to document:**
 
 ```markdown
-## Technique Selection
+## 方法选择
 
-**Approach:** Random Technique Selection
+**方式：** Random Technique Selection
 **Selection Method:** Serendipitous discovery from 36+ techniques
 
 **Randomly Selected Techniques:**

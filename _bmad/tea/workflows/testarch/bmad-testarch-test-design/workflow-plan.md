@@ -16,7 +16,7 @@
   - step-02-apply-edit.md
 
   ## Outputs
-  - {test_artifacts}/test-design-architecture.md (system-level)
+  - {test_artifacts}/测试设计-架构.md (system-level)
 
-- {test_artifacts}/test-design-qa.md (system-level)
-- {test_artifacts}/test-design-epic-{epic_num}.md (epic-level)
+- {test_artifacts}/测试设计-QA.md (system-level)
+- {test_artifacts}/测试设计-史诗-{epic_num}.md (epic-level)

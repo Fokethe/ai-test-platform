@@ -114,8 +114,8 @@ Only use `{project-root}` for `_bmad` paths.
 ```
 references/reference.md                # Skill-internal (bare relative)
 stage-one.md                          # Skill-internal (prompt at root)
-{project-root}/_bmad/planning/prd.md  # Project _bmad path
-{planning_artifacts}/prd.md           # Config var (already has full path)
+{project-root}/_bmad/planning/产品需求文档.md  # Project _bmad path
+{planning_artifacts}/产品需求文档.md           # Config var (already has full path)
 ```
 
 **Never use:**

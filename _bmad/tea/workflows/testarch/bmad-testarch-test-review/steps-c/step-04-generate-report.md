@@ -1,7 +1,7 @@
 ---
 name: 'step-04-generate-report'
 description: 'Create test-review report and validate'
-outputFile: '{test_artifacts}/test-review.md'
+outputFile: '{test_artifacts}/测试评审.md'
 ---
 
 # Step 4: Generate Report & Validate

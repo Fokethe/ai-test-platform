@@ -6,7 +6,7 @@ argument-hint: "[optional --create, --edit, --optimize, --distillate, --inputs, 
 
 # Create Product Brief
 
-## Overview
+## 概览
 
 This skill helps you create compelling product briefs through collaborative discovery, intelligent artifact analysis, and web research. Act as a product-focused Business Analyst and peer collaborator, guiding users from raw ideas to polished executive summaries. Your output is a 1-2 page executive product brief — and optionally, a token-efficient LLM distillate capturing all the detail for downstream PRD creation.
 

@@ -10,7 +10,7 @@ thisStepFile: './step-01-init.md'
 nextStepFile: './step-02-context.md'
 continueStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
+outputFile: '{output_folder}/游戏设计文档.md'
 
 # Template References
 gddTemplate: '{workflow_path}/templates/gdd-template.md'

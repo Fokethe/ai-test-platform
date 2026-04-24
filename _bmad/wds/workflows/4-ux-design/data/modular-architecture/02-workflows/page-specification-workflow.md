@@ -4,7 +4,7 @@
 
 ---
 
-## Overview
+## 概览
 
 The agent guides you through specifying a page **from top to bottom**, one section at a time. You control the level of detail at each step.
 

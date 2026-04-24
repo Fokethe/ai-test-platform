@@ -2,7 +2,7 @@
 name: 'step-04-coverage-plan'
 description: 'Design test coverage, priorities, execution strategy, and estimates'
 nextStepFile: './step-05-generate-output.md'
-outputFile: '{test_artifacts}/test-design-progress.md'
+outputFile: '{test_artifacts}/测试设计进度.md'
 ---
 
 # Step 4: Coverage Plan & Execution Strategy

@@ -55,7 +55,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `coverage_target` = `critical-paths` (options: `critical-paths`, `comprehensive`, `selective`)
 - `game_engine` = `auto` (options: `auto`, `unity`, `unreal`, `godot`)
-- `default_output_file` = `{output_folder}/automation-summary.md`
+- `default_output_file` = `{output_folder}/自动化总结.md`
 
 ### Knowledge Fragments
 

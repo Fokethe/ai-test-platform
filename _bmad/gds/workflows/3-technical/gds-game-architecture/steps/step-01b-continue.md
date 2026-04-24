@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 # File References
 thisStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Step Files (for routing)
 step02: './step-02-context.md'

@@ -2,7 +2,7 @@
 name: 'step-02-select-framework'
 description: 'Select Playwright or Cypress and justify choice'
 nextStepFile: './step-03-scaffold-framework.md'
-outputFile: '{test_artifacts}/framework-setup-progress.md'
+outputFile: '{test_artifacts}/测试框架搭建进度.md'
 ---
 
 # Step 2: Framework Selection

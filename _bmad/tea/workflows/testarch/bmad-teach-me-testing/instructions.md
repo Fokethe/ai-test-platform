@@ -1,6 +1,6 @@
 # Teach Me Testing - Usage Instructions
 
-## Overview
+## 概览
 
 The Teach Me Testing workflow is a multi-session learning companion that teaches testing progressively through 7 structured sessions with state persistence. Designed for self-paced learning over 1-2 weeks.
 

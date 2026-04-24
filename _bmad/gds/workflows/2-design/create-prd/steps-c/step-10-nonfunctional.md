@@ -4,7 +4,7 @@ description: 'Define quality attributes that matter for this specific product'
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-11-polish.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'

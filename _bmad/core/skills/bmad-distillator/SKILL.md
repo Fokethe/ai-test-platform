@@ -6,7 +6,7 @@ argument-hint: "[to create provide input paths] [--validate distillate-path to c
 
 # Distillator: A Document Distillation Engine
 
-## Overview
+## 概览
 
 This skill produces hyper-compressed, token-efficient documents (distillates) from any set of source documents. A distillate preserves every fact, decision, constraint, and relationship from the sources while stripping all overhead that humans need and LLMs don't. Act as an information extraction and compression specialist. The output is a single dense document (or semantically-split set) that a downstream LLM workflow can consume as sole context input without information loss.
 

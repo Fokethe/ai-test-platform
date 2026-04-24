@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 # File References
 thisStepFile: './step-09-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Handoff References
 epicWorkflow: '{project-root}/_bmad/gds/workflows/4-production/epic-workflow/workflow.yaml'
@@ -192,7 +192,7 @@ Do you want to review or adjust anything before we finalize?
 
 **Optional Enhancement: Project Context File**
 
-Would you like to create a `project-context.md` file? This is a concise, optimized guide for AI agents that captures:
+Would you like to create a `项目上下文.md` file? This is a concise, optimized guide for AI agents that captures:
 
 - Critical engine-specific rules they might miss
 - Specific patterns and conventions for your game project
@@ -220,7 +220,7 @@ This will help ensure consistent implementation by capturing:
 - Testing and quality standards
 - Anti-patterns to avoid
 
-The workflow will collaborate with you to create an optimized `project-context.md` file that AI agents will read before implementing any game code."
+The workflow will collaborate with you to create an optimized `项目上下文.md` file that AI agents will read before implementing any game code."
 
 **Execute the Generate Project Context workflow:**
 
@@ -326,7 +326,7 @@ Ready to proceed to epic creation, or any questions about the architecture?"
 This is the final step. Ensure:
 
 - Executive summary is generated
-- All content is saved to architecture.md
+- All content is saved to 架构设计.md
 - Frontmatter shows all 9 steps completed
 - User has clear actionable next steps
 - Handoff to epic workflow is smooth

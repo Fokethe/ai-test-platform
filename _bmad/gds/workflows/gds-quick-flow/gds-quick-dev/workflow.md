@@ -35,7 +35,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 ### Paths
 
 - `installed_path` = `{project-root}/_bmad/gds/workflows/gds-quick-flow/gds-quick-dev`
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 - `project_levels` = `{project-root}/_bmad/gds/workflows/workflow-status/project-levels.yaml`
 
 ### Related Workflows

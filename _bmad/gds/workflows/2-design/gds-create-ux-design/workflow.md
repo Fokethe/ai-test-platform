@@ -34,7 +34,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 - `installed_path` = `.`
 - `template_path` = `{installed_path}/ux-design-template.md`
-- `default_output_file` = `{planning_artifacts}/ux-design-specification.md`
+- `default_output_file` = `{planning_artifacts}/用户体验设计规范.md`
 
 ## EXECUTION
 

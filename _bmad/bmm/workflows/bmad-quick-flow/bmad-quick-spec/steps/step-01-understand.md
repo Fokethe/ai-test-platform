@@ -71,7 +71,7 @@ a) **Before asking detailed questions, do a rapid scan to understand the landsca
 b) **Check for existing context docs:**
 
 - Check `{implementation_artifacts}` and `{planning_artifacts}`for planning documents (PRD, architecture, epics, research)
-- Check for `**/project-context.md` - if it exists, skim for patterns and conventions
+- Check for `**/项目上下文.md` - if it exists, skim for patterns and conventions
 - Check for any existing stories or specs related to user's request
 
 c) **If user mentioned specific code/features, do a quick scan:**

@@ -215,7 +215,7 @@ Show the generated defining experience content and present choices:
 
 #### If 'C' (Continue):
 
-- Append the final content to `{planning_artifacts}/ux-design-specification.md`
+- Append the final content to `{planning_artifacts}/用户体验设计规范.md`
 - Update frontmatter: append step to end of stepsCompleted array
 - Load `./step-08-visual-foundation.md`
 

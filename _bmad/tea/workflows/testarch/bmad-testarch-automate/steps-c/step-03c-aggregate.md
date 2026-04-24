@@ -1,7 +1,7 @@
 ---
 name: 'step-03c-aggregate'
 description: 'Aggregate subagent outputs and complete test infrastructure'
-outputFile: '{test_artifacts}/automation-summary.md'
+outputFile: '{test_artifacts}/自动化总结.md'
 nextStepFile: './step-04-validate-and-summarize.md'
 ---
 

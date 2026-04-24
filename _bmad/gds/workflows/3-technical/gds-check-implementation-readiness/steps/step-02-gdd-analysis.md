@@ -3,7 +3,7 @@ name: 'step-02-gdd-analysis'
 description: 'Read and analyze GDD to extract all FRs and NFRs for coverage validation'
 
 nextStepFile: './step-03-epic-coverage-validation.md'
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 epicsFile: '{planning_artifacts}/*epic*.md' # Will be resolved to actual file
 ---
 
@@ -128,11 +128,11 @@ Append to {outputFile}:
 ```markdown
 ## GDD Analysis
 
-### Functional Requirements
+### 功能需求
 
 [Complete FR list from section 3]
 
-### Non-Functional Requirements
+### 非功能需求
 
 [Complete NFR list from section 4]
 

@@ -1,6 +1,6 @@
 ---
 # File References
-outputFile: '{planning_artifacts}/product-brief-{{project_name}}-{{date}}.md'
+outputFile: '{planning_artifacts}/产品简报-{{project_name}}-{{date}}.md'
 ---
 
 # Step 6: Product Brief Completion

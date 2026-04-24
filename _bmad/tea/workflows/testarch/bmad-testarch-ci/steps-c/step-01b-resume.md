@@ -1,7 +1,7 @@
 ---
 name: 'step-01b-resume'
 description: 'Resume interrupted workflow from last completed step'
-outputFile: '{test_artifacts}/ci-pipeline-progress.md'
+outputFile: '{test_artifacts}/CI流水线进度.md'
 ---
 
 # Step 1b: Resume Workflow

@@ -1,8 +1,8 @@
 ---
 name: 'step-05-generate-output'
 description: 'Generate output documents with adaptive orchestration (agent-team, subagent, or sequential)'
-outputFile: '{test_artifacts}/test-design-epic-{epic_num}.md'
-progressFile: '{test_artifacts}/test-design-progress.md'
+outputFile: '{test_artifacts}/测试设计-史诗-{epic_num}.md'
+progressFile: '{test_artifacts}/测试设计进度.md'
 ---
 
 # Step 5: Generate Outputs & Validate
@@ -109,8 +109,8 @@ Resolution precedence:
 
 Generate **two** documents:
 
-- `{test_artifacts}/test-design-architecture.md` using `test-design-architecture-template.md`
-- `{test_artifacts}/test-design-qa.md` using `test-design-qa-template.md`
+- `{test_artifacts}/测试设计-架构.md` using `test-design-architecture-template.md`
+- `{test_artifacts}/测试设计-QA.md` using `test-design-qa-template.md`
 
 If `resolvedMode` is `agent-team` or `subagent`, these two documents can be generated in parallel as independent workers, then reconciled for consistency.
 

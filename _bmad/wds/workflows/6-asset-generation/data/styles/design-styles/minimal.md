@@ -1,6 +1,6 @@
 # Minimal
 
-## Overview
+## 概览
 Clean, spacious design with maximum whitespace and restrained use of elements.
 
 ## Visual Characteristics

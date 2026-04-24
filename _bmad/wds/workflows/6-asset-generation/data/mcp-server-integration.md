@@ -6,7 +6,7 @@
 
 ---
 
-## Overview
+## 概览
 
 The MCP (Model Context Protocol) server integration enables WDS to communicate directly with Figma, allowing:
 

@@ -9,7 +9,7 @@
 
 ---
 
-## Overview
+## 概览
 
 This workshop will guide AI agents through importing design specifications from Figma to generate or update code implementations.
 

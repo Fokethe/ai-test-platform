@@ -33,7 +33,7 @@ when there's a real decision to make, otherwise just execute.
 Store the preference in the project context:
 
 ```yaml
-# In project-context.md or .wds-project-outline.yaml
+# In 项目上下文.md or .wds-project-outline.yaml
 user_preferences:
   expertise_level: [1-4]
   set_date: [today]

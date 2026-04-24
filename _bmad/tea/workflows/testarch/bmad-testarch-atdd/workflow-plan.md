@@ -16,6 +16,6 @@
   - step-02-apply-edit.md
 
   ## Outputs
-  - {test_artifacts}/atdd-checklist-{story_id}.md
+  - {test_artifacts}/ATDD检查清单-{story_id}.md
 
 - Failing acceptance tests under {project-root}/tests

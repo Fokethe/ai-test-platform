@@ -1,6 +1,6 @@
 # Godot GUT Testing Guide
 
-## Overview
+## 概览
 
 GUT (Godot Unit Test) is the standard unit testing framework for Godot. It provides a full-featured testing framework with assertions, mocking, and CI integration.
 

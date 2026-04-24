@@ -1,6 +1,6 @@
 # Playtesting Fundamentals
 
-## Overview
+## 概览
 
 Playtesting is the process of having people play your game to gather feedback and identify issues. It's distinct from QA testing in that it focuses on player experience, fun factor, and design validation rather than bug hunting.
 

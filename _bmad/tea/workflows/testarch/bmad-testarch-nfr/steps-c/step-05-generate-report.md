@@ -1,7 +1,7 @@
 ---
 name: 'step-05-generate-report'
 description: 'Create NFR report and validation summary'
-outputFile: '{test_artifacts}/nfr-assessment.md'
+outputFile: '{test_artifacts}/NFR评估.md'
 ---
 
 # Step 5: Generate Report & Validate

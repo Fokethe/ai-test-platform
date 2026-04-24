@@ -1,6 +1,6 @@
 # End-to-End Testing for Games
 
-## Overview
+## 概览
 
 E2E tests validate complete gameplay flows from the player's perspective — the full orchestra, not individual instruments. Unlike integration tests that verify system interactions, E2E tests verify *player journeys* work correctly from start to finish.
 

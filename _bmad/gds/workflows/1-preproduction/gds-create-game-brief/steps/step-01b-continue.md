@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-create-ga
 # File References
 thisStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-brief.md'
+outputFile: '{output_folder}/游戏简报.md'
 ---
 
 # Step 1B: Workflow Continuation

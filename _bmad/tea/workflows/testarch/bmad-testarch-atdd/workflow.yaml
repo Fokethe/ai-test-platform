@@ -16,14 +16,14 @@ date: system-generated
 installed_path: "."
 instructions: "./instructions.md"
 validation: "./checklist.md"
-template: "./atdd-checklist-template.md"
+template: "./ATDD检查清单-template.md"
 
 # Variables and inputs
 variables:
   test_dir: "{project-root}/tests" # Root test directory
 
 # Output configuration
-default_output_file: "{test_artifacts}/atdd-checklist-{story_id}.md"
+default_output_file: "{test_artifacts}/ATDD检查清单-{story_id}.md"
 
 # Required tools
 required_tools:

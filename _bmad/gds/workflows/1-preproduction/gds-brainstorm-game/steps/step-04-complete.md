@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-brainstor
 # File References
 thisStepFile: './step-04-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/brainstorming-session-{date}.md'
+outputFile: '{output_folder}/头脑风暴记录-{date}.md'
 
 # Handoff References
 gameBriefWorkflow: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-create-game-brief/workflow.yaml'

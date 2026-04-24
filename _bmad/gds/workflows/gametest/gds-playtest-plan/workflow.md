@@ -228,7 +228,7 @@ Write `{output_folder}/playtest-plan.md` using the `playtest-template.md` struct
 ```markdown
 # Playtest Plan: {Build/Feature Name}
 
-## Overview
+## 概览
 
 - Build version: {version}
 - Session date(s): {dates}

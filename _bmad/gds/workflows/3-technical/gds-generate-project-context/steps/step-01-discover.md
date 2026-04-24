@@ -34,7 +34,7 @@ Discover the project's game engine, technology stack, existing patterns, and cri
 
 First, check if project context already exists:
 
-- Look for file at `{output_folder}/project-context.md`
+- Look for file at `{output_folder}/项目上下文.md`
 - If exists: Read complete file to understand existing rules
 - Present to user: "Found existing project context with {number_of_sections} sections. Would you like to update this or create a new one?"
 
@@ -44,7 +44,7 @@ Load and analyze project files to identify technologies:
 
 **Architecture Document:**
 
-- Look for `{output_folder}/game-architecture.md` or `{planning_artifacts}/architecture.md`
+- Look for `{output_folder}/游戏架构.md` or `{planning_artifacts}/架构设计.md`
 - Extract engine choice with specific version (Unity, Unreal, Godot, custom)
 - Note architectural decisions that affect implementation
 
@@ -130,7 +130,7 @@ Based on discovery, create or update the context document:
 
 #### A. Fresh Document Setup (if no existing context)
 
-Copy template from `{installed_path}/project-context-template.md` to `{output_folder}/project-context.md`
+Copy template from `{installed_path}/project-context-template.md` to `{output_folder}/项目上下文.md`
 Initialize frontmatter with:
 
 ```yaml

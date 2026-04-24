@@ -26,7 +26,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 ### Paths
 
 - `installed_path` = `{project-root}/_bmad/gds/workflows/4-production/gds-sprint-status`
-- `sprint_status_file` = `{implementation_artifacts}/sprint-status.yaml`
+- `sprint_status_file` = `{implementation_artifacts}/迭代状态.yaml`
 
 ### Input Files
 
@@ -36,7 +36,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 
@@ -64,14 +64,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <action>Load {project_context} for project-wide patterns and conventions (if exists)</action>
   <action>Try {sprint_status_file}</action>
   <check if="file not found">
-    <output>❌ sprint-status.yaml not found.
+    <output>❌ 迭代状态.yaml not found.
 Run `/bmad:gds:workflows:sprint-planning` to generate it, then rerun sprint-status.</output>
     <action>Exit workflow</action>
   </check>
   <action>Continue to Step 2</action>
 </step>
 
-<step n="2" goal="Read and parse sprint-status.yaml">
+<step n="2" goal="Read and parse 迭代状态.yaml">
   <action>Read the FULL file: {sprint_status_file}</action>
   <action>Parse fields: generated, last_updated, project, project_key, tracking_system, story_location</action>
   <action>Parse development_status map. Classify keys:</action>
@@ -111,7 +111,7 @@ Run `/bmad:gds:workflows:sprint-planning` to generate it, then rerun sprint-stat
 
 Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue without fixing:</ask>
 <check if="user provided corrections">
-<action>Update sprint-status.yaml with corrected values</action>
+<action>Update 迭代状态.yaml with corrected values</action>
 <action>Re-parse the file with corrected statuses</action>
 </check>
 </check>
@@ -121,7 +121,7 @@ Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue witho
 - IF any story has status "review": suggest `/bmad:gds:workflows:code-review`
 - IF any story has status "in-progress" AND no stories have status "ready-for-dev": recommend staying focused on active story
 - IF all epics have status "backlog" AND no stories have status "ready-for-dev": prompt `/bmad:gds:workflows:create-story`
-- IF `last_updated` timestamp is more than 7 days old (or `last_updated` is missing, fall back to `generated`): warn "sprint-status.yaml may be stale"
+- IF `last_updated` timestamp is more than 7 days old (or `last_updated` is missing, fall back to `generated`): warn "迭代状态.yaml may be stale"
 - IF any story key doesn't match an epic pattern (e.g., story "5-1-..." but no "epic-5"): warn "orphaned story detected"
 - IF any epic has status in-progress but has no associated stories: warn "in-progress epic has no stories"
   </step>
@@ -167,7 +167,7 @@ Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue witho
   <ask>Pick an option:
 1) Run recommended workflow now
 2) Show all stories grouped by status
-3) Show raw sprint-status.yaml
+3) Show raw 迭代状态.yaml
 4) Exit
 Choice:</ask>
 
@@ -225,7 +225,7 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
   <action>Check that {sprint_status_file} exists</action>
   <check if="missing">
     <template-output>is_valid = false</template-output>
-    <template-output>error = "sprint-status.yaml missing"</template-output>
+    <template-output>error = "迭代状态.yaml missing"</template-output>
     <template-output>suggestion = "Run sprint-planning to create it"</template-output>
     <action>Return</action>
   </check>
@@ -256,12 +256,12 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
   <check if="any invalid status found">
   <template-output>is_valid = false</template-output>
   <template-output>error = "Invalid status values: {{invalid_entries}}"</template-output>
-  <template-output>suggestion = "Fix invalid statuses in sprint-status.yaml"</template-output>
+  <template-output>suggestion = "Fix invalid statuses in 迭代状态.yaml"</template-output>
   <action>Return</action>
   </check>
 
 <template-output>is_valid = true</template-output>
-<template-output>message = "sprint-status.yaml valid: metadata complete, all statuses recognized"</template-output>
+<template-output>message = "迭代状态.yaml valid: metadata complete, all statuses recognized"</template-output>
 </step>
 
 </workflow>

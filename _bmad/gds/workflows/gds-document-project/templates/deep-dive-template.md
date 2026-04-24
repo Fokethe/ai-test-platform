@@ -6,7 +6,7 @@
 **Lines of Code:** {{total_loc}}
 **Workflow Mode:** Exhaustive Deep-Dive
 
-## Overview
+## 概览
 
 {{target_description}}
 

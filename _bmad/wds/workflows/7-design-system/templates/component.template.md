@@ -6,7 +6,7 @@
 
 ---
 
-## Overview
+## 概览
 
 [Component description and when to use it]
 

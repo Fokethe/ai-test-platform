@@ -295,7 +295,7 @@ Good structure:
 ```markdown
 # Main Topic
 
-## Overview
+## 概览
 [High-level summary]
 
 ## Key Concepts
@@ -314,7 +314,7 @@ Good structure:
 
 ---
 
-## The Bible: `project-context.md`
+## The Bible: `项目上下文.md`
 
 **If this file exists, treat it as gospel.**
 
@@ -331,7 +331,7 @@ Good structure:
 2. **If exists:** Read thoroughly before any work
 3. **If missing:** Offer to create one
 
-**Location:** Usually `docs/project-context.md` or root `project-context.md`
+**Location:** Usually `docs/项目上下文.md` or root `项目上下文.md`
 
 ---
 

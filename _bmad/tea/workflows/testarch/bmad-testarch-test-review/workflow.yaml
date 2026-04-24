@@ -25,7 +25,7 @@ variables:
   test_stack_type: "auto" # auto, frontend, backend, fullstack - from config or auto-detected
 
 # Output configuration
-default_output_file: "{test_artifacts}/test-review.md"
+default_output_file: "{test_artifacts}/测试评审.md"
 
 # Required tools
 required_tools:

@@ -1,6 +1,6 @@
 # Phase 5: Design System Workflow
 
-## Overview
+## 概览
 
 **Purpose:** Extract, organize, and maintain reusable design components as they're discovered during Phase 4 specification work.
 

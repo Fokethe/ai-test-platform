@@ -1,6 +1,6 @@
 ---
 # File References
-outputFile: '{planning_artifacts}/product-brief-{{project_name}}-{{date}}.md'
+outputFile: '{planning_artifacts}/产品简报-{{project_name}}-{{date}}.md'
 ---
 
 # Step 1: Product Brief Initialization
@@ -89,7 +89,7 @@ Try to discover the following:
 - Brainstorming Reports (`*brainstorming*.md`)
 - Research Documents (`*research*.md`)
 - Project Documentation (generally multiple documents might be found for this in the `{product_knowledge}` or `docs` folder.)
-- Project Context (`**/project-context.md`)
+- Project Context (`**/项目上下文.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>
 

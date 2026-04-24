@@ -1,6 +1,6 @@
 # Comic Book
 
-## Overview
+## 概览
 Bold outlines, halftone dots, speech bubbles, and dynamic action-style compositions.
 
 ## Rendering Characteristics

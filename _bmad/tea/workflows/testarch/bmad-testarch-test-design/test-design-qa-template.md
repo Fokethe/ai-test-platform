@@ -15,7 +15,7 @@ inputDocuments: []
 **Status:** Draft
 **Project:** {project_name}
 
-**Related:** See Architecture doc (test-design-architecture.md) for testability concerns and architectural blockers.
+**Related:** See Architecture doc (测试设计-架构.md) for testability concerns and architectural blockers.
 
 ---
 

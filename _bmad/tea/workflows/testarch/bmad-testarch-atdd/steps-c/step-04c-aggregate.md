@@ -1,7 +1,7 @@
 ---
 name: 'step-04c-aggregate'
 description: 'Aggregate subagent outputs and complete ATDD test infrastructure'
-outputFile: '{test_artifacts}/atdd-checklist-{story_id}.md'
+outputFile: '{test_artifacts}/ATDD检查清单-{story_id}.md'
 nextStepFile: './step-05-validate-and-complete.md'
 ---
 
@@ -220,7 +220,7 @@ UI components to implement:
 **Save checklist:**
 
 ```javascript
-fs.writeFileSync(`{test_artifacts}/atdd-checklist-{story-id}.md`, checklistContent, 'utf8');
+fs.writeFileSync(`{test_artifacts}/ATDD检查清单-{story-id}.md`, checklistContent, 'utf8');
 ```
 
 ---
@@ -297,7 +297,7 @@ Display to user:
 - tests/api/[feature].spec.ts (with test.skip())
 - tests/e2e/[feature].spec.ts (with test.skip())
 - tests/fixtures/test-data.ts
-- {test_artifacts}/atdd-checklist-{story-id}.md
+- {test_artifacts}/ATDD检查清单-{story-id}.md
 
 📝 Next Steps:
 1. Implement the feature

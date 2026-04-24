@@ -17,7 +17,7 @@ Use `../resources/brief-template.md` as a guide — adapt structure to fit the p
 - **Confident voice** — this is a pitch, not a hedge
 - Write in `{document_output_language}`
 
-**Create the output document at:** `{planning_artifacts}/product-brief-{project_name}.md`
+**Create the output document at:** `{planning_artifacts}/产品简报-{project_name}.md`
 
 Include YAML frontmatter:
 ```yaml

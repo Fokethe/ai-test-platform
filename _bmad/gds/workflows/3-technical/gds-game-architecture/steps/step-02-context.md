@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-02-context.md'
 nextStepFile: './step-03-starter.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'

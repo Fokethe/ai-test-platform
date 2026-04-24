@@ -6,7 +6,7 @@
 
 ---
 
-## Overview
+## 概览
 
 This guide explains how to organize text content and translations in WDS specifications using **purpose-based naming** and **grouped translation** patterns.
 

@@ -5,7 +5,7 @@
 
 ---
 
-## Overview
+## 概览
 
 Assess non-functional requirements (performance, security, reliability, maintainability) with evidence-based validation and deterministic PASS/CONCERNS/FAIL outcomes.
 

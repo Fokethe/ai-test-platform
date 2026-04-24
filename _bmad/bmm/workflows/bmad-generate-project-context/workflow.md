@@ -1,6 +1,6 @@
 # Generate Project Context Workflow
 
-**Goal:** Create a concise, optimized `project-context.md` file containing critical rules, patterns, and guidelines that AI agents must follow when implementing code. This file focuses on unobvious details that LLMs need to be reminded of.
+**Goal:** Create a concise, optimized `项目上下文.md` file containing critical rules, patterns, and guidelines that AI agents must follow when implementing code. This file focuses on unobvious details that LLMs need to be reminded of.
 
 **Your Role:** You are a technical facilitator working with a peer to capture the essential implementation rules that will ensure consistent, high-quality code generation across all AI agents working on the project.
 
@@ -32,7 +32,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 ### Paths
 
-- `output_file` = `{output_folder}/project-context.md`
+- `output_file` = `{output_folder}/项目上下文.md`
 
 ---
 

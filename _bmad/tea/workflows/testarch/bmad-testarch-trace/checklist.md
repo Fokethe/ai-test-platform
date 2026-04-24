@@ -280,8 +280,8 @@ Knowledge fragments referenced:
 - [ ] Risk scores extracted from test-design.md (if available)
 - [ ] Coverage percentages extracted from traceability-matrix.md (available from Phase 1)
 - [ ] Coverage gaps extracted from traceability-matrix.md (available from Phase 1)
-- [ ] NFR status extracted from nfr-assessment.md (if available)
-- [ ] Security issues count extracted from nfr-assessment.md (if available)
+- [ ] NFR status extracted from NFR评估.md (if available)
+- [ ] Security issues count extracted from NFR评估.md (if available)
 
 **Code Coverage:**
 
@@ -527,7 +527,7 @@ Knowledge fragments referenced:
 
 - [ ] If test-design.md missing, decision still possible with test results + trace
 - [ ] If traceability-matrix.md missing, decision still possible with test results (but Phase 1 should provide it)
-- [ ] If nfr-assessment.md missing, NFR validation marked as NOT ASSESSED
+- [ ] If NFR评估.md missing, NFR validation marked as NOT ASSESSED
 - [ ] If code coverage missing, coverage criterion marked as NOT ASSESSED
 - [ ] User acknowledged gaps in evidence or provided alternative proof
 

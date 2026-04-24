@@ -226,5 +226,5 @@ For {Feature} Phase 1, the following trade-offs are acceptable:
 **Next Steps for QA Team:**
 
 1. Wait for pre-implementation blockers to be resolved
-2. Refer to companion QA doc (test-design-qa.md) for test scenarios
+2. Refer to companion QA doc (测试设计-QA.md) for test scenarios
 3. Begin test infrastructure setup (factories, fixtures, environments)

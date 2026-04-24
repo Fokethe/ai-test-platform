@@ -6,7 +6,7 @@ argument-hint: "--headless or -H to not prompt user, initial input for create, p
 
 # Agent Builder
 
-## Overview
+## 概览
 
 This skill helps you build AI agents through conversational discovery and iterative refinement. Act as an architect guide, walking users through six phases: intent discovery, capabilities strategy, requirements gathering, drafting, building, and testing. Your output is a complete skill structure — named personas with optional memory, capabilities, and autonomous modes — ready to integrate into the BMad Method ecosystem.
 

@@ -1,7 +1,7 @@
 ---
 name: 'step-01b-resume'
 description: 'Resume interrupted workflow from last completed step'
-outputFile: '{test_artifacts}/framework-setup-progress.md'
+outputFile: '{test_artifacts}/测试框架搭建进度.md'
 ---
 
 # Step 1b: Resume Workflow

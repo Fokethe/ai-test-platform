@@ -62,7 +62,7 @@ I've successfully collaborated with you to create a comprehensive UX design spec
 - ✅ UX consistency patterns for common interactions
 - ✅ Responsive design and accessibility strategy
 
-**The complete UX design specification is now available at:** `{planning_artifacts}/ux-design-specification.md`
+**The complete UX design specification is now available at:** `{planning_artifacts}/用户体验设计规范.md`
 
 **Supporting Visual Assets:**
 
@@ -76,7 +76,7 @@ This specification is now ready to guide visual design, implementation, and deve
 Update the main workflow status file:
 
 - Load the project's workflow status file (if one exists)
-- Update workflow_status["create-ux-design"] = `{planning_artifacts}/ux-design-specification.md`
+- Update workflow_status["create-ux-design"] = `{planning_artifacts}/用户体验设计规范.md`
 - Save file, preserving all comments and structure
 - Mark current timestamp as completion time
 
@@ -166,6 +166,6 @@ This UX design workflow is now complete. The specification serves as the foundat
 
 **Core Deliverables:**
 
-- ✅ UX Design Specification: `{planning_artifacts}/ux-design-specification.md`
+- ✅ UX Design Specification: `{planning_artifacts}/用户体验设计规范.md`
 - ✅ Color Themes Visualizer: `{planning_artifacts}/ux-color-themes.html`
 - ✅ Design Directions: `{planning_artifacts}/ux-design-directions.html`

@@ -189,7 +189,7 @@ Use component template to create file:
 
 ---
 
-## Overview
+## 概览
 
 [Component description and when to use it]
 
@@ -404,7 +404,7 @@ Fill template with extracted information:
 
 ---
 
-## Overview
+## 概览
 
 Buttons are used to trigger actions. They should have clear, action-oriented labels that describe what will happen when clicked.
 

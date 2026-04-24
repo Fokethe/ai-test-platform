@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-create-ga
 # File References
 thisStepFile: './step-08-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-brief.md'
+outputFile: '{output_folder}/游戏简报.md'
 
 # Workflow References
 gddWorkflow: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd/workflow.yaml'
@@ -250,7 +250,7 @@ Based on user choice:
 This is the final step. Ensure:
 
 - Executive summary is generated
-- All content is saved to game-brief.md
+- All content is saved to 游戏简报.md
 - Frontmatter shows all 8 steps completed
 - User has clear actionable next steps
 - Handoff to GDD workflow is smooth

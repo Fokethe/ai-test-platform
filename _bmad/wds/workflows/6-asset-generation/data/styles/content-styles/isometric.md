@@ -1,6 +1,6 @@
 # Isometric
 
-## Overview
+## 概览
 3D-like objects rendered in isometric projection — no perspective, parallel lines.
 
 ## Rendering Characteristics

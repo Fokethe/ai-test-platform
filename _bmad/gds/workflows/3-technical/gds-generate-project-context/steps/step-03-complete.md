@@ -71,17 +71,17 @@ Ensure the file is lean and efficient:
 Ensure the final structure follows this optimized format:
 
 ```markdown
-# Project Context for AI Agents
+# AI 智能体项目上下文
 
 _This file contains critical rules and patterns that AI agents must follow when implementing game code in this project. Focus on unobvious details that agents might otherwise miss._
 
 ---
 
-## Technology Stack & Versions
+## 技术栈与版本
 
 {{concise_technology_list}}
 
-## Critical Implementation Rules
+## 关键实现规则
 
 ### Engine-Specific Rules
 
@@ -95,7 +95,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 {{organization_patterns}}
 
-### Testing Rules
+### 测试规则
 
 {{testing_requirements}}
 
@@ -135,7 +135,7 @@ Based on user skill level, present the completion:
 **Expert Mode:**
 "Project context complete. Optimized for LLM consumption with {{rule_count}} critical rules across {{section_count}} sections.
 
-File saved to: `{output_folder}/project-context.md`
+File saved to: `{output_folder}/项目上下文.md`
 
 Ready for AI agent integration."
 
@@ -230,7 +230,7 @@ Present final completion to user:
 "**Project Context Generation Complete!**
 
 Your optimized project context file is ready at:
-`{output_folder}/project-context.md`
+`{output_folder}/项目上下文.md`
 
 **Context Summary:**
 

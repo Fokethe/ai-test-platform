@@ -2,7 +2,7 @@
 name: 'step-04e-aggregate-nfr'
 description: 'Aggregate NFR domain assessments into executive summary'
 nextStepFile: './step-05-generate-report.md'
-outputFile: '{test_artifacts}/nfr-assessment.md'
+outputFile: '{test_artifacts}/NFR评估.md'
 ---
 
 # Step 4E: Aggregate NFR Assessment Results

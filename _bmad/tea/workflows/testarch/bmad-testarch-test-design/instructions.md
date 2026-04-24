@@ -7,7 +7,7 @@
 
 ---
 
-## Overview
+## 概览
 
 Plans comprehensive test coverage strategy with risk assessment, priority classification, and execution ordering. This workflow operates in **two modes**:
 

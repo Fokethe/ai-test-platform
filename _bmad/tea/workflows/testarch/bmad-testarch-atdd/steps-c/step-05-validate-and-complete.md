@@ -1,7 +1,7 @@
 ---
 name: 'step-05-validate-and-complete'
 description: 'Validate ATDD outputs and summarize'
-outputFile: '{test_artifacts}/atdd-checklist-{story_id}.md'
+outputFile: '{test_artifacts}/ATDD检查清单-{story_id}.md'
 ---
 
 # Step 5: Validate & Complete

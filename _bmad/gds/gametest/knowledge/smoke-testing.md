@@ -1,6 +1,6 @@
 # Smoke Testing Guide
 
-## Overview
+## 概览
 
 Smoke testing (Build Verification Testing) validates that a build's critical functionality works before investing time in detailed testing. A failed smoke test means "stop, this build is broken."
 

@@ -10,7 +10,7 @@
 | `role` | Functional role | `Technical Documentation Specialist` |
 | `sidecar` | Memory folder (optional) | `{skillName}-sidecar/` |
 
-## Overview Section Format
+## 概览 Section Format
 
 The Overview is the first section after the title — it primes the AI for everything that follows.
 

@@ -8,8 +8,8 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd'
 # File References
 thisStepFile: './step-14-complete.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
-epicsFile: '{output_folder}/epics.md'
+outputFile: '{output_folder}/游戏设计文档.md'
+epicsFile: '{output_folder}/史诗与故事.md'
 
 # Workflow References
 narrativeWorkflow: '{project-root}/_bmad/gds/workflows/2-design/gds-create-narrative/workflow.yaml'
@@ -192,8 +192,8 @@ Based on the conversation, prepare the content:
 
 **Files Created:**
 
-- `gdd.md` - Full Game Design Document
-- `epics.md` - Detailed epic and story breakdown
+- `游戏设计文档.md` - Full Game Design Document
+- `史诗与故事.md` - Detailed epic and story breakdown
 
 **GDD Sections Completed:**
 
@@ -225,7 +225,7 @@ Do you want me to add or modify anything before we finalize?"
 1. **Narrative Design Document** - Create story, characters, and world lore
    - Command: `narrative` (Game Designer agent)
    - Input: This GDD
-   - Output: narrative-design.md
+   - Output: 叙事设计.md
      {{/if}}
 
 **Required Next Steps:**
@@ -233,12 +233,12 @@ Do you want me to add or modify anything before we finalize?"
 1. **Game Architecture** - Define engine, tech stack, and system design
    - Command: `create-architecture` (Game Architect agent)
    - Input: This GDD
-   - Output: architecture.md
+   - Output: 架构设计.md
 
 2. **Sprint Planning** - Set up your first development sprint
    - Command: `sprint-planning` (Scrum Master agent)
-   - Input: GDD + epics.md
-   - Output: sprint-status.yaml
+   - Input: GDD + 史诗与故事.md
+   - Output: 迭代状态.yaml
 
 **Recommended Actions:**
 
@@ -284,7 +284,7 @@ Based on user choice:
 
 This is the final step. Ensure:
 
-- All content is saved to gdd.md
+- All content is saved to 游戏设计文档.md
 - Frontmatter shows all 14 steps completed
 - User has clear actionable next steps
 - Handoff to next workflow is smooth

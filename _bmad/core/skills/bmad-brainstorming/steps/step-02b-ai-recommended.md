@@ -190,18 +190,18 @@ stepsCompleted: [1, 2]
 **Append to document:**
 
 ```markdown
-## Technique Selection
+## 方法选择
 
-**Approach:** AI-Recommended Techniques
-**Analysis Context:** [session_topic] with focus on [session_goals]
+**方式：** AI-Recommended Techniques
+**分析背景：** [session_topic] with focus on [session_goals]
 
-**Recommended Techniques:**
+**推荐方法：**
 
 - **[Technique 1]:** [Why this was recommended and expected outcome]
 - **[Technique 2]:** [How this builds on the first technique]
 - **[Technique 3]:** [How this completes the sequence effectively]
 
-**AI Rationale:** [Content based on context analysis and matching logic]
+**AI 推荐理由：** [Content based on context analysis and matching logic]
 ```
 
 **Route to execution:**

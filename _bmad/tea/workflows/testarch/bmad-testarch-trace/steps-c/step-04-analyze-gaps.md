@@ -2,7 +2,7 @@
 name: 'step-04-analyze-gaps'
 description: 'Complete Phase 1 with adaptive orchestration (agent-team, subagent, or sequential)'
 nextStepFile: './step-05-gate-decision.md'
-outputFile: '{test_artifacts}/traceability-report.md'
+outputFile: '{test_artifacts}/可追溯性报告.md'
 tempOutputFile: '/tmp/tea-trace-coverage-matrix-{{timestamp}}.json'
 ---
 

@@ -4,7 +4,7 @@ description: 'Discover project type, domain, and context through collaborative d
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-02b-vision.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Data Files
 projectTypesCSV: '../data/project-types.csv'

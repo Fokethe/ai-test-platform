@@ -1,6 +1,6 @@
 # Godot Engine Architecture Knowledge
 
-## Overview
+## 概览
 
 Godot is an open-source game engine using a scene tree architecture where everything is a node. Scenes are reusable node compositions that can be instanced, nested, and inherited. Godot supports GDScript (Python-like), C#, and C++ via GDExtension.
 

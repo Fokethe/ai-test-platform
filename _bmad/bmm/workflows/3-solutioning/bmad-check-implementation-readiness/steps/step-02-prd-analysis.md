@@ -1,5 +1,5 @@
 ---
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 epicsFile: '{planning_artifacts}/*epic*.md' # Will be resolved to actual file
 ---
 
@@ -120,13 +120,13 @@ Look for:
 Append to {outputFile}:
 
 ```markdown
-## PRD Analysis
+## 需求文档分析
 
-### Functional Requirements
+### 功能需求
 
 [Complete FR list from section 3]
 
-### Non-Functional Requirements
+### 非功能需求
 
 [Complete NFR list from section 4]
 
@@ -134,7 +134,7 @@ Append to {outputFile}:
 
 [Any other requirements or constraints found]
 
-### PRD Completeness Assessment
+### 需求文档完整度评估
 
 [Initial assessment of PRD completeness and clarity]
 ```

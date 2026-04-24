@@ -15,6 +15,6 @@
   - step-02-apply-edit.md
 
   ## Outputs
-  - {test_artifacts}/automation-summary.md
+  - {test_artifacts}/自动化总结.md
 
 - Test files under {project-root}/tests

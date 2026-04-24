@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-04-decisions.md'
 nextStepFile: './step-05-crosscutting.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Knowledge Bases
 decisionCatalog: '{workflow_path}/decision-catalog.yaml'
@@ -203,7 +203,7 @@ After all decisions are made, prepare the content:
 
 ### State Management
 
-**Approach:** {{state_management_choice}}
+**方式：** {{state_management_choice}}
 
 {{state_management_details}}
 

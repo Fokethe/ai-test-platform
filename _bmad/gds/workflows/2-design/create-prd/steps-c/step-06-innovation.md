@@ -4,7 +4,7 @@ description: 'Detect and explore innovative aspects of the product (optional ste
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-07-project-type.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Data Files
 projectTypesCSV: '{project-root}/_bmad/gds/workflows/2-design/create-prd/data/project-types.csv'

@@ -1,8 +1,8 @@
 # Sprint Planning Workflow
 
-**Goal:** Generate sprint status tracking from epics, detecting current story statuses and building a complete sprint-status.yaml file.
+**Goal:** Generate sprint status tracking from epics, detecting current story statuses and building a complete 迭代状态.yaml file.
 
-**Your Role:** You are a Scrum Master generating and maintaining sprint tracking. Parse epic files, detect story statuses, and produce a structured sprint-status.yaml.
+**Your Role:** You are a Scrum Master generating and maintaining sprint tracking. Parse epic files, detect story statuses, and produce a structured 迭代状态.yaml.
 
 ---
 
@@ -27,7 +27,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 - `story_location_absolute` = `{implementation_artifacts}`
 - `epics_location` = `{planning_artifacts}`
 - `epics_pattern` = `*epic*.md`
-- `status_file` = `{implementation_artifacts}/sprint-status.yaml`
+- `status_file` = `{implementation_artifacts}/迭代状态.yaml`
 
 ### Input Files
 
@@ -37,19 +37,19 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 
 ## EXECUTION
 
-### Document Discovery - Full Epic Loading
+### 文档发现 - Full Epic Loading
 
 **Strategy**: Sprint planning needs ALL epics and stories to build complete status tracking.
 
 **Epic Discovery Process:**
 
-1. **Search for whole document first** - Look for `epics.md`, `bmm-epics.md`, or any `*epic*.md` file
+1. **Search for whole document first** - Look for `史诗与故事.md`, `bmm-epics.md`, or any `*epic*.md` file
 2. **Check for sharded version** - If whole document not found, look for `epics/index.md`
 3. **If sharded version found**:
    - Read `index.md` to understand the document structure
@@ -58,7 +58,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
    - This ensures complete sprint status coverage
 4. **Priority**: If both whole and sharded versions exist, use the whole document
 
-**Fuzzy matching**: Be flexible with document names - users may use variations like `epics.md`, `bmm-epics.md`, `user-stories.md`, etc.
+**Fuzzy matching**: Be flexible with document names - users may use variations like `史诗与故事.md`, `bmm-epics.md`, `user-stories.md`, etc.
 
 <workflow>
 
@@ -66,7 +66,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 <action>Load {project_context} for project-wide patterns and conventions (if exists)</action>
 <action>Communicate in {communication_language} with {user_name}</action>
 <action>Look for all files matching `{epics_pattern}` in {epics_location}</action>
-<action>Could be a single `epics.md` file or multiple `epic-1.md`, `epic-2.md` files</action>
+<action>Could be a single `史诗与故事.md` file or multiple `epic-1.md`, `epic-2.md` files</action>
 
 <action>For each epic file found, extract:</action>
 
@@ -108,7 +108,7 @@ development_status:
 
 **Story file detection:**
 
-- Check: `{story_location_absolute}/{story-key}.md` (e.g., `stories/1-1-user-authentication.md`)
+- Check: `{story_location_absolute}/{story-key}.md` (e.g., `故事/1-1-user-authentication.md`)
 - If exists → upgrade status to at least `ready-for-dev`
 
 **Preservation rule:**
@@ -240,7 +240,7 @@ backlog → ready-for-dev → in-progress → review → done
 ```
 
 - **backlog**: Story only exists in epic file
-- **ready-for-dev**: Story file created (e.g., `stories/1-3-plant-naming.md`)
+- **ready-for-dev**: Story file created (e.g., `故事/1-3-plant-naming.md`)
 - **in-progress**: Developer actively working
 - **review**: Ready for code review (via Dev's code-review workflow)
 - **done**: Completed

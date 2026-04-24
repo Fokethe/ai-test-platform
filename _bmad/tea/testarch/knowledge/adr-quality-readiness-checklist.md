@@ -228,7 +228,7 @@
 
 **System-Level Mode (Phase 3):**
 
-**In test-design-architecture.md:**
+**In 测试设计-架构.md:**
 
 - Add "NFR Testability Requirements" section after ASRs
 - Use 8 categories with checkboxes (29 criteria)
@@ -258,7 +258,7 @@ Can we verify this effectively without manual toil?
 - [ ] PM: Finalize ADR Tool schemas with sample requests (Q4)
 ```
 
-**In test-design-qa.md:**
+**In 测试设计-QA.md:**
 
 - Map each criterion to test scenarios
 - Add "NFR Test Coverage Plan" section with P0/P1/P2 priority for each category

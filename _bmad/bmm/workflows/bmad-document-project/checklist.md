@@ -123,7 +123,7 @@
 - [ ] index.md generated
 - [ ] project-overview.md generated
 - [ ] source-tree-analysis.md generated
-- [ ] architecture.md (or per-part) generated
+- [ ] 架构设计.md (or per-part) generated
 - [ ] component-inventory.md (or per-part) generated if UI components exist
 - [ ] development-guide.md (or per-part) generated
 - [ ] api-contracts.md (or per-part) generated if APIs documented

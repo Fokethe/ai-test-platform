@@ -2,7 +2,7 @@
 name: 'step-01-detect-mode'
 description: 'Determine system-level vs epic-level mode and validate prerequisites'
 nextStepFile: './step-02-load-context.md'
-outputFile: '{test_artifacts}/test-design-progress.md'
+outputFile: '{test_artifacts}/测试设计进度.md'
 ---
 
 # Step 1: Detect Mode & Prerequisites
@@ -61,7 +61,7 @@ If intent is unclear, ask:
 
 If user intent is unclear:
 
-- If `{implementation_artifacts}/sprint-status.yaml` exists → **Epic-Level Mode**
+- If `{implementation_artifacts}/迭代状态.yaml` exists → **Epic-Level Mode**
 - Otherwise → **System-Level Mode**
 
 ### C) Ambiguous → Ask

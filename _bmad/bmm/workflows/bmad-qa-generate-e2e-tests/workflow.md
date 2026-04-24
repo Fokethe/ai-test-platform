@@ -22,11 +22,11 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 - `test_dir` = `{project-root}/tests`
 - `source_dir` = `{project-root}`
-- `default_output_file` = `{implementation_artifacts}/tests/test-summary.md`
+- `default_output_file` = `{implementation_artifacts}/测试/测试总结.md`
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 

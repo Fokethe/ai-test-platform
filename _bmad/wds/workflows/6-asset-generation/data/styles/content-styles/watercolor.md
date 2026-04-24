@@ -1,6 +1,6 @@
 # Watercolor
 
-## Overview
+## 概览
 Soft, flowing artwork with transparent washes, organic edges, and painterly feel.
 
 ## Rendering Characteristics

@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd'
 # File References
 thisStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
+outputFile: '{output_folder}/游戏设计文档.md'
 ---
 
 # Step 1B: Workflow Continuation

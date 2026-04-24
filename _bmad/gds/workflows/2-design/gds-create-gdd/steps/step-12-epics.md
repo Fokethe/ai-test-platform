@@ -9,8 +9,8 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd'
 thisStepFile: './step-12-epics.md'
 nextStepFile: './step-13-metrics.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
-epicsOutputFile: '{output_folder}/epics.md'
+outputFile: '{output_folder}/游戏设计文档.md'
+epicsOutputFile: '{output_folder}/史诗与故事.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'
@@ -66,7 +66,7 @@ Translate the game features defined throughout the GDD into development epics, e
 
 - All GDD content from previous steps available
 - Epics should map to game pillars and features
-- This creates both GDD epic summary and detailed epics.md file
+- This creates both GDD epic summary and detailed 史诗与故事.md file
 
 ## Sequence of Instructions (Do not deviate, skip, or optimize)
 
@@ -146,7 +146,7 @@ What order makes sense for {{game_name}}?"
 
 Based on the conversation, prepare two outputs:
 
-**A. GDD Epic Summary (goes in gdd.md):**
+**A. GDD Epic Summary (goes in 游戏设计文档.md):**
 
 ```markdown
 ## Development Epics
@@ -167,7 +167,7 @@ Based on the conversation, prepare two outputs:
 **The first playable milestone:** {{vertical_slice_description}}
 ```
 
-**B. Detailed Epics File (goes in epics.md):**
+**B. Detailed Epics File (goes in 史诗与故事.md):**
 
 ```markdown
 # {{game_name}} - Development Epics
@@ -215,10 +215,10 @@ Show the generated content to the user and present:
 
 "I've drafted the Epic Structure based on our conversation.
 
-**For the GDD (gdd.md):**
+**For the GDD (游戏设计文档.md):**
 [Show GDD epic summary]
 
-**For the Epics file (epics.md):**
+**For the Epics file (史诗与故事.md):**
 [Show detailed epics structure]
 
 **Validation Check:**
@@ -268,7 +268,7 @@ ONLY WHEN [C continue option] is selected and [both epic content files saved wit
 - Epics cover all major game features
 - Each epic has clear scope and deliverable
 - Dependencies identified and sequenced
-- Both gdd.md and epics.md updated
+- Both 游戏设计文档.md and 史诗与故事.md updated
 - High-level stories drafted for each epic
 - A/P/C menu presented and handled correctly
 - Frontmatter updated with stepsCompleted
@@ -278,7 +278,7 @@ ONLY WHEN [C continue option] is selected and [both epic content files saved wit
 - Generating epics without user input
 - Epics that don't deliver playable value
 - Missing key features from GDD
-- Not creating separate epics.md file
+- Not creating separate 史诗与故事.md file
 - Not presenting A/P/C menu after content generation
 - Proceeding without user selecting 'C'
 

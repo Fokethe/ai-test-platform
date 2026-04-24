@@ -273,11 +273,11 @@ For each category, prepare lean content for the project context file:
 #### Content Structure:
 
 ```markdown
-## Technology Stack & Versions
+## 技术栈与版本
 
 {{concise_technology_list_with_exact_versions}}
 
-## Critical Implementation Rules
+## 关键实现规则
 
 ### Engine-Specific Rules
 
@@ -291,7 +291,7 @@ For each category, prepare lean content for the project context file:
 
 {{bullet_points_of_organization_patterns}}
 
-### Testing Rules
+### 测试规则
 
 {{bullet_points_of_testing_requirements}}
 
@@ -345,7 +345,7 @@ After each category, show the generated rules and present choices:
 
 ## APPEND TO PROJECT CONTEXT:
 
-When user selects 'C' for a category, append the content directly to `{output_folder}/project-context.md` using the structure from step 8.
+When user selects 'C' for a category, append the content directly to `{output_folder}/项目上下文.md` using the structure from step 8.
 
 ## SUCCESS METRICS:
 

@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-create-epics-
 # File References
 thisStepFile: './step-04-final-validation.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{planning_artifacts}/epics.md'
+outputFile: '{planning_artifacts}/史诗与故事.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'
@@ -137,12 +137,12 @@ If all validations pass:
 
 - Update any remaining placeholders in the document
 - Ensure proper formatting
-- Save the final epics.md
+- Save the final 史诗与故事.md
 
 **Present Final Menu:**
 **All validations complete!** [C] Complete Workflow
 
-When C is selected, the workflow is complete and the epics.md is ready for development.
+When C is selected, the workflow is complete and the 史诗与故事.md is ready for development.
 
 Epics and Stories complete. Invoke the `bmad-help` skill.
 

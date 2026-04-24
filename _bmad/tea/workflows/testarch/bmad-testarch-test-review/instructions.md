@@ -5,7 +5,7 @@
 
 ---
 
-## Overview
+## 概览
 
 Review test quality using TEA knowledge base and produce a 0–100 quality score with actionable findings.
 

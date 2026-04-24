@@ -9,7 +9,7 @@ ideas_generated: []
 context_file: ''
 ---
 
-# Brainstorming Session Results
+# 头脑风暴会话结果
 
 **Facilitator:** {{user_name}}
 **Date:** {{date}}

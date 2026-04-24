@@ -1,6 +1,6 @@
 # Line Art
 
-## Overview
+## 概览
 Pure outlines — no fill, no shading, just clean continuous lines.
 
 ## Rendering Characteristics

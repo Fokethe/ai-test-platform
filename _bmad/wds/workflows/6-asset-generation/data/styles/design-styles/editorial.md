@@ -1,6 +1,6 @@
 # Editorial
 
-## Overview
+## 概览
 Magazine-inspired design with strong typography hierarchy, editorial layouts, and storytelling focus.
 
 ## Visual Characteristics

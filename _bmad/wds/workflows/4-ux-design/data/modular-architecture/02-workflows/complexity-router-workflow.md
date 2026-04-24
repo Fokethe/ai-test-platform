@@ -4,7 +4,7 @@
 
 ---
 
-## Overview
+## 概览
 
 When a complex component is detected, the agent guides you through 3 steps:
 

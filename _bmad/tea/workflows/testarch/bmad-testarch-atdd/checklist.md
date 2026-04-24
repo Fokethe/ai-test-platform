@@ -170,8 +170,8 @@ Before starting this workflow, verify:
 
 ### ATDD Checklist Document Created
 
-- [ ] Output file created at `{test_artifacts}/atdd-checklist-{story_id}.md`
-- [ ] Document follows template structure from `atdd-checklist-template.md`
+- [ ] Output file created at `{test_artifacts}/ATDD检查清单-{story_id}.md`
+- [ ] Document follows template structure from `ATDD检查清单-template.md`
 - [ ] Document includes all required sections:
   - [ ] Story summary
   - [ ] Acceptance criteria breakdown

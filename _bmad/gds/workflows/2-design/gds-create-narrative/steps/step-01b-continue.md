@@ -8,7 +8,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-narrative
 # File References
 thisStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/narrative-design.md'
+outputFile: '{output_folder}/叙事设计.md'
 
 # Step Files (for routing)
 step02: './step-02-foundation.md'

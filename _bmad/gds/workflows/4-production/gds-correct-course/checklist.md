@@ -253,7 +253,7 @@
 </check-item>
 
 <check-item id="6.4">
-<prompt>Update sprint-status.yaml to reflect approved epic changes</prompt>
+<prompt>Update 迭代状态.yaml to reflect approved epic changes</prompt>
 <action>If epics were added: Add new epic entries with status 'backlog'</action>
 <action>If epics were removed: Remove corresponding entries</action>
 <action>If epics were renumbered: Update epic IDs and story references</action>

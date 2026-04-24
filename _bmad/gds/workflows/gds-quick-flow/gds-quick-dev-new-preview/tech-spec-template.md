@@ -21,7 +21,7 @@ context: [] # optional: max 3 project-wide standards/docs. NO source code files.
 
 **Problem:** ONE_TO_TWO_SENTENCES
 
-**Approach:** ONE_TO_TWO_SENTENCES
+**方式：** ONE_TO_TWO_SENTENCES
 
 ## Boundaries & Constraints
 

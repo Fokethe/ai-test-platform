@@ -175,9 +175,9 @@ stepsCompleted: [1, 2]
 **Append to document:**
 
 ```markdown
-## Technique Selection
+## 方法选择
 
-**Approach:** User-Selected Techniques
+**方式：** User-Selected Techniques
 **Selected Techniques:**
 
 - [Technique 1]: [Brief description and session fit]

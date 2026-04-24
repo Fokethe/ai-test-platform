@@ -10,7 +10,7 @@ thisStepFile: './step-01-init.md'
 continueStepFile: './step-01b-continue.md'
 nextStepFile: './step-02-context.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 templateFile: '{workflow_path}/templates/architecture-template.md'
 
 # Knowledge Bases

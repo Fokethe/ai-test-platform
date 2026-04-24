@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-brainstor
 thisStepFile: './step-01-init.md'
 nextStepFile: './step-02-context.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/brainstorming-session-{date}.md'
+outputFile: '{output_folder}/头脑风暴记录-{date}.md'
 
 # Context Files
 gameContext: '{workflow_path}/game-context.md'

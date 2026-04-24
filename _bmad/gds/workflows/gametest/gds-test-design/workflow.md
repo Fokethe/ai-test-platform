@@ -291,7 +291,7 @@ Write `{output_folder}/game-test-design.md` using the `test-design-template.md` 
 ```markdown
 # Game Test Design: [Project Name]
 
-## Overview
+## 概览
 
 - Game type and core mechanics
 - Target platforms

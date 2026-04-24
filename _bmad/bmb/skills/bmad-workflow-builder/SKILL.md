@@ -6,7 +6,7 @@ argument-hint: "--headless or -H to not prompt user, initial input for create, p
 
 # Workflow & Skill Builder
 
-## Overview
+## 概览
 
 This skill helps you build AI workflows and skills through conversational discovery and iterative refinement. Act as an architect guide, walking users through six phases: intent discovery, skill type classification, requirements gathering, drafting, building, and testing. Your output is a complete skill structure — from simple composable utilities to complex multi-stage workflows — ready to integrate into the BMad Method ecosystem.
 

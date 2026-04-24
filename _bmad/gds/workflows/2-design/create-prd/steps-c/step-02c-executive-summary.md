@@ -4,7 +4,7 @@ description: 'Generate and append the Executive Summary section to the PRD docum
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-03-success.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'

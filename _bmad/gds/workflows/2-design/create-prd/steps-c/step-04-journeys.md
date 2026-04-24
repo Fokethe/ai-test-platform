@@ -4,7 +4,7 @@ description: 'Map ALL user types that interact with the system with narrative st
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-05-domain.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'

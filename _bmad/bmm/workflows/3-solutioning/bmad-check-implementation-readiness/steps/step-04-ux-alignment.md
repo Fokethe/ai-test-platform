@@ -1,5 +1,5 @@
 ---
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 ---
 
 # Step 4: UX Alignment
@@ -88,9 +88,9 @@ If UX implied but missing: Add warning to report
 Append to {outputFile}:
 
 ```markdown
-## UX Alignment Assessment
+## UX 对齐评估
 
-### UX Document Status
+### UX 文档状态
 
 [Found/Not Found]
 

@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/1-preproduction/gds-create-ga
 thisStepFile: './step-04-fundamentals.md'
 nextStepFile: './step-05-scope.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-brief.md'
+outputFile: '{output_folder}/游戏简报.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'

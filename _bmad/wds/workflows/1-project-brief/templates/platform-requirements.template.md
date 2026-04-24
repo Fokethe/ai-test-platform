@@ -13,7 +13,7 @@
 ### Core Platform
 
 **CMS/Framework:** {{cms_framework}}
-**Approach:** {{tech_approach}}
+**方式：** {{tech_approach}}
 
 {{tech_approach_details}}
 

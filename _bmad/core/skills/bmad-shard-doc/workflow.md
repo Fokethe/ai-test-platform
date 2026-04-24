@@ -21,7 +21,7 @@
 ### Step 2: Get Destination Folder
 
 - Determine default destination: same location as source file, folder named after source file without .md extension
-  - Example: `/path/to/architecture.md` --> `/path/to/architecture/`
+  - Example: `/path/to/架构设计.md` --> `/path/to/architecture/`
 - Ask user for the destination folder path (`[y]` to confirm use of default: `[suggested-path]`, else enter a new path)
 - If user accepts default: use the suggested destination path
 - If user provides custom path: use the custom destination path
@@ -77,7 +77,7 @@ Present user with options for the original document:
 #### If user selects `m` (move)
 
 - Determine default archive location: same directory as source, in an `archive` subfolder
-  - Example: `/path/to/architecture.md` --> `/path/to/archive/architecture.md`
+  - Example: `/path/to/架构设计.md` --> `/path/to/archive/架构设计.md`
 - Ask: Archive location (`[y]` to use default: `[default-archive-path]`, or provide custom path)
 - If user accepts default: use default archive path
 - If user provides custom path: use custom archive path

@@ -4,7 +4,7 @@ description: 'Optimize and polish the complete PRD document for flow, coherence,
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-12-complete.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 purposeFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/data/prd-purpose.md'
 
 # Task References

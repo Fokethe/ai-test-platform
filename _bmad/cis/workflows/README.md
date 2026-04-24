@@ -15,7 +15,7 @@ Five interactive workflows facilitating creative and strategic processes through
 
 **Purpose:** Interactive ideation using 36 techniques across 7 categories
 
-**Approach:** Master facilitation with "Yes, and..." methodology
+**方式：** Master facilitation with "Yes, and..." methodology
 
 **Techniques:** Collaborative, structured, creative, deep, theatrical, wild, introspective
 
@@ -47,7 +47,7 @@ Five interactive workflows facilitating creative and strategic processes through
 
 **Methods:** TRIZ, Theory of Constraints, Systems Thinking, Root Cause Analysis
 
-**Approach:** Detective-style puzzle solving
+**方式：** Detective-style puzzle solving
 
 **Output:** Root cause identification and solution strategies
 

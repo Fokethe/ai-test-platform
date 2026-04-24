@@ -2,7 +2,7 @@
 name: 'step-01-preflight'
 description: 'Verify prerequisites and gather project context'
 nextStepFile: './step-02-select-framework.md'
-outputFile: '{test_artifacts}/framework-setup-progress.md'
+outputFile: '{test_artifacts}/测试框架搭建进度.md'
 ---
 
 # Step 1: Preflight Checks
@@ -81,7 +81,7 @@ If any fail, **HALT** and report the missing requirement.
 
 - Read the relevant project manifest (`pyproject.toml`, `pom.xml`, `go.mod`, `*.csproj`, `Gemfile`, `Cargo.toml`) to identify language, framework, and dependencies
 
-- Check for architecture docs (`architecture.md`, `tech-spec*.md`) if available
+- Check for architecture docs (`架构设计.md`, `tech-spec*.md`) if available
 - Note auth requirements and APIs (if documented)
 
 ---

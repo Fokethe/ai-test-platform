@@ -2,7 +2,7 @@
 name: 'step-03-map-criteria'
 description: 'Map acceptance criteria to tests and build traceability matrix'
 nextStepFile: './step-04-analyze-gaps.md'
-outputFile: '{test_artifacts}/traceability-report.md'
+outputFile: '{test_artifacts}/可追溯性报告.md'
 ---
 
 # Step 3: Map Criteria to Tests

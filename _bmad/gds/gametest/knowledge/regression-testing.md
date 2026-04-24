@@ -1,6 +1,6 @@
 # Regression Testing for Games
 
-## Overview
+## 概览
 
 Regression testing catches bugs introduced by new changes. In games, this includes functional regressions, performance regressions, and design regressions.
 

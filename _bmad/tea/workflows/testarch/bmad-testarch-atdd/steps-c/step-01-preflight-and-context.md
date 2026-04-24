@@ -1,7 +1,7 @@
 ---
 name: 'step-01-preflight-and-context'
 description: 'Verify prerequisites and load story, framework, and knowledge base'
-outputFile: '{test_artifacts}/atdd-checklist-{story_id}.md'
+outputFile: '{test_artifacts}/ATDD检查清单-{story_id}.md'
 nextStepFile: './step-02-generation-mode.md'
 knowledgeIndex: '{project-root}/_bmad/tea/testarch/tea-index.csv'
 ---

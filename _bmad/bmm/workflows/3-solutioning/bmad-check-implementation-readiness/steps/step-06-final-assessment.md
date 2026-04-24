@@ -1,5 +1,5 @@
 ---
-outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+outputFile: '{planning_artifacts}/实施就绪评估-{{date}}.md'
 ---
 
 # Step 6: Final Assessment

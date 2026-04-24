@@ -43,7 +43,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 ### Paths
 
 - `installed_path` = `{project-root}/_bmad/gds/workflows/4-production/gds-retrospective`
-- `sprint_status_file` = `{implementation_artifacts}/sprint-status.yaml`
+- `sprint_status_file` = `{implementation_artifacts}/迭代状态.yaml`
 
 ### Input Files
 
@@ -62,7 +62,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 ### Context
 
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 
 ---
 

@@ -1,6 +1,6 @@
 # Brutalist
 
-## Overview
+## 概览
 Raw, bold, unapologetic design that breaks conventions intentionally.
 
 ## Visual Characteristics

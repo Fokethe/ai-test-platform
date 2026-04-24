@@ -551,7 +551,7 @@ project-root/
 </action>
 
 <action if="single part project">
-  - Generate: architecture.md (no part suffix)
+  - Generate: 架构设计.md (no part suffix)
 </action>
 
 <action if="multi-part project">

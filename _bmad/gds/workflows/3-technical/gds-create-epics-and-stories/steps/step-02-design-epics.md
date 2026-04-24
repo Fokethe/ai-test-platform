@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-create-epics-
 thisStepFile: './step-02-design-epics.md'
 nextStepFile: './step-03-create-stories.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{planning_artifacts}/epics.md'
+outputFile: '{planning_artifacts}/史诗与故事.md'
 
 # Task References
 advancedElicitationTask: 'skill:bmad-advanced-elicitation'

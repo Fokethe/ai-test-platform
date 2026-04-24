@@ -8,7 +8,7 @@
 
 ## Step 1: Polish and Save
 
-Update the product brief document at `{planning_artifacts}/product-brief-{project_name}.md`:
+Update the product brief document at `{planning_artifacts}/产品简报-{project_name}.md`:
 - Update frontmatter `status` to `"complete"`
 - Update `updated` timestamp
 - Ensure formatting is clean and consistent
@@ -21,13 +21,13 @@ Throughout the discovery process, you likely captured detail that doesn't belong
 **Ask the user:**
 "Your product brief is complete. During our conversation, I captured additional detail that goes beyond the executive summary — things like [mention 2-3 specific examples of overflow you captured]. Would you like me to create a detail pack for PRD creation? It distills all that extra context into a concise, structured format optimized for the next phase."
 
-**If yes, create the distillate** at `{planning_artifacts}/product-brief-{project_name}-distillate.md`:
+**If yes, create the distillate** at `{planning_artifacts}/产品简报-{project_name}-distillate.md`:
 
 ```yaml
 ---
 title: "Product Brief Distillate: {project_name}"
 type: llm-distillate
-source: "product-brief-{project_name}.md"
+source: "产品简报-{project_name}.md"
 created: "{timestamp}"
 purpose: "Token-efficient context for downstream PRD creation"
 ---
@@ -53,8 +53,8 @@ purpose: "Token-efficient context for downstream PRD creation"
 
 "Your product brief for {project_name} is complete!
 
-**Executive Brief:** `{planning_artifacts}/product-brief-{project_name}.md`
-[If distillate created:] **Detail Pack:** `{planning_artifacts}/product-brief-{project_name}-distillate.md`
+**Executive Brief:** `{planning_artifacts}/产品简报-{project_name}.md`
+[If distillate created:] **Detail Pack:** `{planning_artifacts}/产品简报-{project_name}-distillate.md`
 
 **Recommended next step:** Use the product brief (and detail pack) as input for PRD creation — tell your assistant 'create a PRD' and point it to these files."
 [If distillate created:] "The detail pack contains all the overflow context (requirements hints, rejected ideas, technical constraints) specifically structured for the PRD workflow to consume."
@@ -63,7 +63,7 @@ purpose: "Token-efficient context for downstream PRD creation"
 ```json
 {
   "status": "complete",
-  "brief": "{planning_artifacts}/product-brief-{project_name}.md",
+  "brief": "{planning_artifacts}/产品简报-{project_name}.md",
   "distillate": "{path or null}",
   "confidence": "high|medium|low",
   "open_questions": ["any unresolved items"]

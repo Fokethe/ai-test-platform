@@ -6,14 +6,14 @@
 
 - [ ] PRD exists with functional and non-functional requirements
 - [ ] ADR (Architecture Decision Record) exists
-- [ ] Architecture document available (architecture.md or tech-spec)
+- [ ] Architecture document available (架构设计.md or tech-spec)
 - [ ] Requirements are testable and unambiguous
 
 **Epic-Level Mode (Phase 4):**
 
 - [ ] Story markdown with clear acceptance criteria exists
 - [ ] PRD or epic documentation available
-- [ ] Architecture documents available (test-design-architecture.md + test-design-qa.md from Phase 3, if exists)
+- [ ] Architecture documents available (测试设计-架构.md + 测试设计-QA.md from Phase 3, if exists)
 - [ ] Requirements are testable and unambiguous
 
 ## Process Steps
@@ -220,7 +220,7 @@
 
 **When in system-level mode (PRD + ADR input), validate BOTH documents:**
 
-### test-design-architecture.md
+### 测试设计-架构.md
 
 - [ ] **Purpose statement** at top (serves as contract with Architecture team)
 - [ ] **Executive Summary** with scope, business context, architecture decisions, risk summary
@@ -266,7 +266,7 @@
   - [ ] NO "Quality Gate Criteria" section (pass rates, coverage targets belong in QA doc only)
   - [ ] NO "Tool Selection" section (Playwright, k6, etc. belongs in QA doc only)
 
-### test-design-qa.md
+### 测试设计-QA.md
 
 **REQUIRED SECTIONS:**
 

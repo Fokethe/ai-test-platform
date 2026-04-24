@@ -72,7 +72,7 @@ Load and read full config from `{main_config}` and resolve:
 - `project_name`, `output_folder`, `planning_artifacts`, `implementation_artifacts`, `user_name`
 - `communication_language`, `document_output_language`, `game_dev_experience`
 - `date` as system-generated current datetime
-- `project_context` = `**/project-context.md` (load if exists)
+- `project_context` = `**/项目上下文.md` (load if exists)
 - ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the config `{communication_language}`
 
 ### 2. First Step Execution

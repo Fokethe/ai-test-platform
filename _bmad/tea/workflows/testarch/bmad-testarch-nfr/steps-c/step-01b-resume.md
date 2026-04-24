@@ -1,7 +1,7 @@
 ---
 name: 'step-01b-resume'
 description: 'Resume interrupted workflow from last completed step'
-outputFile: '{test_artifacts}/nfr-assessment.md'
+outputFile: '{test_artifacts}/NFR评估.md'
 ---
 
 # Step 1b: Resume Workflow

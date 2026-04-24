@@ -35,14 +35,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 - `installed_path` = `.`
 - `template` = `./template.md`
 - `validation` = `./checklist.md`
-- `sprint_status` = `{implementation_artifacts}/sprint-status.yaml`
-- `epics_file` = `{planning_artifacts}/epics.md`
-- `gdd_file` = `{planning_artifacts}/gdd.md`
-- `architecture_file` = `{planning_artifacts}/architecture.md`
+- `sprint_status` = `{implementation_artifacts}/迭代状态.yaml`
+- `epics_file` = `{planning_artifacts}/史诗与故事.md`
+- `gdd_file` = `{planning_artifacts}/游戏设计文档.md`
+- `architecture_file` = `{planning_artifacts}/架构设计.md`
 - `ux_file` = `{planning_artifacts}/*ux*.md`
 - `story_title` = "" (will be elicited if not derivable)
-- `project_context` = `**/project-context.md` (load if exists)
-- `default_output_file` = `{implementation_artifacts}/{{story_key}}.md`
+- `project_context` = `**/项目上下文.md` (load if exists)
+- `default_output_file` = `{implementation_artifacts}/{{epic_num}}-{{story_num}}-{{story_title}}.md`
 
 ### Input Files
 
@@ -61,7 +61,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 
 <step n="1" goal="Determine target story">
   <check if="{{story_path}} is provided by user or user provided the epic and story number such as 2-4 or 1.6 or epic 1 story 5">
-    <action>Parse user-provided story path: extract epic_num, story_num, story_title from format like "1-2-user-auth"</action>
+    <action>Parse user-provided story path: extract epic_num, story_num, story_title from formats like "1-2-user-auth" or "1-2-中文故事标题"</action>
     <action>Set {{epic_num}}, {{story_num}}, {{story_key}} from user input</action>
     <action>GOTO step 2a</action>
   </check>
@@ -82,7 +82,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     </check>
 
     <check if="user chooses '1'">
-      <output>Run sprint-planning workflow first to create sprint-status.yaml</output>
+      <output>Run sprint-planning workflow first to create 迭代状态.yaml</output>
       <action>HALT - User needs to run sprint-planning</action>
     </check>
 
@@ -112,7 +112,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
     </action>
 
     <check if="no backlog story found">
-      <output>📋 No backlog stories found in sprint-status.yaml
+      <output>📋 No backlog stories found in 迭代状态.yaml
 
         All stories are either already created, in progress, or done.
 
@@ -129,6 +129,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       - story_num: second number after first dash (e.g., "2")
       - story_title: remainder after second dash (e.g., "user-authentication")
     </action>
+    <action>If story metadata contains a Chinese title, prefer it when resolving {default_output_file} so generated story files stay Chinese-friendly.</action>
     <action>Set {{story_id}} = "{{epic_num}}.{{story_num}}"</action>
     <action>Store story_key for later use (e.g., "1-2-user-authentication")</action>
 
@@ -143,14 +144,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
         <output>🚫 ERROR: Cannot create story in completed epic</output>
         <output>Epic {{epic_num}} is marked as 'done'. All stories are complete.</output>
         <output>If you need to add more work, either:</output>
-        <output>1. Manually change epic status back to 'in-progress' in sprint-status.yaml</output>
+        <output>1. Manually change epic status back to 'in-progress' in 迭代状态.yaml</output>
         <output>2. Create a new epic for additional work</output>
         <action>HALT - Cannot proceed</action>
       </check>
       <check if="epic status is not one of: backlog, contexted, in-progress, done">
         <output>🚫 ERROR: Invalid epic status '{{epic_status}}'</output>
         <output>Epic {{epic_num}} has invalid status. Expected: backlog, in-progress, or done</output>
-        <output>Please fix sprint-status.yaml manually or run sprint-planning to regenerate</output>
+        <output>Please fix 迭代状态.yaml manually or run sprint-planning to regenerate</output>
         <action>HALT - Cannot proceed</action>
       </check>
       <output>📊 Epic {{epic_num}} status updated to in-progress</output>
@@ -169,7 +170,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   </action>
 
   <check if="no backlog story found">
-    <output>No backlog stories found in sprint-status.yaml
+    <output>No backlog stories found in 迭代状态.yaml
 
       All stories are either already created, in progress, or done.
 
@@ -200,14 +201,14 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
       <output>ERROR: Cannot create story in completed epic</output>
       <output>Epic {{epic_num}} is marked as 'done'. All stories are complete.</output>
       <output>If you need to add more work, either:</output>
-      <output>1. Manually change epic status back to 'in-progress' in sprint-status.yaml</output>
+      <output>1. Manually change epic status back to 'in-progress' in 迭代状态.yaml</output>
       <output>2. Create a new epic for additional work</output>
       <action>HALT - Cannot proceed</action>
     </check>
     <check if="epic status is not one of: backlog, contexted, in-progress, done">
       <output>ERROR: Invalid epic status '{{epic_status}}'</output>
       <output>Epic {{epic_num}} has invalid status. Expected: backlog, in-progress, or done</output>
-      <output>Please fix sprint-status.yaml manually or run sprint-planning to regenerate</output>
+      <output>Please fix 迭代状态.yaml manually or run sprint-planning to regenerate</output>
       <action>HALT - Cannot proceed</action>
     </check>
     <output>Epic {{epic_num}} status updated to in-progress</output>
@@ -227,7 +228,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
   <!-- Analyze epics file for story foundation -->
   <action>From {epics_content}, extract Epic {{epic_num}} complete context:</action> **EPIC ANALYSIS:** - Epic
   objectives and business value - ALL stories in this epic for cross-story context - Our specific story's requirements, user story
-  statement, acceptance criteria - Technical requirements and constraints - Dependencies on other stories/epics - Source hints pointing to
+  statement, acceptance criteria - Technical requirements and constraints - Dependencies on other 故事/epics - Source hints pointing to
   original documents <!-- Extract specific story requirements -->
   <action>Extract our story ({{epic_num}}-{{story_num}}) details:</action> **STORY FOUNDATION:** - User story statement
   (As a, I want, so that) - Detailed acceptance criteria (already BDD formatted) - Technical requirements specific to this story -

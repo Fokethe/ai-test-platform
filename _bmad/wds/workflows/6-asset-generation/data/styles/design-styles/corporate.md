@@ -1,6 +1,6 @@
 # Corporate
 
-## Overview
+## 概览
 Professional, trustworthy design that communicates reliability and authority.
 
 ## Visual Characteristics

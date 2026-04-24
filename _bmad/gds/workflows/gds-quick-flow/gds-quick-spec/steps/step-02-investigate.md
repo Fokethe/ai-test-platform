@@ -71,9 +71,9 @@ Capture and confirm with user:
 - **Files to Modify/Create**: Specific files that will need changes or new files to be created
 - **Test Patterns**: How tests are structured, test frameworks used
 
-d) **Look for project-context.md**
+d) **Look for 项目上下文.md**
 
-If `**/project-context.md` exists and wasn't loaded in Step 1:
+If `**/项目上下文.md` exists and wasn't loaded in Step 1:
 
 - Load it now
 - Extract patterns and conventions

@@ -4,7 +4,7 @@
 
 ---
 
-## Overview
+## 概览
 
 Design is not a handoff between phases. It's a loop: discuss → visualize → agree → build → review → refine. This guide documents the loop that emerged from real project work and defines how Phase 4 (UX Design) and Phase 5 (Agentic Development) connect.
 

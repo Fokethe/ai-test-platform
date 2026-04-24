@@ -5,13 +5,13 @@ inputDocuments: []
 
 # {{project_name}} - Epic Breakdown
 
-## Overview
+## 概览
 
 This document provides the complete epic and story breakdown for {{project_name}}, decomposing the requirements from the GDD, UX Design if it exists, and Architecture requirements into implementable stories.
 
-## Requirements Inventory
+## 需求清单
 
-### Functional Requirements
+### 功能需求
 
 {{fr_list}}
 

@@ -280,7 +280,7 @@ Show the generated decisions content and present choices:
 
 #### If 'C' (Continue):
 
-- Append the final content to `{planning_artifacts}/architecture.md`
+- Append the final content to `{planning_artifacts}/架构设计.md`
 - Update frontmatter: `stepsCompleted: [1, 2, 3, 4]`
 - Load `./step-05-patterns.md`
 

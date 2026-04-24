@@ -36,7 +36,7 @@ Initialize the UX design workflow by detecting continuation state and setting up
 
 First, check if the output document already exists:
 
-- Look for file at `{planning_artifacts}/*ux-design-specification*.md`
+- Look for file at `{planning_artifacts}/*用户体验设计规范*.md`
 - If exists, read the complete file including frontmatter
 - If not exists, this is a fresh workflow
 
@@ -66,7 +66,7 @@ Try to discover the following:
 - Product Brief (`*brief*.md`)
 - Research Documents (`*prd*.md`)
 - Project Documentation (generally multiple documents might be found for this in the `{product_knowledge}` or `docs` folder.)
-- Project Context (`**/project-context.md`)
+- Project Context (`**/项目上下文.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>
 
@@ -80,7 +80,7 @@ Try to discover the following:
 
 #### B. Create Initial Document
 
-Copy the template from `../ux-design-template.md` to `{planning_artifacts}/ux-design-specification.md`
+Copy the template from `../ux-design-template.md` to `{planning_artifacts}/用户体验设计规范.md`
 Initialize frontmatter in the template.
 
 #### C. Complete Initialization and Report
@@ -89,7 +89,7 @@ Complete setup and report to user:
 
 **Document Setup:**
 
-- Created: `{planning_artifacts}/ux-design-specification.md` from template
+- Created: `{planning_artifacts}/用户体验设计规范.md` from template
 - Initialized frontmatter with workflow state
 
 **Input Documents Discovered:**
@@ -110,7 +110,7 @@ Do you have any other documents you'd like me to include, or shall we continue t
 
 ## NEXT STEP:
 
-After user selects [C] to continue, ensure the file `{planning_artifacts}/ux-design-specification.md` has been created and saved, and then load `./step-02-discovery.md` to begin the UX discovery phase.
+After user selects [C] to continue, ensure the file `{planning_artifacts}/用户体验设计规范.md` has been created and saved, and then load `./step-02-discovery.md` to begin the UX discovery phase.
 
 Remember: Do NOT proceed to step-02 until output file has been updated and user explicitly selects [C] to continue!
 

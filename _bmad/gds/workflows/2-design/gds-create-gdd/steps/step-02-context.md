@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/2-design/gds-create-gdd'
 thisStepFile: './step-02-context.md'
 nextStepFile: './step-03-platforms.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/gdd.md'
+outputFile: '{output_folder}/游戏设计文档.md'
 
 # Data Files
 gameTypesCSV: '{workflow_path}/game-types.csv'
@@ -89,7 +89,7 @@ This step will generate content and present choices:
 **CRITICAL FIRST ACTION:** Read the frontmatter from `{outputFile}` to get document counts.
 
 ```
-Read documentCounts from gdd.md frontmatter:
+Read documentCounts from 游戏设计文档.md frontmatter:
 - briefCount = documentCounts.briefs
 - researchCount = documentCounts.research
 - brainstormingCount = documentCounts.brainstorming

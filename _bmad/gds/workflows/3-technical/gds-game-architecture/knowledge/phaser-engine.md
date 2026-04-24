@@ -1,6 +1,6 @@
 # Phaser Engine Architecture Knowledge
 
-## Overview
+## 概览
 
 Phaser is an open-source HTML5 game framework for making 2D browser games with JavaScript or TypeScript. It renders via WebGL (with Canvas fallback), supports Arcade and Matter.js physics, and is ideal for web-first games, game jams, and casual/mobile browser games.
 

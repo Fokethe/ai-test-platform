@@ -117,14 +117,14 @@ If all validations pass:
 
 - Update any remaining placeholders in the document
 - Ensure proper formatting
-- Save the final epics.md
+- Save the final 史诗与故事.md
 
 **Present Final Menu:**
 **All validations complete!** [C] Complete Workflow
 
 HALT — wait for user input before proceeding.
 
-When C is selected, the workflow is complete and the epics.md is ready for development.
+When C is selected, the workflow is complete and the 史诗与故事.md is ready for development.
 
 Epics and Stories complete. Invoke the `bmad-help` skill.
 

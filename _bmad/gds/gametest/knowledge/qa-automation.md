@@ -1,6 +1,6 @@
 # QA Automation for Games
 
-## Overview
+## 概览
 
 Automated testing in games requires different approaches than traditional software. Games have complex state, real-time interactions, and subjective quality measures that challenge automation.
 

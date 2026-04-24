@@ -6,7 +6,7 @@
 
 ---
 
-## Overview
+## 概览
 
 This integration enables bidirectional workflow between code and Figma for design system development and visual refinement.
 

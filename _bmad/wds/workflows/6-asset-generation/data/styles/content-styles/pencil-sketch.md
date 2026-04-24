@@ -1,6 +1,6 @@
 # Pencil Sketch
 
-## Overview
+## 概览
 Hand-drawn pencil or charcoal look — raw, authentic, in-progress feel.
 
 ## Rendering Characteristics

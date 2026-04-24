@@ -1,7 +1,7 @@
 ---
 name: 'step-01-validate'
 description: 'Validate workflow outputs against checklist'
-outputFile: '{test_artifacts}/atdd-validation-report.md'
+outputFile: '{test_artifacts}/ATDD校验报告.md'
 validationChecklist: '../checklist.md'
 ---
 

@@ -355,7 +355,7 @@ Week 4: Handoff Flow 3 → BMad builds Flow 3
 
 **Goal:** Get to testing as fast as possible
 
-**Approach:**
+**方式：**
 
 1. Design the most critical user flow first
 2. Example: Login & Onboarding (users must access app)
@@ -369,7 +369,7 @@ Week 4: Handoff Flow 3 → BMad builds Flow 3
 
 **Goal:** Deliver value incrementally
 
-**Approach:**
+**方式：**
 
 1. Each delivery adds new value
 2. Example: DD-001 (Login) → DD-002 (Core Feature) → DD-003 (Enhancement)
@@ -383,7 +383,7 @@ Week 4: Handoff Flow 3 → BMad builds Flow 3
 
 **Goal:** Maximize throughput
 
-**Approach:**
+**方式：**
 
 1. Designer designs Flow 2 while BMad builds Flow 1
 2. Designer designs Flow 3 while BMad builds Flow 2

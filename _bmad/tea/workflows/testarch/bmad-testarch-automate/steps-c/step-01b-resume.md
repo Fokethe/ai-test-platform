@@ -1,7 +1,7 @@
 ---
 name: 'step-01b-resume'
 description: 'Resume interrupted workflow from last completed step'
-outputFile: '{test_artifacts}/automation-summary.md'
+outputFile: '{test_artifacts}/自动化总结.md'
 ---
 
 # Step 1b: Resume Workflow

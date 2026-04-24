@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-07-patterns.md'
 nextStepFile: './step-08-validation.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Knowledge Bases
 patternCategories: '{workflow_path}/pattern-categories.csv'

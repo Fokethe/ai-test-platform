@@ -15,4 +15,4 @@
   - step-02-apply-edit.md
 
   ## Outputs
-  - {test_artifacts}/test-review.md
+  - {test_artifacts}/测试评审.md

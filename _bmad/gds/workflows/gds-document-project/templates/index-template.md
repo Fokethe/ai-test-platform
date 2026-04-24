@@ -60,7 +60,7 @@ This project consists of {{parts_count}} parts:
 
 {{#if is_single_part}}
 
-- [Architecture](./architecture.md) - Detailed technical architecture
+- [Architecture](./架构设计.md) - Detailed technical architecture
 - [Component Inventory](./component-inventory.md) - Catalog of major components{{#if has_ui_components}} and UI elements{{/if}}
 - [Development Guide](./development-guide.md) - Local setup and development workflow
   {{#if has_api_docs}}- [API Contracts](./api-contracts.md) - API endpoints and schemas{{/if}}
@@ -153,10 +153,10 @@ This documentation was generated specifically to enable AI agents to understand 
 ### When Planning New Features:
 
 **UI-only features:**
-{{#if is_multi_part}}→ Reference: `architecture-{{ui_part_id}}.md`, `component-inventory-{{ui_part_id}}.md`{{else}}→ Reference: `architecture.md`, `component-inventory.md`{{/if}}
+{{#if is_multi_part}}→ Reference: `architecture-{{ui_part_id}}.md`, `component-inventory-{{ui_part_id}}.md`{{else}}→ Reference: `架构设计.md`, `component-inventory.md`{{/if}}
 
 **API/Backend features:**
-{{#if is_multi_part}}→ Reference: `architecture-{{api_part_id}}.md`, `api-contracts-{{api_part_id}}.md`, `data-models-{{api_part_id}}.md`{{else}}→ Reference: `architecture.md`{{#if has_api_docs}}, `api-contracts.md`{{/if}}{{#if has_data_models}}, `data-models.md`{{/if}}{{/if}}
+{{#if is_multi_part}}→ Reference: `architecture-{{api_part_id}}.md`, `api-contracts-{{api_part_id}}.md`, `data-models-{{api_part_id}}.md`{{else}}→ Reference: `架构设计.md`{{#if has_api_docs}}, `api-contracts.md`{{/if}}{{#if has_data_models}}, `data-models.md`{{/if}}{{/if}}
 
 **Full-stack features:**
 → Reference: All architecture docs{{#if is_multi_part}} + `integration-architecture.md`{{/if}}

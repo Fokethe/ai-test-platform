@@ -3,7 +3,7 @@ name: 'step-01-load-context'
 description: 'Load NFR requirements, evidence sources, and knowledge base'
 nextStepFile: './step-02-define-thresholds.md'
 knowledgeIndex: '{project-root}/_bmad/tea/testarch/tea-index.csv'
-outputFile: '{test_artifacts}/nfr-assessment.md'
+outputFile: '{test_artifacts}/NFR评估.md'
 ---
 
 # Step 1: Load Context & Knowledge Base

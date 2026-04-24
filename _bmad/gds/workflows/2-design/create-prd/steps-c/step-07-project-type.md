@@ -4,7 +4,7 @@ description: 'Conduct project-type specific discovery using CSV-driven guidance'
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-08-scoping.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 
 # Data Files
 projectTypesCSV: '../data/project-types.csv'

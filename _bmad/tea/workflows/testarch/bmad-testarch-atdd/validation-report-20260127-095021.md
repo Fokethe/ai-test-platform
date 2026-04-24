@@ -51,7 +51,7 @@ completionDate: 2026-01-27 10:03:10
 
 ## Output Format Validation
 
-- Templates present: atdd-checklist-template.md
+- Templates present: ATDD检查清单-template.md
 - Steps with outputFile in frontmatter:
   - steps-c/step-04-generate-tests.md
   - steps-v/step-01-validate.md

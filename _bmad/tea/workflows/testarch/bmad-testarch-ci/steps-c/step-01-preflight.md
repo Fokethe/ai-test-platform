@@ -2,7 +2,7 @@
 name: 'step-01-preflight'
 description: 'Verify prerequisites and detect CI platform'
 nextStepFile: './step-02-generate-pipeline.md'
-outputFile: '{test_artifacts}/ci-pipeline-progress.md'
+outputFile: '{test_artifacts}/CI流水线进度.md'
 ---
 
 # Step 1: Preflight Checks

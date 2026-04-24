@@ -76,7 +76,7 @@ Load the complete PRD file and extract:
 
 Check if the PRD contains the following BMAD PRD core sections:
 
-1. **Executive Summary** (or variations: ## Executive Summary, ## Overview, ## Introduction)
+1. **Executive Summary** (or variations: ## Executive Summary, ## 概览, ## Introduction)
 2. **Success Criteria** (or: ## Success Criteria, ## Goals, ## Objectives)
 3. **Product Scope** (or: ## Product Scope, ## Scope, ## In Scope, ## Out of Scope)
 4. **User Journeys** (or: ## User Journeys, ## User Stories, ## User Flows)

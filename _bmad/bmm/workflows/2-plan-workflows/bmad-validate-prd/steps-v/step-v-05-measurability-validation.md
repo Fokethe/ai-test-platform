@@ -144,7 +144,7 @@ Append to validation report:
 ```markdown
 ## Measurability Validation
 
-### Functional Requirements
+### 功能需求
 
 **Total FRs Analyzed:** {count}
 
@@ -162,7 +162,7 @@ Append to validation report:
 
 **FR Violations Total:** {total}
 
-### Non-Functional Requirements
+### 非功能需求
 
 **Total NFRs Analyzed:** {count}
 

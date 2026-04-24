@@ -9,7 +9,7 @@ workflow_path: '{project-root}/_bmad/gds/workflows/3-technical/gds-game-architec
 thisStepFile: './step-05-crosscutting.md'
 nextStepFile: './step-06-structure.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-architecture.md'
+outputFile: '{output_folder}/游戏架构.md'
 
 # Task References
 advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'
@@ -225,7 +225,7 @@ These patterns apply to ALL systems and must be followed by every implementation
 
 ### Configuration
 
-**Approach:** {{config_approach}}
+**方式：** {{config_approach}}
 
 **Configuration Structure:**
 {{config_structure}}

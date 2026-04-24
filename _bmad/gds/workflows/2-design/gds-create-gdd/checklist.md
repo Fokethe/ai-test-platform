@@ -4,14 +4,14 @@
 
 **Scope**: All game project levels (0-4)
 
-**Expected Outputs**: GDD.md, epics.md
+**Expected Outputs**: GDD.md, 史诗与故事.md
 
 ---
 
 ## 1. Output Files Exist
 
 - [ ] GDD.md created in output folder
-- [ ] epics.md created in output folder (separate file)
+- [ ] 史诗与故事.md created in output folder (separate file)
 - [ ] bmm-workflow-status.md updated
 - [ ] No unfilled {{template_variables}}
 
@@ -61,7 +61,7 @@
 
 ---
 
-## 4. Story Quality (If epics.md exists)
+## 4. Story Quality (If 史诗与故事.md exists)
 
 ### Epic Structure
 
@@ -96,7 +96,7 @@
 
 ## 6. Narrative Integration (If Applicable)
 
-**If narrative-design.md was generated:**
+**If 叙事设计.md was generated:**
 
 - [ ] Narrative aligns with GDD game design
 - [ ] Story supports gameplay (not fighting it)
@@ -106,7 +106,7 @@
 
 ## 7. Consistency
 
-- [ ] Epic titles match between GDD.md and epics.md
+- [ ] Epic titles match between GDD.md and 史诗与故事.md
 - [ ] Game type identified and appropriate
 - [ ] Terminology consistent throughout
 - [ ] No contradictions between sections
@@ -127,7 +127,7 @@
 - [ ] ❌ **No core gameplay loop** (can't be a game without this)
 - [ ] ❌ **No game pillars** (game-defining elements missing)
 - [ ] ❌ **No mechanics** (what does player actually DO?)
-- [ ] ❌ **No epics.md file** (implementation roadmap required)
+- [ ] ❌ **No 史诗与故事.md file** (implementation roadmap required)
 - [ ] ❌ **Engine/tech in GDD** (should defer to solutioning workflow)
 
 ---

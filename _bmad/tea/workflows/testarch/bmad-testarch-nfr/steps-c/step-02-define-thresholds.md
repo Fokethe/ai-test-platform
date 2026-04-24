@@ -2,7 +2,7 @@
 name: 'step-02-define-thresholds'
 description: 'Identify NFR categories and thresholds'
 nextStepFile: './step-03-gather-evidence.md'
-outputFile: '{test_artifacts}/nfr-assessment.md'
+outputFile: '{test_artifacts}/NFR评估.md'
 ---
 
 # Step 2: Define NFR Categories & Thresholds

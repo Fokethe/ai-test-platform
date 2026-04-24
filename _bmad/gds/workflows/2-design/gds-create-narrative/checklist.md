@@ -4,13 +4,13 @@
 
 **Scope**: Story-driven games and applications (follows GDD workflow)
 
-**Expected Output**: narrative-design.md
+**Expected Output**: 叙事设计.md
 
 ---
 
 ## 1. Output File Exists
 
-- [ ] narrative-design.md created in output folder
+- [ ] 叙事设计.md created in output folder
 - [ ] GDD.md exists (narrative workflow requires GDD first)
 - [ ] No unfilled {{template_variables}}
 

@@ -26,7 +26,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 ### Paths
 
-- `default_output_file` = `{planning_artifacts}/sprint-change-proposal-{date}.md`
+- `default_output_file` = `{planning_artifacts}/迭代变更提案-{date}.md`
 
 ### Input Files
 
@@ -41,13 +41,13 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 ### Context
 
-- Load `**/project-context.md` if it exists
+- Load `**/项目上下文.md` if it exists
 
 ---
 
 ## EXECUTION
 
-### Document Discovery - Loading Project Artifacts
+### 文档发现 - Loading Project Artifacts
 
 **Strategy**: Course correction needs broad project context to assess change impact accurately. Load all available planning artifacts.
 
@@ -68,14 +68,14 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 3. **Selectively load sections** based on relevance to the change being analyzed — do NOT load everything, only sections that relate to the impacted areas
 4. **This document is optional** — skip if `{project_knowledge}` does not exist (greenfield projects)
 
-**Fuzzy matching**: Be flexible with document names — users may use variations like `prd.md`, `bmm-prd.md`, `product-requirements.md`, etc.
+**Fuzzy matching**: Be flexible with document names — users may use variations like `产品需求文档.md`, `bmm-prd.md`, `product-requirements.md`, etc.
 
 **Missing documents**: Not all documents may exist. PRD and Epics are essential; Architecture, UX Design, Tech Spec, and Document Project are loaded if available. HALT if PRD or Epics cannot be found.
 
 <workflow>
 
 <step n="1" goal="Initialize Change Navigation">
-  <action>Load **/project-context.md for coding standards and project-wide patterns (if exists)</action>
+  <action>Load **/项目上下文.md for coding standards and project-wide patterns (if exists)</action>
   <action>Confirm change trigger and gather user description of the issue</action>
   <action>Ask: "What specific issue or change has been identified that requires navigation?"</action>
   <action>Verify access to required project documents:</action>

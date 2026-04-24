@@ -68,7 +68,7 @@ Try to discover the following:
 - UX Design (`*ux-design*.md`) and other
 - Research Documents (`*research*.md`)
 - Project Documentation (generally multiple documents might be found for this in the `{project_knowledge}` or `{project-root}/docs` folder.)
-- Project Context (`**/project-context.md`)
+- Project Context (`**/项目上下文.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>
 
@@ -95,7 +95,7 @@ Before proceeding, verify we have the essential inputs:
 
 #### C. Create Initial Document
 
-Copy the template from `../architecture-decision-template.md` to `{planning_artifacts}/architecture.md`
+Copy the template from `../architecture-decision-template.md` to `{planning_artifacts}/架构设计.md`
 
 #### D. Complete Initialization and Report
 
@@ -103,7 +103,7 @@ Complete setup and report to user:
 
 **Document Setup:**
 
-- Created: `{planning_artifacts}/architecture.md` from template
+- Created: `{planning_artifacts}/架构设计.md` from template
 - Initialized frontmatter with workflow state
 
 **Input Documents Discovered:**

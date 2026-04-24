@@ -1,7 +1,7 @@
 ---
 name: 'step-01-preflight-and-context'
 description: 'Determine mode, verify framework, and load context and knowledge'
-outputFile: '{test_artifacts}/automation-summary.md'
+outputFile: '{test_artifacts}/自动化总结.md'
 nextStepFile: './step-02-identify-targets.md'
 knowledgeIndex: '{project-root}/_bmad/tea/testarch/tea-index.csv'
 ---

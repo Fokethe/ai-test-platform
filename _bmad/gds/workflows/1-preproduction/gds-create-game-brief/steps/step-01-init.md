@@ -10,7 +10,7 @@ thisStepFile: './step-01-init.md'
 nextStepFile: './step-02-vision.md'
 continueStepFile: './step-01b-continue.md'
 workflowFile: '{workflow_path}/workflow.md'
-outputFile: '{output_folder}/game-brief.md'
+outputFile: '{output_folder}/游戏简报.md'
 
 # Template References
 briefTemplate: '{workflow_path}/templates/game-brief-template.md'

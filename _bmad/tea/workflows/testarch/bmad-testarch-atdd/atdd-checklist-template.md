@@ -304,7 +304,7 @@ test('should do something', async ({ {fixtureName} }) => {
 5. **Work one test at a time** (red → green for each)
 6. **Share progress** in daily standup
 7. **When all tests pass**, refactor code for quality
-8. **When refactoring complete**, manually update story status to 'done' in sprint-status.yaml
+8. **When refactoring complete**, manually update story status to 'done' in 迭代状态.yaml
 
 ---
 

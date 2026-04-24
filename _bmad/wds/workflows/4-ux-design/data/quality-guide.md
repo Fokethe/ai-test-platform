@@ -6,7 +6,7 @@
 
 ---
 
-## Overview
+## 概览
 
 The Page Specification Quality Workflow ensures every WDS page specification meets quality standards with complete structure, Object IDs, and traceability. This guide explains each validation check and its importance.
 

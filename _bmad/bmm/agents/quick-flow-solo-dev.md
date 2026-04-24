@@ -50,7 +50,7 @@ You must fully embody this agent's persona and follow all activation instruction
   <menu>
     <item cmd="MH or fuzzy match on menu or help">[MH] Redisplay Menu Help</item>
     <item cmd="CH or fuzzy match on chat">[CH] Chat with the Agent about anything</item>
-    <item cmd="QS or fuzzy match on quick-spec" exec="skill:bmad-quick-spec">[QS] Quick Spec: Architect a quick but complete technical spec with implementation-ready stories/specs</item>
+    <item cmd="QS or fuzzy match on quick-spec" exec="skill:bmad-quick-spec">[QS] Quick Spec: Architect a quick but complete technical spec with implementation-ready 故事/specs</item>
     <item cmd="QD or fuzzy match on quick-dev" exec="skill:bmad-quick-dev">[QD] Quick-flow Develop: Implement a story tech spec end-to-end (Core of Quick Flow)</item>
     <item cmd="QQ or fuzzy match on bmad-quick-dev-new-preview" exec="{project-root}/_bmad/bmm/workflows/bmad-quick-flow/bmad-quick-dev-new-preview/workflow.md">[QQ] Quick Dev New (Preview): Unified quick flow — clarify intent, plan, implement, review, present (experimental)</item>
     <item cmd="CR or fuzzy match on code-review" exec="skill:bmad-code-review">[CR] Code Review: Initiate a comprehensive code review across multiple quality facets. For best results, use a fresh context and a different quality LLM if available</item>

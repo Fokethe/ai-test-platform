@@ -4,7 +4,7 @@ description: 'Explore domain-specific requirements for complex domains (optional
 
 # File References
 nextStepFile: '{project-root}/_bmad/gds/workflows/2-design/create-prd/steps-c/step-06-innovation.md'
-outputFile: '{planning_artifacts}/prd.md'
+outputFile: '{planning_artifacts}/产品需求文档.md'
 domainComplexityCSV: '{project-root}/_bmad/gds/workflows/2-design/create-prd/data/domain-complexity.csv'
 
 # Task References

@@ -5,16 +5,16 @@ date: '{{date}}'
 sections_completed: []
 ---
 
-# Project Context for AI Agents
+# AI 智能体项目上下文
 
 _This file contains critical rules and patterns that AI agents must follow when implementing game code in this project. Focus on unobvious details that agents might otherwise miss._
 
 ---
 
-## Technology Stack & Versions
+## 技术栈与版本
 
 _Documented after discovery phase_
 
-## Critical Implementation Rules
+## 关键实现规则
 
 _Documented after discovery phase_

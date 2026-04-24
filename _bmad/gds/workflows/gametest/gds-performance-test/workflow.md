@@ -48,7 +48,7 @@ Load config from `{project-root}/_bmad/gds/config.yaml` and resolve:
 - `installed_path` = `{project-root}/_bmad/gds/workflows/gametest/gds-performance-test`
 - `validation` = `{installed_path}/checklist.md`
 - `template` = `{installed_path}/performance-template.md`
-- `default_output_file` = `{output_folder}/performance-test-plan.md`
+- `default_output_file` = `{output_folder}/性能测试计划.md`
 
 ### Variables
 

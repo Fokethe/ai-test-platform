@@ -1,6 +1,6 @@
 # Hyper-realistic
 
-## Overview
+## 概览
 Beyond photography — extreme detail, perfect lighting, idealized reality.
 
 ## Rendering Characteristics

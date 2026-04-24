@@ -5,7 +5,7 @@ description: {skill-description} # Format: [4-6 word summary]. [trigger: "User w
 
 # {displayName}
 
-## Overview
+## 概览
 
 {overview-template}
 

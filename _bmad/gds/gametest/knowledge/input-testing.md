@@ -1,6 +1,6 @@
 # Input Testing Guide
 
-## Overview
+## 概览
 
 Input testing validates that all supported input devices work correctly across platforms. Poor input handling frustrates players instantly—responsive, accurate input is foundational to game feel.
 

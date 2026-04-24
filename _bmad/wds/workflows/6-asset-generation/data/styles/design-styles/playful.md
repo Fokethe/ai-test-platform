@@ -1,6 +1,6 @@
 # Playful
 
-## Overview
+## 概览
 Fun, energetic design with bold colors, rounded shapes, and a sense of joy.
 
 ## Visual Characteristics

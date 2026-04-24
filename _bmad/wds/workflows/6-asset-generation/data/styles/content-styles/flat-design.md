@@ -1,6 +1,6 @@
 # Flat Design
 
-## Overview
+## 概览
 No gradients, shadows, or 3D effects — pure shapes, clean colors, geometric simplicity.
 
 ## Rendering Characteristics
